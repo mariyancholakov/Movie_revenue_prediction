@@ -1,0 +1,17 @@
+# Python
+flask-api/venv/
+flask-api/__pycache__/
+flask-api/**/__pycache__/
+flask-api/.env
+flask-api/models/*.pkl
+flask-api/data/*.csv
+
+# Next.js
+nextjs-app/.next/
+nextjs-app/node_modules/
+nextjs-app/.env.local
+nextjs-app/.env
+
+# General
+.DS_Store
+*.log
