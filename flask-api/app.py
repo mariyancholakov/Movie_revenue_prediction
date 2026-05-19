@@ -7,7 +7,7 @@ from scraper import get_now_playing, get_movie_details, get_opening_weekend, get
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:3000"])
 
 model = joblib.load('models/box_office_model_final.pkl')
 feature_columns = joblib.load('models/feature_columns_final.pkl')
