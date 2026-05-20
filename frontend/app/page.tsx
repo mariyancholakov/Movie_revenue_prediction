@@ -67,28 +67,35 @@ export default function Home() {
   return (
     <main style={{
       minHeight: '100vh',
-      background: '#0a0a0f',
-      color: '#e8e0d0',
+      background: '#040C09',
+      color: '#DCF4E9',
       fontFamily: 'var(--font-dm-sans), sans-serif',
       padding: '0',
     }}>
       {/* Header */}
       <header style={{
-        borderBottom: '1px solid #1e1e2e',
+        borderBottom: '1px solid rgba(40, 220, 136, 0.1)',
         padding: '2rem 4rem',
         display: 'flex',
         alignItems: 'baseline',
         gap: '1rem',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'rgba(4, 12, 9, 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       }}>
         <h1 style={{
           fontFamily: 'var(--font-playfair), serif',
           fontSize: '2rem',
           fontWeight: 900,
-          color: '#f5c842',
+          color: '#28DC88',
           margin: 0,
           letterSpacing: '-0.02em',
+          textShadow: '0 0 40px rgba(40, 220, 136, 0.28)',
         }}>BOXCAST</h1>
-        <span style={{ color: '#444', fontSize: '0.85rem', letterSpacing: '0.15em' }}>
+        <span style={{ color: 'rgba(220, 244, 233, 0.28)', fontSize: '0.75rem', letterSpacing: '0.22em', fontWeight: 500 }}>
           BOX OFFICE PREDICTOR
         </span>
       </header>
@@ -99,11 +106,11 @@ export default function Home() {
         <section style={{
           width: selected ? '420px' : '100%',
           padding: '3rem 4rem',
-          transition: 'width 0.4s ease',
+          transition: 'width 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
           overflowY: 'auto',
-          borderRight: selected ? '1px solid #1e1e2e' : 'none',
+          borderRight: selected ? '1px solid rgba(40, 220, 136, 0.08)' : 'none',
         }}>
-          <p style={{ color: '#555', fontSize: '0.8rem', letterSpacing: '0.2em', marginBottom: '2rem' }}>
+          <p style={{ color: 'rgba(220, 244, 233, 0.28)', fontSize: '0.72rem', letterSpacing: '0.22em', marginBottom: '2rem', fontWeight: 600 }}>
             NOW IN THEATERS — {movies.length} FILMS
           </p>
           <div style={{
@@ -112,17 +119,24 @@ export default function Home() {
             gap: '1rem',
             transition: 'all 0.4s ease',
           }}>
-            {movies.map(movie => (
+            {movies.length === 0 && Array.from({ length: 12 }).map((_, i) => (
+              <div key={`sk-${i}`} className="skeleton-card" />
+            ))}
+            {movies.map((movie, index) => (
               <div
                 key={movie.tmdb_id}
                 onClick={() => handleSelect(movie)}
+                className="movie-card"
                 style={{
-                  cursor: 'pointer',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   overflow: 'hidden',
-                  border: selected?.tmdb_id === movie.tmdb_id ? '2px solid #f5c842' : '2px solid transparent',
-                  transition: 'all 0.2s ease',
+                  border: selected?.tmdb_id === movie.tmdb_id ? '2px solid #28DC88' : '2px solid transparent',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
                   position: 'relative',
+                  animationDelay: `${index * 0.04}s`,
+                  boxShadow: selected?.tmdb_id === movie.tmdb_id
+                    ? '0 0 0 4px rgba(80, 38, 123, 0.35), 0 8px 28px rgba(40, 220, 136, 0.18)'
+                    : 'none',
                 }}
               >
                 <img
@@ -135,10 +149,10 @@ export default function Home() {
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  background: 'linear-gradient(transparent, rgba(0,0,0,0.9))',
+                  background: 'linear-gradient(transparent, rgba(4, 12, 9, 0.96))',
                   padding: '2rem 0.75rem 0.75rem',
                 }}>
-                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 500, lineHeight: 1.3 }}>
+                  <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 500, lineHeight: 1.3, color: '#DCF4E9' }}>
                     {movie.title}
                   </p>
                 </div>
@@ -149,17 +163,25 @@ export default function Home() {
 
         {/* Detail Panel */}
         {selected && (
-          <section style={{
-            flex: 1,
-            padding: '3rem 4rem',
-            overflowY: 'auto',
-          }}>
+          <section
+            className="detail-panel"
+            style={{
+              flex: 1,
+              padding: '3rem 4rem',
+              overflowY: 'auto',
+              background: 'linear-gradient(160deg, rgba(80, 38, 123, 0.04) 0%, transparent 40%)',
+            }}
+          >
             <button
               onClick={() => { setSelected(null); setPrediction(null); }}
               style={{
-                background: 'none', border: 'none', color: '#555',
-                cursor: 'pointer', fontSize: '0.8rem', letterSpacing: '0.1em',
+                background: 'none', border: 'none',
+                color: 'rgba(220, 244, 233, 0.32)',
+                cursor: 'pointer', fontSize: '0.75rem', letterSpacing: '0.15em',
                 marginBottom: '2rem', padding: 0,
+                fontFamily: 'var(--font-dm-sans), sans-serif',
+                fontWeight: 500,
+                transition: 'color 0.2s',
               }}
             >
               ← BACK
@@ -169,7 +191,12 @@ export default function Home() {
               <img
                 src={selected.poster}
                 alt={selected.title}
-                style={{ width: '140px', borderRadius: '4px', flexShrink: 0 }}
+                style={{
+                  width: '140px',
+                  borderRadius: '6px',
+                  flexShrink: 0,
+                  boxShadow: '0 8px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(40, 220, 136, 0.1)',
+                }}
               />
               <div>
                 <h2 style={{
@@ -178,11 +205,12 @@ export default function Home() {
                   fontWeight: 700,
                   margin: '0 0 0.5rem',
                   lineHeight: 1.2,
+                  color: '#DCF4E9',
                 }}>{selected.title}</h2>
-                <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>
+                <p style={{ color: 'rgba(220, 244, 233, 0.32)', fontSize: '0.8rem', margin: '0 0 1.5rem', letterSpacing: '0.1em' }}>
                   {selected.release_date}
                 </p>
-                <p style={{ color: '#999', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+                <p style={{ color: 'rgba(220, 244, 233, 0.52)', fontSize: '0.9rem', lineHeight: 1.7, margin: 0 }}>
                   {selected.overview}
                 </p>
               </div>
@@ -192,17 +220,19 @@ export default function Home() {
               <button
                 onClick={handlePredict}
                 disabled={predicting}
+                className={predicting ? undefined : 'predict-btn'}
                 style={{
-                  background: predicting ? '#333' : '#f5c842',
-                  color: predicting ? '#666' : '#0a0a0f',
-                  border: 'none',
+                  background: predicting ? 'transparent' : '#28DC88',
+                  color: predicting ? 'rgba(220, 244, 233, 0.32)' : '#040C09',
+                  border: predicting ? '1px solid rgba(220, 244, 233, 0.1)' : '1px solid transparent',
                   padding: '1rem 2.5rem',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  letterSpacing: '0.15em',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.16em',
                   cursor: predicting ? 'not-allowed' : 'pointer',
-                  borderRadius: '2px',
-                  transition: 'all 0.2s',
+                  borderRadius: '3px',
+                  transition: 'background 0.2s, color 0.2s',
+                  fontFamily: 'var(--font-dm-sans), sans-serif',
                 }}
               >
                 {predicting ? 'ANALYZING...' : 'PREDICT TOTAL GROSS →'}
@@ -216,29 +246,32 @@ export default function Home() {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
                   gap: '1px',
-                  background: '#1e1e2e',
+                  background: 'rgba(40, 220, 136, 0.07)',
                   marginBottom: '3rem',
-                  border: '1px solid #1e1e2e',
+                  border: '1px solid rgba(40, 220, 136, 0.07)',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
                 }}>
                   {[
-                    { label: 'OPENING WEEKEND', value: fmt(prediction.opening_weekend) },
-                    { label: 'PREDICTED TOTAL', value: fmt(prediction.predicted_revenue), highlight: true },
-                    { label: 'DECAY RATE λ', value: prediction.decay_curve?.decay_rate ?? 'N/A' },
+                    { label: 'OPENING WEEKEND', value: fmt(prediction.opening_weekend), accent: false, highlight: false },
+                    { label: 'PREDICTED TOTAL', value: fmt(prediction.predicted_revenue), highlight: true, accent: false },
+                    { label: 'DECAY RATE λ', value: prediction.decay_curve?.decay_rate ?? 'N/A', accent: true, highlight: false },
                   ].map(stat => (
                     <div key={stat.label} style={{
-                      background: '#0a0a0f',
-                      padding: '1.5rem',
+                      background: stat.highlight ? 'rgba(40, 220, 136, 0.07)' : '#050E0A',
+                      padding: '1.75rem 1.25rem',
                       textAlign: 'center',
                     }}>
-                      <p style={{ margin: '0 0 0.5rem', fontSize: '0.7rem', color: '#555', letterSpacing: '0.15em' }}>
+                      <p style={{ margin: '0 0 0.6rem', fontSize: '0.65rem', color: 'rgba(220, 244, 233, 0.32)', letterSpacing: '0.2em', fontWeight: 600 }}>
                         {stat.label}
                       </p>
                       <p style={{
                         margin: 0,
-                        fontSize: '1.5rem',
+                        fontSize: '1.55rem',
                         fontFamily: 'var(--font-playfair), serif',
-                        color: stat.highlight ? '#f5c842' : '#e8e0d0',
+                        color: stat.highlight ? '#28DC88' : stat.accent ? '#DC287C' : '#DCF4E9',
                         fontWeight: 700,
+                        textShadow: stat.highlight ? '0 0 24px rgba(40, 220, 136, 0.3)' : stat.accent ? '0 0 20px rgba(220, 40, 124, 0.25)' : 'none',
                       }}>
                         {stat.value}
                       </p>
@@ -249,7 +282,7 @@ export default function Home() {
                 {/* Decay Curve */}
                 {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
                   <div>
-                    <p style={{ color: '#555', fontSize: '0.75rem', letterSpacing: '0.2em', marginBottom: '1.5rem' }}>
+                    <p style={{ color: 'rgba(220, 244, 233, 0.28)', fontSize: '0.72rem', letterSpacing: '0.22em', marginBottom: '1.5rem', fontWeight: 600 }}>
                       WEEKEND GROSS DECAY
                     </p>
                     <DecayCurve data={prediction.decay_curve} />
@@ -257,7 +290,7 @@ export default function Home() {
                 )}
 
                 {prediction.decay_curve && prediction.decay_curve.weeks.length <= 2 && (
-                  <p style={{ color: '#444', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                  <p style={{ color: 'rgba(220, 244, 233, 0.25)', fontSize: '0.85rem', fontStyle: 'italic' }}>
                     Not enough weekly data yet — check back after a few more weekends.
                   </p>
                 )}
@@ -265,7 +298,7 @@ export default function Home() {
             )}
 
             {prediction?.error && (
-              <p style={{ color: '#c0392b', fontSize: '0.9rem' }}>
+              <p style={{ color: '#DC287C', fontSize: '0.9rem' }}>
                 Could not fetch data for this movie. It may not have box office data yet.
               </p>
             )}
@@ -288,8 +321,8 @@ function DecayCurve({ data }: DecayCurveProps) {
   if (maxGross === 0 || maxWeek === 0) return null;
 
   const width = 600;
-  const height = 280;
-  const pad = { top: 20, right: 20, bottom: 40, left: 60 };
+  const height = 300;
+  const pad = { top: 40, right: 24, bottom: 52, left: 68 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
 
@@ -302,12 +335,29 @@ function DecayCurve({ data }: DecayCurveProps) {
 
   return (
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <defs>
+        <linearGradient id="decay-bar-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#28DC88" stopOpacity="0.9" />
+          <stop offset="100%" stopColor="#28DC88" stopOpacity="0.3" />
+        </linearGradient>
+      </defs>
+
       <g transform={`translate(${pad.left},${pad.top})`}>
+
+        {/* Legend */}
+        <g transform={`translate(${innerW - 148}, -32)`}>
+          <rect x={0} y={2} width={11} height={11} fill="url(#decay-bar-grad)" rx={2} />
+          <text x={17} y={12} fill="rgba(220,244,233,0.4)" fontSize={10} fontFamily="var(--font-dm-sans), sans-serif">Actual Gross</text>
+          <line x1={100} y1={7} x2={118} y2={7} stroke="#DC287C" strokeWidth={2} strokeDasharray="4 2" />
+          <text x={124} y={12} fill="rgba(220,244,233,0.4)" fontSize={10} fontFamily="var(--font-dm-sans), sans-serif">Fitted</text>
+        </g>
+
+        {/* Grid lines */}
         {[0.25, 0.5, 0.75, 1].map(t => (
           <line key={t}
             x1={0} y1={yScale(maxGross * t)}
             x2={innerW} y2={yScale(maxGross * t)}
-            stroke="#1e1e2e" strokeWidth={1}
+            stroke="rgba(220,244,233,0.05)" strokeWidth={1}
           />
         ))}
 
@@ -320,28 +370,54 @@ function DecayCurve({ data }: DecayCurveProps) {
               y={yScale(actual_gross[i])}
               width={barW}
               height={innerH - yScale(actual_gross[i])}
-              fill="#f5c842"
-              opacity={0.7}
+              fill="url(#decay-bar-grad)"
+              rx={3}
             />
           );
         })}
 
-        <path d={fittedPath} fill="none" stroke="#f5c842" strokeWidth={2} opacity={0.4} strokeDasharray="4 2" />
+        {/* Fitted curve — accent pink */}
+        <path d={fittedPath} fill="none" stroke="#DC287C" strokeWidth={2.5} strokeDasharray="5 3" strokeLinecap="round" />
 
-        <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="#333" />
+        {/* Axes */}
+        <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="rgba(220,244,233,0.14)" />
+        <line x1={0} y1={0} x2={0} y2={innerH} stroke="rgba(220,244,233,0.14)" />
+
+        {/* X ticks */}
         {weeks.map(w => (
-          <text key={w} x={xScale(w)} y={innerH + 18}
-            textAnchor="middle" fill="#555" fontSize={11}>
+          <text key={w} x={xScale(w)} y={innerH + 20}
+            textAnchor="middle" fill="rgba(220,244,233,0.32)" fontSize={10} fontFamily="var(--font-dm-sans), sans-serif">
             Wk {w + 1}
           </text>
         ))}
 
+        {/* X axis label */}
+        <text x={innerW / 2} y={innerH + 42} textAnchor="middle" fill="rgba(220,244,233,0.18)" fontSize={9} letterSpacing="0.15em" fontFamily="var(--font-dm-sans), sans-serif">
+          WEEK
+        </text>
+
+        {/* Y ticks */}
         {[0, 0.5, 1].map(t => (
-          <text key={t} x={-8} y={yScale(maxGross * t) + 4}
-            textAnchor="end" fill="#555" fontSize={11}>
+          <text key={t} x={-10} y={yScale(maxGross * t) + 4}
+            textAnchor="end" fill="rgba(220,244,233,0.32)" fontSize={10} fontFamily="var(--font-dm-sans), sans-serif">
             ${(maxGross * t / 1e6).toFixed(0)}M
           </text>
         ))}
+
+        {/* Y axis label */}
+        <text
+          x={-50}
+          y={innerH / 2}
+          textAnchor="middle"
+          fill="rgba(220,244,233,0.18)"
+          fontSize={9}
+          letterSpacing="0.15em"
+          fontFamily="var(--font-dm-sans), sans-serif"
+          transform={`rotate(-90 -50 ${innerH / 2})`}
+        >
+          GROSS ($M)
+        </text>
+
       </g>
     </svg>
   );

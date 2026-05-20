@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+/* Grain / noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23grain)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 192px 192px;
+}
+
+/* Slim green-tinted scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(40, 220, 136, 0.22);
+  border-radius: 2px;
+}
+
+/* ─── Keyframes ───────────────────────────────────────────────────────────── */
+
+@keyframes cardFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes panelSlideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes predictPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(40, 220, 136, 0.45); }
+  50%       { box-shadow: 0 0 32px 6px rgba(40, 220, 136, 0.1); }
+}
+
+@keyframes skeletonShimmer {
+  0%   { background-position: -700px 0; }
+  100% { background-position:  700px 0; }
+}
+
+/* ─── Component classes ───────────────────────────────────────────────────── */
+
+/* Card staggered fade-in */
+.movie-card {
+  animation-name: cardFadeUp;
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  cursor: pointer;
+}
+
+.movie-card:hover {
+  transform: scale(1.04) translateY(-4px) !important;
+  box-shadow: 0 14px 40px rgba(40, 220, 136, 0.22),
+              0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Detail panel slide-in */
+.detail-panel {
+  animation: panelSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Predict button pulse + hover lift */
+.predict-btn {
+  animation: predictPulse 2.8s ease-in-out infinite;
+}
+
+.predict-btn:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 28px rgba(40, 220, 136, 0.38) !important;
+  animation-play-state: paused;
+}
+
+/* Loading skeleton shimmer */
+.skeleton-card {
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    #070f0b 0%,
+    #0d1f16 40%,
+    #14291e 50%,
+    #0d1f16 60%,
+    #070f0b 100%
+  );
+  background-size: 1400px 100%;
+  animation: skeletonShimmer 1.7s ease-in-out infinite;
+}
