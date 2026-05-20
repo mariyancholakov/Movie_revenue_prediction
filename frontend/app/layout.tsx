@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Playfair_Display } from "next/font/google";
+import { BackgroundThreads } from "@/components/BackgroundThreads";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -30,7 +31,10 @@ export default function RootLayout({
       lang="en"
       className={`${spaceGrotesk.variable} ${playfair.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <BackgroundThreads />
+        {children}
+      </body>
     </html>
   );
 }

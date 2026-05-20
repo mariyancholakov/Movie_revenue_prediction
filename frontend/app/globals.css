@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Base background so transparent <main> still shows dark */
+html, body {
+  background: #040C09;
+}
+
 /* Grain / noise texture overlay */
 body::before {
   content: '';
@@ -21,6 +26,37 @@ body::before {
   border-radius: 2px;
 }
 
+/* ─── Background threads ─────────────────────────────────────────────────── */
+
+.thread {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes threadFloat1 {
+  0%, 100% { transform: translate(0px, 0px); }
+  40%       { transform: translate(5px, -12px); }
+  70%       { transform: translate(-3px, 6px); }
+}
+@keyframes threadFloat2 {
+  0%, 100% { transform: translate(0px, 0px); }
+  35%       { transform: translate(-6px, 10px); }
+  65%       { transform: translate(4px, -8px); }
+}
+@keyframes threadFloat3 {
+  0%, 100% { transform: translate(0px, 0px); }
+  50%       { transform: translate(8px, -15px); }
+}
+
+.thread-1 { animation: threadFloat1 12s ease-in-out infinite; }
+.thread-2 { animation: threadFloat2 9s ease-in-out 1.5s infinite; }
+.thread-3 { animation: threadFloat3 14s ease-in-out 0.8s infinite; }
+.thread-4 { animation: threadFloat1 10s ease-in-out 2s infinite reverse; }
+.thread-5 { animation: threadFloat2 13s ease-in-out 0.4s infinite; }
+.thread-6 { animation: threadFloat3 11s ease-in-out 1s infinite reverse; }
+.thread-7 { animation: threadFloat1 15s ease-in-out 2.5s infinite; }
+.thread-8 { animation: threadFloat2 8s ease-in-out 0s infinite reverse; }
+
 /* ─── Keyframes ───────────────────────────────────────────────────────────── */
 
 @keyframes cardFadeUp {
@@ -38,9 +74,23 @@ body::before {
   50%       { box-shadow: 0 0 32px 6px rgba(40, 220, 136, 0.1); }
 }
 
+@keyframes waveBeat {
+  0%, 100% { transform: scaleY(0.15); opacity: 0.45; }
+  50%       { transform: scaleY(1);    opacity: 1; }
+}
+
 @keyframes skeletonShimmer {
   0%   { background-position: -700px 0; }
   100% { background-position:  700px 0; }
+}
+
+@keyframes spinArc {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulseRing {
+  0%   { transform: scale(1);   opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
 }
 
 /* ─── Component classes ───────────────────────────────────────────────────── */
@@ -142,6 +192,24 @@ body::before {
   background: rgba(40, 220, 136, 0.12);
   border-color: #28DC88;
   color: #28DC88;
+}
+
+/* Predict wave loader */
+.wave-bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+}
+
+.wave-bar {
+  width: 3px;
+  height: 28px;
+  background: #28DC88;
+  border-radius: 2px;
+  transform-origin: center;
+  transform: scaleY(0.15);
+  animation: waveBeat 0.9s ease-in-out infinite;
 }
 
 /* Loading skeleton shimmer */
