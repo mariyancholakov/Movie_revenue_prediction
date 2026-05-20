@@ -77,6 +77,73 @@ body::before {
   animation-play-state: paused;
 }
 
+/* ─── Search bar ─────────────────────────────────────────────────────────── */
+
+.search-input {
+  width: 100%;
+  background: rgba(220, 244, 233, 0.04);
+  border: 1px solid rgba(40, 220, 136, 0.12);
+  border-radius: 4px;
+  color: #DCF4E9;
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 0.85rem;
+  padding: 0.65rem 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: rgba(40, 220, 136, 0.45);
+  box-shadow: 0 0 0 3px rgba(40, 220, 136, 0.07);
+}
+
+.search-input::placeholder {
+  color: rgba(220, 244, 233, 0.22);
+}
+
+.search-clear {
+  background: none;
+  border: none;
+  color: rgba(220, 244, 233, 0.35);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 0.2rem;
+  transition: color 0.15s ease;
+}
+
+.search-clear:hover {
+  color: rgba(220, 244, 233, 0.75);
+}
+
+/* ─── Genre filter pills ─────────────────────────────────────────────────── */
+
+.genre-pill {
+  background: transparent;
+  border: 1px solid rgba(220, 244, 233, 0.13);
+  border-radius: 100px;
+  color: rgba(220, 244, 233, 0.45);
+  cursor: pointer;
+  font-family: var(--font-dm-sans), sans-serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 0.3rem 0.8rem;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  white-space: nowrap;
+}
+
+.genre-pill:hover {
+  border-color: rgba(40, 220, 136, 0.35);
+  color: rgba(220, 244, 233, 0.8);
+}
+
+.genre-pill.active {
+  background: rgba(40, 220, 136, 0.12);
+  border-color: #28DC88;
+  color: #28DC88;
+}
+
 /* Loading skeleton shimmer */
 .skeleton-card {
   aspect-ratio: 2 / 3;
