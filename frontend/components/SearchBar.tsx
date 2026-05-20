@@ -22,28 +22,22 @@ export function SearchBar({
   const isFiltering = query.trim() !== '' || activeGenres.length > 0;
 
   return (
-    <div style={{ marginBottom: '1.75rem' }}>
-      {/* Search input row */}
-      <div style={{ position: 'relative', marginBottom: '0.85rem' }}>
+    <div className="mb-7">
+      {/* Search input */}
+      <div className="relative mb-[0.85rem]">
         <input
           type="text"
-          placeholder="Search films..."
+          placeholder="Search movies..."
           value={query}
           onChange={e => onQueryChange(e.target.value)}
-          className="search-input"
+          className="w-full bg-cream/4 border rounded-md border-green/30 text-cream font-sans text-[0.85rem] py-[0.65rem] transition-[border-color,box-shadow] duration-200 placeholder:text-cream/40 focus:outline-none focus:border-green/80 px-4 focus:ring-[3px] focus:ring-green/7"
           style={{ paddingRight: query ? '2.5rem' : '1rem' }}
         />
         {query && (
           <button
             onClick={() => onQueryChange('')}
-            className="search-clear"
             aria-label="Clear search"
-            style={{
-              position: 'absolute',
-              right: '0.75rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 text-cream/35 cursor-pointer text-[1.1rem] leading-none px-[0.2rem] py-0 transition-colors duration-150 hover:text-cream/75"
           >
             ×
           </button>
@@ -52,15 +46,14 @@ export function SearchBar({
 
       {/* Genre pills */}
       {allGenres.length > 0 && (
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.4rem',
-          alignItems: 'center',
-        }}>
+        <div className="flex flex-wrap gap-[0.4rem] items-center">
           <button
             onClick={onClearGenres}
-            className={`genre-pill${activeGenres.length === 0 ? ' active' : ''}`}
+            className={`rounded-full cursor-pointer font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
+              activeGenres.length === 0
+                ? 'bg-pink/10 border-pink text-pink'
+                : 'bg-transparent border-purple/60 text-cream/75 hover:border-purple/80 hover:text-cream'
+            }`}
           >
             ALL
           </button>
@@ -68,7 +61,11 @@ export function SearchBar({
             <button
               key={genre}
               onClick={() => onToggleGenre(genre)}
-              className={`genre-pill${activeGenres.includes(genre) ? ' active' : ''}`}
+              className={`rounded-full cursor-pointer font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
+                activeGenres.includes(genre)
+                  ? 'bg-pink/10 border-pink text-pink'
+                  : 'bg-transparent border-purple/60 text-cream/75 hover:border-purple/80 hover:text-cream'
+              }`}
             >
               {genre.toUpperCase()}
             </button>
@@ -76,15 +73,11 @@ export function SearchBar({
         </div>
       )}
 
-      {/* Live result count — only shown while filtering */}
+      {/* Live result count */}
       {isFiltering && (
-        <p style={{
-          margin: '0.75rem 0 0',
-          fontSize: '0.68rem',
-          color: resultCount === 0 ? 'rgba(220, 40, 124, 0.6)' : 'rgba(220, 244, 233, 0.28)',
-          letterSpacing: '0.18em',
-          fontWeight: 600,
-        }}>
+        <p className={`mt-3 mb-0 text-[0.68rem] tracking-[0.18em] font-semibold ${
+          resultCount === 0 ? 'text-pink/60' : 'text-cream/28'
+        }`}>
           {resultCount === 0
             ? 'NO RESULTS'
             : `${resultCount} OF ${totalCount} FILMS`}

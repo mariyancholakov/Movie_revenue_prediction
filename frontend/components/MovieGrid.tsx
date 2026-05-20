@@ -29,11 +29,7 @@ export function MovieGrid({
   const hasNoResults = !loading && filteredMovies.length === 0;
 
   return (
-    <section style={{
-      width: '100%',
-      padding: '3rem 4rem',
-      overflowY: 'auto',
-    }}>
+    <section className="w-full px-16 py-12 overflow-y-auto">
       <SearchBar
         query={query}
         onQueryChange={onQueryChange}
@@ -46,16 +42,12 @@ export function MovieGrid({
       />
 
       {!isFiltering && (
-        <p style={{ color: 'rgba(220, 244, 233, 0.28)', fontSize: '0.72rem', letterSpacing: '0.22em', marginBottom: '2rem', fontWeight: 600 }}>
-          {loading ? 'LOADING...' : `NOW IN THEATERS — ${totalCount} FILMS`}
+        <p className="text-cream/50 text-[0.72rem] tracking-[0.22em] mb-8 font-medium">
+          {loading ? 'LOADING...' : `THE ${totalCount} NEWEST MOVIES IN THEATHERS`}
         </p>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-        gap: '1rem',
-      }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
         {loading && Array.from({ length: 12 }).map((_, i) => (
           <div key={`sk-${i}`} className="skeleton-card" />
         ))}
@@ -64,32 +56,19 @@ export function MovieGrid({
           <Link
             key={movie.tmdb_id}
             href={`/movie/${movie.tmdb_id}`}
-            style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+            className="block no-underline text-inherit"
           >
             <div
-              className="movie-card"
-              style={{
-                borderRadius: '6px',
-                overflow: 'hidden',
-                border: '2px solid transparent',
-                position: 'relative',
-                animationDelay: `${index * 0.04}s`,
-              }}
+              className="hover:shadow-2xl hover:shadow-green/40 hover:ease-in-out duration-200 rounded-md overflow-hidden border-2 border-transparent relative hover:scale-105"
+              style={{ animationDelay: `${index * 0.04}s` }}
             >
               <img
                 src={movie.poster}
                 alt={movie.title}
-                style={{ width: '100%', display: 'block', aspectRatio: '2/3', objectFit: 'cover' }}
+                className="w-full block aspect-[2/3] object-cover"
               />
-              <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(transparent, rgba(4, 12, 9, 0.96))',
-                padding: '2rem 0.75rem 0.75rem',
-              }}>
-                <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 500, lineHeight: 1.3, color: '#DCF4E9' }}>
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-bg/[0.96] to-transparent px-3 pb-3 pt-8">
+                <p className="m-0 text-[0.75rem] font-medium leading-[1.3] text-cream">
                   {movie.title}
                 </p>
               </div>
@@ -99,14 +78,14 @@ export function MovieGrid({
 
         {hasNoResults && (
           <div
-            className="movie-card"
-            style={{ gridColumn: '1 / -1', padding: '3rem 2rem', textAlign: 'center', animationDelay: '0s' }}
+            className="movie-card rounded-[6px] col-span-full px-8 py-12 text-center"
+            style={{ animationDelay: '0s' }}
           >
-            <p style={{ margin: '0 0 0.5rem', fontSize: '2rem' }}>🎬</p>
-            <p style={{ margin: '0 0 0.4rem', fontSize: '0.9rem', color: '#DCF4E9', fontWeight: 500 }}>
+            <p className="m-0 mb-2 text-[2rem]">🎬</p>
+            <p className="m-0 mb-[0.4rem] text-[0.9rem] text-cream font-medium">
               No results found
             </p>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: 'rgba(220, 244, 233, 0.32)' }}>
+            <p className="m-0 text-[0.78rem] text-cream/32">
               Try a different title or clear your filters
             </p>
           </div>

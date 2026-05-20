@@ -1,36 +1,40 @@
+'use client';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 export function Header() {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const trigger = () => {
+      const el = titleRef.current;
+      if (!el) return;
+      el.classList.add('is-waving');
+      setTimeout(() => el.classList.remove('is-waving'), 1200);
+    };
+    const id = setInterval(trigger, 10000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <header style={{
-      borderBottom: '1px solid rgba(40, 220, 136, 0.1)',
-      padding: '2rem 4rem',
-      display: 'flex',
-      alignItems: 'baseline',
-      gap: '1rem',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-      background: 'rgba(4, 12, 9, 0.92)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-    }}>
-      <Link href="/" style={{ textDecoration: 'none' }}>
-        <h1 style={{
-          fontFamily: 'var(--font-playfair), serif',
-          fontSize: '2rem',
-          fontWeight: 900,
-          color: '#28DC88',
-          margin: 0,
-          letterSpacing: '-0.02em',
-          textShadow: '0 0 40px rgba(40, 220, 136, 0.28)',
-          cursor: 'pointer',
-          transition: 'opacity 0.2s',
-        }}>BOXCAST</h1>
+    <header className="flex flex-col items-center text-center pt-18 pb-8 px-8 relative z-1">
+      <Link href="/" className="no-underline">
+        <h1
+          ref={titleRef}
+          className="title-wave font-display text-[3.75rem] font-black text-green tracking-[0.2em] mt-0 mb-[1.1rem] cursor-pointer"
+          style={{ textShadow: '0 0 40px color-mix(in srgb, var(--color-green) 28%, transparent)' }}
+        >
+          {['M','O','V','I','E','G','R','O','S','S'].map((l, i) => (
+            <span key={i} className="wave-letter" style={{ animationDelay: `${i * 0.045}s` }}>
+              {l}
+            </span>
+          ))}
+        </h1>
       </Link>
-      <span style={{ color: 'rgba(220, 244, 233, 0.28)', fontSize: '0.75rem', letterSpacing: '0.22em', fontWeight: 500 }}>
-        BOX OFFICE PREDICTOR
-      </span>
+      <p className="text-cream/80 text-[0.95rem] max-w-2xl leading-[1.65] m-0 font-sans font-normal">
+        Predict the total box office run of any film currently in theaters —{' '}
+        powered by machine learning trained on 5,000+ films.
+      </p>
     </header>
   );
 }

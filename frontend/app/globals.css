@@ -1,12 +1,22 @@
 @import "tailwindcss";
 
-/* Base background so transparent <main> still shows dark */
+@theme {
+  --color-bg:     #040C09;
+  --color-green:  #28DC88;
+  --color-purple: #50267B;
+  --color-pink:   #DC287C;
+  --color-cream:  #DCF4E9;
+
+  --font-sans:    var(--font-dm-sans), sans-serif;
+  --font-display: var(--font-playfair), serif;
+}
+
 html, body {
-  background: #040C09;
+  background: var(--color-bg);
 }
 
 /* Grain / noise texture overlay */
-body::before {
+/* body::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -16,13 +26,13 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23grain)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 192px 192px;
-}
+} */
 
-/* Slim green-tinted scrollbar */
+/* Slim scrollbar */
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(40, 220, 136, 0.22);
+  background: color-mix(in srgb, var(--color-green) 22%, transparent);
   border-radius: 2px;
 }
 
@@ -33,31 +43,29 @@ body::before {
   transform-origin: center;
 }
 
-@keyframes threadFloat1 {
-  0%, 100% { transform: translate(0px, 0px); }
-  40%       { transform: translate(5px, -12px); }
-  70%       { transform: translate(-3px, 6px); }
+@keyframes threadSpin1 {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
-@keyframes threadFloat2 {
-  0%, 100% { transform: translate(0px, 0px); }
-  35%       { transform: translate(-6px, 10px); }
-  65%       { transform: translate(4px, -8px); }
-}
-@keyframes threadFloat3 {
-  0%, 100% { transform: translate(0px, 0px); }
-  50%       { transform: translate(8px, -15px); }
+@keyframes threadSpin2 {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
 }
 
-.thread-1 { animation: threadFloat1 12s ease-in-out infinite; }
-.thread-2 { animation: threadFloat2 9s ease-in-out 1.5s infinite; }
-.thread-3 { animation: threadFloat3 14s ease-in-out 0.8s infinite; }
-.thread-4 { animation: threadFloat1 10s ease-in-out 2s infinite reverse; }
-.thread-5 { animation: threadFloat2 13s ease-in-out 0.4s infinite; }
-.thread-6 { animation: threadFloat3 11s ease-in-out 1s infinite reverse; }
-.thread-7 { animation: threadFloat1 15s ease-in-out 2.5s infinite; }
-.thread-8 { animation: threadFloat2 8s ease-in-out 0s infinite reverse; }
+.thread-1 { animation: threadSpin1 180s linear infinite; }
+.thread-2 { animation: threadSpin2 150s linear 8s infinite; }
+.thread-3 { animation: threadSpin1 220s linear 4s infinite; }
+.thread-4 { animation: threadSpin2 190s linear 12s infinite; }
+.thread-5 { animation: threadSpin1 160s linear 2s infinite; }
 
 /* ─── Keyframes ───────────────────────────────────────────────────────────── */
+
+@keyframes letterBounce {
+  0%   { transform: translateY(0); }
+  38%  { transform: translateY(-8px); }
+  65%  { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
 
 @keyframes cardFadeUp {
   from { opacity: 0; transform: translateY(20px); }
@@ -70,8 +78,8 @@ body::before {
 }
 
 @keyframes predictPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(40, 220, 136, 0.45); }
-  50%       { box-shadow: 0 0 32px 6px rgba(40, 220, 136, 0.1); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-green) 45%, transparent); }
+  50%       { box-shadow: 0 0 32px 6px color-mix(in srgb, var(--color-green) 10%, transparent); }
 }
 
 @keyframes waveBeat {
@@ -93,108 +101,40 @@ body::before {
   100% { transform: scale(2.4); opacity: 0; }
 }
 
-/* ─── Component classes ───────────────────────────────────────────────────── */
+/* ─── Component classes (animation-dependent — can't be Tailwind) ─────────── */
 
-/* Card staggered fade-in */
+.wave-letter {
+  display: inline-block;
+}
+
+.title-wave:hover .wave-letter,
+.title-wave.is-waving .wave-letter {
+  animation: letterBounce 0.65s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+}
+
 .movie-card {
-  animation-name: cardFadeUp;
-  animation-duration: 0.5s;
-  animation-fill-mode: both;
-  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation: cardFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform;
   cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
 }
 
-.movie-card:hover {
-  transform: scale(1.04) translateY(-4px) !important;
-  box-shadow: 0 14px 40px rgba(40, 220, 136, 0.22),
-              0 4px 12px rgba(0, 0, 0, 0.5) !important;
-}
 
-/* Detail panel slide-in */
+
 .detail-panel {
   animation: panelSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Predict button pulse + hover lift */
 .predict-btn {
   animation: predictPulse 2.8s ease-in-out infinite;
 }
 
 .predict-btn:hover:not(:disabled) {
   transform: translateY(-2px) !important;
-  box-shadow: 0 8px 28px rgba(40, 220, 136, 0.38) !important;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--color-green) 38%, transparent) !important;
   animation-play-state: paused;
 }
 
-/* ─── Search bar ─────────────────────────────────────────────────────────── */
-
-.search-input {
-  width: 100%;
-  background: rgba(220, 244, 233, 0.04);
-  border: 1px solid rgba(40, 220, 136, 0.12);
-  border-radius: 4px;
-  color: #DCF4E9;
-  font-family: var(--font-dm-sans), sans-serif;
-  font-size: 0.85rem;
-  padding: 0.65rem 1rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: rgba(40, 220, 136, 0.45);
-  box-shadow: 0 0 0 3px rgba(40, 220, 136, 0.07);
-}
-
-.search-input::placeholder {
-  color: rgba(220, 244, 233, 0.22);
-}
-
-.search-clear {
-  background: none;
-  border: none;
-  color: rgba(220, 244, 233, 0.35);
-  cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
-  padding: 0 0.2rem;
-  transition: color 0.15s ease;
-}
-
-.search-clear:hover {
-  color: rgba(220, 244, 233, 0.75);
-}
-
-/* ─── Genre filter pills ─────────────────────────────────────────────────── */
-
-.genre-pill {
-  background: transparent;
-  border: 1px solid rgba(220, 244, 233, 0.13);
-  border-radius: 100px;
-  color: rgba(220, 244, 233, 0.45);
-  cursor: pointer;
-  font-family: var(--font-dm-sans), sans-serif;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  padding: 0.3rem 0.8rem;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
-  white-space: nowrap;
-}
-
-.genre-pill:hover {
-  border-color: rgba(40, 220, 136, 0.35);
-  color: rgba(220, 244, 233, 0.8);
-}
-
-.genre-pill.active {
-  background: rgba(40, 220, 136, 0.12);
-  border-color: #28DC88;
-  color: #28DC88;
-}
-
-/* Predict wave loader */
 .wave-bars {
   display: flex;
   align-items: center;
@@ -205,14 +145,13 @@ body::before {
 .wave-bar {
   width: 3px;
   height: 28px;
-  background: #28DC88;
+  background: var(--color-green);
   border-radius: 2px;
   transform-origin: center;
   transform: scaleY(0.15);
   animation: waveBeat 0.9s ease-in-out infinite;
 }
 
-/* Loading skeleton shimmer */
 .skeleton-card {
   aspect-ratio: 2 / 3;
   border-radius: 6px;

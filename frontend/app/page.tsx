@@ -35,14 +35,7 @@ export default function Home() {
   }, [movies, searchQuery, activeGenres]);
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      background: 'transparent',
-      color: '#DCF4E9',
-      fontFamily: 'var(--font-dm-sans), sans-serif',
-      position: 'relative',
-      zIndex: 1,
-    }}>
+    <main className="min-h-screen bg-transparent text-cream font-sans relative z-[1]">
       <Header />
       <MovieGrid
         filteredMovies={filteredMovies}
