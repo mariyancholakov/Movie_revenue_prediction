@@ -5,9 +5,24 @@ import pandas as pd
 import numpy as np
 from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay
 from datetime import datetime
+from supabase import create_client
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"])
+
+load_dotenv()
+
+supabase = create_client(
+    os.getenv('SUPABASE_URL'),
+    os.getenv('SUPABASE_KEY')
+)
+try:
+    test = supabase.table('movies').select('count').execute()
+    print("Supabase connected successfully")
+except Exception as e:
+    print(f"Supabase connection error: {e}")
 
 model = joblib.load('models/box_office_model_final.pkl')
 feature_columns = joblib.load('models/feature_columns_final.pkl')
@@ -62,34 +77,76 @@ def now_playing():
 def predict():
     data = request.json
     tmdb_id = data['tmdb_id']
-    
+
+    # Check cache first
+    cached = supabase.table('movies').select('*').eq('tmdb_id', tmdb_id).execute()
+    if cached.data:
+        movie = cached.data[0]
+        from datetime import datetime, timezone
+        last_scraped = datetime.fromisoformat(movie['last_scraped'])
+        age_days = (datetime.now(timezone.utc) - last_scraped).days
+        
+        if age_days < 7:
+            # Fetch weekly gross from DB too
+            weekly = supabase.table('weekly_gross').select('*').eq('imdb_id', movie['imdb_id']).order('week').execute()
+            return jsonify({
+                'title': movie['title'],
+                'predicted_revenue': movie['predicted_revenue'],
+                'opening_weekend': movie['opening_weekend'],
+                'decay_curve': {
+                    'weeks': [r['week'] for r in weekly.data],
+                    'actual_gross': [r['gross'] for r in weekly.data],
+                    'decay_rate': movie['decay_rate'],
+                    'half_life': movie['half_life'],
+                } if weekly.data else None,
+                'cached': True
+            })
+
+    # Not cached or stale — scrape as before
     details = get_movie_details(tmdb_id)
     imdb_id = details.get('external_ids', {}).get('imdb_id')
-    
     if not imdb_id:
         return jsonify({'error': 'Could not find IMDB ID'}), 400
-    
+
     opening_weekend = get_opening_weekend(imdb_id)
     if not opening_weekend:
         return jsonify({'error': 'Could not find opening weekend data'}), 400
-    
+
     feature_row = build_feature_row(details, opening_weekend)
     predicted_revenue = float(model.predict(feature_row)[0])
-    
+
     weekly_data = get_weekly_grossing(imdb_id)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
-    
+
+    # Store in Supabase
+    from datetime import datetime, timezone
+    movie_record = {
+        'imdb_id': imdb_id,
+        'tmdb_id': tmdb_id,
+        'title': details['title'],
+        'opening_weekend': opening_weekend,
+        'predicted_revenue': round(predicted_revenue),
+        'decay_rate': decay_data['decay_rate'] if decay_data else None,
+        'half_life': decay_data['half_life'] if decay_data else None,
+        'is_in_theaters': True,
+        'last_scraped': datetime.now(timezone.utc).isoformat(),
+    }
+    supabase.table('movies').upsert(movie_record).execute()
+
+    if decay_data:
+        weekly_records = [
+            {'imdb_id': imdb_id, 'week': w, 'gross': int(g)}
+            for w, g in zip(decay_data['weeks'], decay_data['actual_gross'])
+        ]
+        supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
+        supabase.table('weekly_gross').insert(weekly_records).execute()
+
     return jsonify({
         'title': details['title'],
         'predicted_revenue': round(predicted_revenue),
         'opening_weekend': opening_weekend,
         'decay_curve': decay_data,
-        'details': {
-            'budget': details.get('budget'),
-            'runtime': details.get('runtime'),
-            'genres': [g['name'] for g in details.get('genres', [])],
-            'poster': f"https://image.tmdb.org/t/p/w500{details.get('poster_path')}",
-        }
+        'cached': False
     })
 
 if __name__ == '__main__':
