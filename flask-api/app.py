@@ -164,5 +164,36 @@ def predict():
         'cached': False
     })
 
+@app.route('/api/leaderboard', methods=['GET'])
+def leaderboard():
+    now_playing = get_now_playing()
+    if not now_playing:
+        return jsonify([])
+
+    tmdb_ids = [m['tmdb_id'] for m in now_playing]
+    poster_map  = {m['tmdb_id']: m['poster']  for m in now_playing}
+    genre_map   = {m['tmdb_id']: m.get('genres', []) for m in now_playing}
+
+    cached = supabase.table('movies').select('*').in_('tmdb_id', tmdb_ids).execute()
+
+    results = []
+    for movie in cached.data:
+        if not movie.get('predicted_revenue'):
+            continue
+        tid = movie['tmdb_id']
+        results.append({
+            'tmdb_id':           tid,
+            'title':             movie['title'],
+            'poster':            poster_map.get(tid, ''),
+            'genres':            genre_map.get(tid, []),
+            'opening_weekend':   movie['opening_weekend'],
+            'predicted_revenue': movie['predicted_revenue'],
+            'decay_rate':        movie.get('decay_rate'),
+        })
+
+    results.sort(key=lambda x: x['predicted_revenue'], reverse=True)
+    return jsonify(results)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

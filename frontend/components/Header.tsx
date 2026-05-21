@@ -35,6 +35,14 @@ export function Header() {
         Predict the total box office run of any film currently in theaters —{' '}
         powered by machine learning trained on 5,000+ films.
       </p>
+      <nav className="flex gap-5 mt-5">
+        <Link
+          href="/leaderboard"
+          className="text-[0.65rem] tracking-[0.18em] text-cream/35 hover:text-cream/65 transition-colors font-semibold font-sans no-underline"
+        >
+          RANKINGS
+        </Link>
+      </nav>
     </header>
   );
 }
