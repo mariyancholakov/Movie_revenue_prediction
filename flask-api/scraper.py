@@ -46,6 +46,13 @@ def get_movie_details(tmdb_id):
     response = requests.get(url)
     return response.json()
 
+def get_movie_cast(tmdb_id, limit=6):
+    """Get top cast names for a movie from TMDB"""
+    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
+    response = requests.get(url)
+    data = response.json()
+    return [actor['name'] for actor in data.get('cast', [])[:limit]]
+
 def get_opening_weekend(imdb_id):
     """Scrape opening weekend from Box Office Mojo"""
     url = f"https://www.boxofficemojo.com/title/{imdb_id}/"

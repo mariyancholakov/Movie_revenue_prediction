@@ -37,7 +37,7 @@ export function SearchBar({
           <button
             onClick={() => onQueryChange('')}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 text-cream/35 cursor-pointer text-[1.1rem] leading-none px-[0.2rem] py-0 transition-colors duration-150 hover:text-cream/75"
+            className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 text-cream/35 text-[1.1rem] leading-none px-[0.2rem] py-0 transition-colors duration-150 hover:text-cream/75"
           >
             ×
           </button>
@@ -49,7 +49,7 @@ export function SearchBar({
         <div className="flex flex-wrap gap-[0.4rem] items-center">
           <button
             onClick={onClearGenres}
-            className={`rounded-full cursor-pointer font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
+            className={`rounded-full font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
               activeGenres.length === 0
                 ? 'bg-pink/10 border-pink text-pink'
                 : 'bg-transparent border-purple/60 text-cream/75 hover:border-purple/80 hover:text-cream'
@@ -61,7 +61,7 @@ export function SearchBar({
             <button
               key={genre}
               onClick={() => onToggleGenre(genre)}
-              className={`rounded-full cursor-pointer font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
+              className={`rounded-full font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
                 activeGenres.includes(genre)
                   ? 'bg-pink/10 border-pink text-pink'
                   : 'bg-transparent border-purple/60 text-cream/75 hover:border-purple/80 hover:text-cream'

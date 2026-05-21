@@ -17,7 +17,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "BOXCAST — Box Office Predictor",
+  title: "MOVIEGROSS — Box Office Predictor",
   description: "Predict box office revenue for currently playing films",
 };
 

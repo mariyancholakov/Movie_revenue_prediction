@@ -43,7 +43,7 @@ export function MovieGrid({
 
       {!isFiltering && (
         <p className="text-cream/50 text-[0.72rem] tracking-[0.22em] mb-8 font-medium">
-          {loading ? 'LOADING...' : `THE ${totalCount} NEWEST MOVIES IN THEATHERS`}
+          {loading ? 'LOADING...' : `THE ${totalCount} NEWEST MOVIES IN THEATERS`}
         </p>
       )}
 
@@ -59,7 +59,7 @@ export function MovieGrid({
             className="block no-underline text-inherit"
           >
             <div
-              className="hover:shadow-2xl hover:shadow-green/40 hover:ease-in-out duration-200 rounded-md overflow-hidden border-2 border-transparent relative hover:scale-105"
+              className="movie-card rounded-md overflow-hidden border border-green/8 relative hover:shadow-2xl hover:shadow-green/30 hover:scale-105"
               style={{ animationDelay: `${index * 0.04}s` }}
             >
               <img

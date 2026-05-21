@@ -5,13 +5,15 @@ export interface Movie {
   release_date: string;
   overview: string;
   genres?: string[];
+  cast?: string[];
+  budget?: number;
 }
 
 export interface DecayCurveData {
   weeks: number[];
   actual_gross: number[];
-  fitted_weeks: number[];
-  fitted_gross: number[];
+  fitted_weeks?: number[];
+  fitted_gross?: number[];
   decay_rate: number;
 }
 

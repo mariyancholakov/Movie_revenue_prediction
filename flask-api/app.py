@@ -3,7 +3,7 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay
+from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_cast
 from datetime import datetime
 from supabase import create_client
 import os
@@ -72,6 +72,15 @@ def build_feature_row(details, opening_weekend):
 def now_playing():
     movies = get_now_playing()
     return jsonify(movies)
+
+@app.route('/api/movie/<int:tmdb_id>/cast', methods=['GET'])
+def movie_cast(tmdb_id):
+    cast = get_movie_cast(tmdb_id)
+    details = get_movie_details(tmdb_id)
+    return jsonify({
+        'cast': cast,
+        'budget': details.get('budget', 0),
+    })
 
 @app.route('/api/predict', methods=['POST'])
 def predict():

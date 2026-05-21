@@ -21,7 +21,7 @@ export function Header() {
       <Link href="/" className="no-underline">
         <h1
           ref={titleRef}
-          className="title-wave font-display text-[3.75rem] font-black text-green tracking-[0.2em] mt-0 mb-[1.1rem] cursor-pointer"
+          className="title-wave font-display text-[3.75rem] font-black text-green tracking-[0.2em] mt-0 mb-[1.1rem]"
           style={{ textShadow: '0 0 40px color-mix(in srgb, var(--color-green) 28%, transparent)' }}
         >
           {['M','O','V','I','E','G','R','O','S','S'].map((l, i) => (

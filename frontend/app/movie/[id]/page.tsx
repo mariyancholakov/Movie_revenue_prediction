@@ -1,8 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Header } from '@/components/Header';
 import { MovieDetail } from '@/components/MovieDetail';
 import type { Movie, Prediction } from '@/components/types';
 
@@ -23,8 +22,15 @@ export default function MoviePage() {
       .then((movies: Movie[]) => {
         setAllMovies(movies);
         const found = movies.find(m => m.tmdb_id === tmdbId) ?? null;
-        if (found) setMovie(found);
-        else setNotFound(true);
+        if (!found) { setNotFound(true); return; }
+        setMovie(found);
+        fetch(`http://127.0.0.1:5000/api/movie/${tmdbId}/cast`)
+          .then(r => r.json())
+          .then(data => setMovie(prev => prev
+            ? { ...prev, cast: data.cast, budget: data.budget ?? 0 }
+            : prev
+          ))
+          .catch(() => {});
       })
       .catch(() => setNotFound(true));
   }, [tmdbId]);
@@ -47,7 +53,18 @@ export default function MoviePage() {
     }
   };
 
-  const otherMovies = allMovies.filter(m => m.tmdb_id !== tmdbId).slice(0, 7);
+  const similarMovies = useMemo(() => {
+    const others = allMovies.filter(m => m.tmdb_id !== tmdbId);
+    if (!movie?.genres?.length) return others.slice(0, 7);
+    const movieGenres = new Set(movie.genres);
+    const scored = others
+      .map(m => ({ m, score: (m.genres ?? []).filter(g => movieGenres.has(g)).length }))
+      .filter(({ score }) => score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(({ m }) => m)
+      .slice(0, 7);
+    return scored.length >= 2 ? scored : others.slice(0, 7);
+  }, [allMovies, movie, tmdbId]);
 
   return (
     <main style={{
@@ -58,22 +75,18 @@ export default function MoviePage() {
       position: 'relative',
       zIndex: 1,
     }}>
-      <Header />
+      <nav className="px-16 pt-8 pb-0 relative z-10">
+        <Link href="/" className="no-underline">
+          <span
+            className="font-display text-lg font-bold text-green tracking-[0.22em]"
+            style={{ textShadow: '0 0 24px color-mix(in srgb, var(--color-green) 25%, transparent)' }}
+          >
+            MOVIEGROSS
+          </span>
+        </Link>
+      </nav>
 
-      {/* Movie-specific blurred poster backdrop */}
-      {movie && (
-        <div aria-hidden="true" style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: 'none',
-          backgroundImage: `url(${movie.poster})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 20%',
-          filter: 'blur(120px) saturate(0.5)',
-          opacity: 0.09,
-        }} />
-      )}
+     
 
       {!movie && !notFound && <MovieDetailSkeleton />}
 
@@ -88,35 +101,29 @@ export default function MoviePage() {
             fullPage
           />
 
-          {/* Also in theaters */}
-          {otherMovies.length > 0 && (
+          {/* Similar films */}
+          {similarMovies.length > 0 && (
             <div style={{ padding: '0 4rem 4rem' }}>
               <div style={{
                 height: 1,
                 background: 'linear-gradient(90deg, rgba(40,220,136,0.1) 0%, rgba(40,220,136,0.03) 55%, transparent 100%)',
                 marginBottom: '2rem',
               }} />
-              <p style={{
-                color: 'rgba(220, 244, 233, 0.28)',
-                fontSize: '0.68rem',
-                letterSpacing: '0.22em',
-                marginBottom: '1.25rem',
-                fontWeight: 600,
-              }}>
-                ALSO IN THEATERS
+              <p className='text-cream/25 text-[0.62rem] mb-5 font-semibold tracking-[0.22em] uppercase'>
+                Similar Films
               </p>
               <div style={{
                 display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
                 gap: '0.85rem',
-                overflowX: 'auto',
                 paddingBottom: '0.5rem',
-                scrollbarWidth: 'thin',
               }}>
-                {otherMovies.map(m => (
+                {similarMovies.map(m => (
                   <Link
                     key={m.tmdb_id}
                     href={`/movie/${m.tmdb_id}`}
-                    style={{ textDecoration: 'none', color: 'inherit', flexShrink: 0 }}
+                    style={{ textDecoration: 'none', color: 'inherit' }}
                   >
                     <div style={{ width: 88, transition: 'transform 0.2s' }}
                       onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-4px)')}
@@ -135,19 +142,7 @@ export default function MoviePage() {
                           border: '1px solid rgba(40,220,136,0.07)',
                         }}
                       />
-                      <p style={{
-                        fontSize: '0.62rem',
-                        marginTop: '0.45rem',
-                        color: 'rgba(220, 244, 233, 0.42)',
-                        lineHeight: 1.35,
-                        margin: '0.45rem 0 0',
-                        overflow: 'hidden',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                      }}>
-                        {m.title}
-                      </p>
+                      
                     </div>
                   </Link>
                 ))}
