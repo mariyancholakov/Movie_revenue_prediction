@@ -6,7 +6,10 @@ export interface Movie {
   overview: string;
   genres?: string[];
   cast?: string[];
+  director?: string;
   budget?: number;
+  runtime?: number;
+  vote_average?: number | null;
 }
 
 export interface DecayCurveData {

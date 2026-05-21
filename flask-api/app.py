@@ -3,7 +3,7 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_cast
+from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_cast, get_movie_credits
 from datetime import datetime
 from supabase import create_client
 import os
@@ -75,11 +75,17 @@ def now_playing():
 
 @app.route('/api/movie/<int:tmdb_id>/cast', methods=['GET'])
 def movie_cast(tmdb_id):
-    cast = get_movie_cast(tmdb_id)
+    cast, director = get_movie_credits(tmdb_id)
     details = get_movie_details(tmdb_id)
+    vote_avg = details.get('vote_average', 0)
+    vote_count = details.get('vote_count', 0)
     return jsonify({
         'cast': cast,
+        'director': director,
         'budget': details.get('budget', 0),
+        'runtime': details.get('runtime', 0),
+        'vote_average': round(vote_avg, 1) if vote_count > 50 else None,
+        'vote_count': vote_count,
     })
 
 @app.route('/api/predict', methods=['POST'])

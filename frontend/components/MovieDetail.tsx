@@ -1,3 +1,5 @@
+'use client';
+import { useState } from "react";
 import Image from "next/image";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
@@ -10,6 +12,12 @@ const fmtProfit = (n: number) => {
   const sign = n >= 0 ? "+" : "−";
   const abs = Math.abs(n);
   return sign + "$" + (abs >= 1e9 ? (abs / 1e9).toFixed(2) + "B" : (abs / 1e6).toFixed(1) + "M");
+};
+
+const fmtRuntime = (mins: number) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
 interface MovieDetailProps {
@@ -28,21 +36,37 @@ export function MovieDetail({
   onBack,
   onPredict,
 }: MovieDetailProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <section className="detail-panel px-4 sm:px-8 lg:px-16 py-8 sm:py-12 relative">
       {selected && (
     <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-green/3 blur-[80px] -z-10 pointer-events-none" />
   )}
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 px-4 py-2 mb-6 sm:mb-10 rounded-md border border-purple/80 hover:bg-purple/25 hover:border-purple hover:text-cream bg-purple/15 text-cream/80 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
-      >
-        ← Back to all movies
-      </button>
+      <div className="flex items-center gap-3 mb-6 sm:mb-10">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 px-4 py-2 rounded-md border border-purple/80 hover:bg-purple/25 hover:border-purple hover:text-cream bg-purple/15 text-cream/80 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
+        >
+          ← Back to all movies
+        </button>
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-2 px-4 py-2 rounded-md border border-green/30 hover:bg-green/8 hover:border-green/60 hover:text-cream bg-transparent text-cream/50 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
+        >
+          {copied ? '✓ Copied' : '↗ Share'}
+        </button>
+      </div>
 
       <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
         <div className="shrink-0 flex flex-col items-center sm:items-start">
-          <div className="relative w-48 sm:w-64 md:w-80 aspect-2/3 rounded-md overflow-hidden shadow-2xl shadow-green/5">
+          <div className="relative w-48 sm:w-64 md:w-80 aspect-2/3 sm:aspect-auto sm:h-full sm:min-h-[384px] md:min-h-[480px] rounded-md overflow-hidden shadow-2xl shadow-green/5">
             <Image
               src={selected.poster}
               alt={selected.title}
@@ -59,8 +83,20 @@ export function MovieDetail({
             {selected.title}
           </h2>
 
-          <p className="text-pink text-sm mb-3 tracking-wide">
-            {selected.release_date}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm mb-3 tracking-wide">
+            <span className="text-pink">{selected.release_date}</span>
+            {(selected.runtime ?? 0) > 0 && (
+              <>
+                <span className="text-cream/20">·</span>
+                <span className="text-cream/50">{fmtRuntime(selected.runtime!)}</span>
+              </>
+            )}
+            {selected.vote_average != null && (
+              <>
+                <span className="text-cream/20">·</span>
+                <span className="text-green/70 font-semibold">★ {selected.vote_average.toFixed(1)}</span>
+              </>
+            )}
           </p>
 
           {selected.genres && selected.genres.length > 0 && (
@@ -80,6 +116,13 @@ export function MovieDetail({
             {selected.overview}
           </p>
 
+          {selected.director && (
+            <p className="text-sm mb-2">
+              <span className="text-cream/40 tracking-wide">Director: </span>
+              <span className="text-cream/70">{selected.director}</span>
+            </p>
+          )}
+
           {selected.cast && selected.cast.length > 0 && (
             <p className="text-sm mb-3">
               <span className="text-cream/40 tracking-wide">Cast: </span>
@@ -95,10 +138,11 @@ export function MovieDetail({
               </span>
             </div>
           )}
+          <div className="mt-auto pt-4">
           {!prediction && !predicting && (
             <button
               onClick={onPredict}
-              className="predict-btn w-full bg-green text-bg border-0 font-extrabold text-lg tracking-[0.12em] py-4 mt-4 rounded transition duration-300 ease-in-out"
+              className="predict-btn w-full bg-green text-bg border-0 font-extrabold text-lg tracking-[0.12em] py-4 rounded transition duration-300 ease-in-out"
             >
               Predict Revenue with AI
             </button>
@@ -137,6 +181,7 @@ export function MovieDetail({
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 

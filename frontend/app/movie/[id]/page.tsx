@@ -30,7 +30,14 @@ export default function MoviePage() {
         fetch(`${API_URL}/api/movie/${tmdbId}/cast`)
           .then(r => r.json())
           .then(data => setMovie(prev => prev
-            ? { ...prev, cast: data.cast, budget: data.budget ?? 0 }
+            ? {
+                ...prev,
+                cast: data.cast,
+                director: data.director ?? undefined,
+                budget: data.budget ?? 0,
+                runtime: data.runtime ?? undefined,
+                vote_average: data.vote_average ?? undefined,
+              }
             : prev
           ))
           .catch(() => {});

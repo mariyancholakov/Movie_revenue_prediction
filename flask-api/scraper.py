@@ -53,6 +53,17 @@ def get_movie_cast(tmdb_id, limit=6):
     data = response.json()
     return [actor['name'] for actor in data.get('cast', [])[:limit]]
 
+def get_movie_credits(tmdb_id, cast_limit=6):
+    """Get cast and director from a single TMDB credits call"""
+    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
+    data = requests.get(url).json()
+    cast = [actor['name'] for actor in data.get('cast', [])[:cast_limit]]
+    director = next(
+        (m['name'] for m in data.get('crew', []) if m['job'] == 'Director'),
+        None
+    )
+    return cast, director
+
 def get_opening_weekend(imdb_id):
     """Scrape opening weekend from Box Office Mojo"""
     url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
