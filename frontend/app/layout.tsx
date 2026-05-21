@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Playfair_Display } from "next/font/google";
 import { BackgroundThreads } from "@/components/BackgroundThreads";
 import "./globals.css";
@@ -19,6 +19,11 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "MOVIEGROSS — Box Office Predictor",
   description: "Predict box office revenue for currently playing films",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

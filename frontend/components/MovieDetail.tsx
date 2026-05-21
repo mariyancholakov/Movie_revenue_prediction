@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
@@ -28,28 +29,33 @@ export function MovieDetail({
   onPredict,
 }: MovieDetailProps) {
   return (
-    <section className="detail-panel px-16 py-12 relative">
+    <section className="detail-panel px-4 sm:px-8 lg:px-16 py-8 sm:py-12 relative">
       {selected && (
     <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-green/3 blur-[80px] -z-10 pointer-events-none" />
   )}
       <button
         onClick={onBack}
-        className="flex items-center gap-2 px-4 py-2 mb-10 rounded-md border border-purple/80 hover:bg-purple/25 hover:border-purple hover:text-cream bg-purple/15 text-cream/80 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
+        className="flex items-center gap-2 px-4 py-2 mb-6 sm:mb-10 rounded-md border border-purple/80 hover:bg-purple/25 hover:border-purple hover:text-cream bg-purple/15 text-cream/80 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
       >
         ← Back to all movies
       </button>
 
-      <div className="flex gap-10">
-        <div className="shrink-0 flex flex-col">
-          <img
-            src={selected.poster}
-            alt={selected.title}
-            className="w-80 flex-1 object-cover object-top rounded-md shadow-2xl shadow-green/5"
-          />
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
+        <div className="shrink-0 flex flex-col items-center sm:items-start">
+          <div className="relative w-48 sm:w-64 md:w-80 aspect-2/3 rounded-md overflow-hidden shadow-2xl shadow-green/5">
+            <Image
+              src={selected.poster}
+              alt={selected.title}
+              fill
+              sizes="(max-width: 640px) 192px, (max-width: 768px) 256px, 320px"
+              className="object-cover object-top"
+              priority
+            />
+          </div>
         </div>
 
         <div className="flex flex-col flex-1 min-w-0">
-          <h2 className="font-display text-4xl font-bold text-cream mb-2 leading-tight">
+          <h2 className="font-display text-2xl sm:text-4xl font-bold text-cream mb-2 leading-tight">
             {selected.title}
           </h2>
 
@@ -139,7 +145,7 @@ export function MovieDetail({
         <div className="mt-12">
           <div className="h-px bg-linear-to-r from-green/20 via-green/8 to-transparent mb-10" />
 
-          <div className="flex divide-x divide-green/10 bg-white/1.5 rounded-xl border border-green/8 overflow-hidden mb-10">
+          <div className="stat-grid bg-white/1.5 rounded-xl border border-green/8 overflow-hidden mb-10">
             <StatCard label="OPENING WEEKEND" value={fmt(prediction.opening_weekend)} />
             <StatCard label="PREDICTED TOTAL" value={fmt(prediction.predicted_revenue)} highlight />
             <StatCard label="DECAY RATE λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} accent />

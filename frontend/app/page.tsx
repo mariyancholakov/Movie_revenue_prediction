@@ -4,16 +4,18 @@ import { Header } from '@/components/Header';
 import { MovieGrid } from '@/components/MovieGrid';
 import type { Movie } from '@/components/types';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);
+  const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeGenres, setActiveGenres] = useState<string[]>([]);
-
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/now-playing')
-      .then(r => r.json())
-      .then(setMovies)
-      .catch(() => setMovies([]));
+    fetch(`${API_URL}/api/now-playing`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((data: Movie[]) => { setMovies(data); setStatus('ok'); })
+      .catch(() => setStatus('error'));
   }, []);
 
   const allGenres = useMemo(() => {
@@ -31,6 +33,9 @@ export default function Home() {
     if (activeGenres.length > 0) {
       result = result.filter(m => m.genres?.some(g => activeGenres.includes(g)));
     }
+    result = [...result].sort(
+      (a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
+    );
     return result;
   }, [movies, searchQuery, activeGenres]);
 
@@ -40,7 +45,7 @@ export default function Home() {
       <MovieGrid
         filteredMovies={filteredMovies}
         totalCount={movies.length}
-        loading={movies.length === 0}
+        status={status}
         query={searchQuery}
         onQueryChange={setSearchQuery}
         allGenres={allGenres}

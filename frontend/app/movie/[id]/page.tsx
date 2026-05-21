@@ -2,8 +2,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MovieDetail } from '@/components/MovieDetail';
 import type { Movie, Prediction } from '@/components/types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
 
 export default function MoviePage() {
   const params = useParams();
@@ -17,14 +20,14 @@ export default function MoviePage() {
   const [predicting, setPredicting] = useState(false);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:5000/api/now-playing')
-      .then(r => r.json())
+    fetch(`${API_URL}/api/now-playing`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then((movies: Movie[]) => {
         setAllMovies(movies);
         const found = movies.find(m => m.tmdb_id === tmdbId) ?? null;
         if (!found) { setNotFound(true); return; }
         setMovie(found);
-        fetch(`http://127.0.0.1:5000/api/movie/${tmdbId}/cast`)
+        fetch(`${API_URL}/api/movie/${tmdbId}/cast`)
           .then(r => r.json())
           .then(data => setMovie(prev => prev
             ? { ...prev, cast: data.cast, budget: data.budget ?? 0 }
@@ -39,7 +42,7 @@ export default function MoviePage() {
     if (!movie) return;
     setPredicting(true);
     try {
-      const res = await fetch('http://127.0.0.1:5000/api/predict', {
+      const res = await fetch(`${API_URL}/api/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tmdb_id: movie.tmdb_id }),
@@ -75,7 +78,7 @@ export default function MoviePage() {
       position: 'relative',
       zIndex: 1,
     }}>
-      <nav className="px-16 pt-8 pb-0 relative z-10">
+      <nav className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-8 pb-0 relative z-10">
         <Link href="/" className="no-underline">
           <span
             className="font-display text-lg font-bold text-green tracking-[0.22em]"
@@ -103,46 +106,28 @@ export default function MoviePage() {
 
           {/* Similar films */}
           {similarMovies.length > 0 && (
-            <div style={{ padding: '0 4rem 4rem' }}>
-              <div style={{
-                height: 1,
-                background: 'linear-gradient(90deg, rgba(40,220,136,0.1) 0%, rgba(40,220,136,0.03) 55%, transparent 100%)',
-                marginBottom: '2rem',
-              }} />
+            <div className="px-4 sm:px-16 pb-16">
+              <div className="h-px bg-linear-to-r from-green/10 via-green/3 to-transparent mb-8" />
               <p className='text-cream/25 text-[0.62rem] mb-5 font-semibold tracking-[0.22em] uppercase'>
                 Similar Films
               </p>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                gap: '0.85rem',
-                paddingBottom: '0.5rem',
-              }}>
+              <div className="flex flex-wrap justify-center gap-[0.85rem] pb-2">
                 {similarMovies.map(m => (
                   <Link
                     key={m.tmdb_id}
                     href={`/movie/${m.tmdb_id}`}
                     style={{ textDecoration: 'none', color: 'inherit' }}
                   >
-                    <div style={{ width: 88, transition: 'transform 0.2s' }}
-                      onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-4px)')}
-                      onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+                    <div
+                      className="transition-transform duration-200 hover:-translate-y-1"
                     >
-                      <img
+                      <Image
                         src={m.poster}
                         alt={m.title}
-                        style={{
-                          width: 88,
-                          display: 'block',
-                          aspectRatio: '2/3',
-                          objectFit: 'cover',
-                          borderRadius: '4px',
-                          boxShadow: '0 4px 18px rgba(0,0,0,0.5)',
-                          border: '1px solid rgba(40,220,136,0.07)',
-                        }}
+                        width={88}
+                        height={132}
+                        className="block rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.5)] border border-green/[0.07] object-cover"
                       />
-                      
                     </div>
                   </Link>
                 ))}
@@ -153,8 +138,8 @@ export default function MoviePage() {
       )}
 
       {notFound && (
-        <div style={{ padding: '6rem 4rem', textAlign: 'center' }}>
-          <p style={{ color: 'rgba(220, 244, 233, 0.32)', fontSize: '0.85rem', letterSpacing: '0.15em' }}>
+        <div className="px-4 sm:px-16 py-24 text-center">
+          <p className="text-cream/32 text-[0.85rem] tracking-[0.15em]">
             MOVIE NOT FOUND
           </p>
         </div>
@@ -165,7 +150,7 @@ export default function MoviePage() {
 
 function MovieDetailSkeleton() {
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '3rem 4rem' }}>
+    <div className="px-4 sm:px-16 py-12" style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div className="skeleton-card" style={{ width: 90, height: 14, marginBottom: '2rem', borderRadius: 2 }} />
       <div style={{ display: 'flex', gap: '2rem' }}>
         <div className="skeleton-card" style={{ width: 140, height: 210, flexShrink: 0, borderRadius: 6 }} />
