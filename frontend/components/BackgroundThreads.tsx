@@ -1,40 +1,26 @@
+// Ambient cinema backdrop: a warm projector wash from the top, a faint plum
+// pool at the lower edge, and a soft vignette. Static and quiet — the marquee
+// bulbs in the hero carry the motion.
 export function BackgroundThreads() {
   return (
-    <svg
+    <div
       aria-hidden="true"
       style={{
         position: 'fixed',
         inset: 0,
-        width: '100%',
-        height: '100%',
         zIndex: 0,
         pointerEvents: 'none',
-        overflow: 'visible',
+        background: [
+          // projector beam, warm gold from top-center
+          'radial-gradient(120% 80% at 50% -18%, color-mix(in srgb, #EAB44C 12%, transparent) 0%, transparent 58%)',
+          // faint theatrical pool, bottom-left
+          'radial-gradient(70% 55% at 8% 108%, color-mix(in srgb, #6C5A8C 16%, transparent) 0%, transparent 60%)',
+          // whisper of red curtain, right edge
+          'radial-gradient(60% 50% at 108% 82%, color-mix(in srgb, #E5484D 7%, transparent) 0%, transparent 55%)',
+          // vignette
+          'radial-gradient(130% 120% at 50% 40%, transparent 60%, rgba(0,0,0,0.45) 100%)',
+        ].join(', '),
       }}
-      viewBox="0 0 1440 900"
-      preserveAspectRatio="xMidYMid slice"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* top-left green arc */}
-      <g className="thread thread-1">
-        <path d="M -60 175 C 80 55, 265 215, 345 88" fill="none" stroke="#28DC88" strokeWidth="5.5" strokeLinecap="round" opacity="0.22" />
-      </g>
-      {/* bottom-left pink arc */}
-      <g className="thread thread-2">
-        <path d="M 48 838 C 108 752, 195 814, 308 732" fill="none" stroke="#DC287C" strokeWidth="5" strokeLinecap="round" opacity="0.2" />
-      </g>
-      {/* top-right cream arc */}
-      <g className="thread thread-3">
-        <path d="M 1378 -28 C 1318 82, 1398 190, 1330 264" fill="none" stroke="#DCF4E9" strokeWidth="4.8" strokeLinecap="round" opacity="0.14" />
-      </g>
-      {/* right-side pink */}
-      <g className="thread thread-4">
-        <path d="M 1484 360 C 1404 432, 1450 514, 1376 580" fill="none" stroke="#DC287C" strokeWidth="4.8" strokeLinecap="round" opacity="0.18" />
-      </g>
-      {/* left-middle purple */}
-      <g className="thread thread-5">
-        <path d="M -52 490 C 70 540, 50 614, 122 660" fill="none" stroke="#7B3FAF" strokeWidth="5.5" strokeLinecap="round" opacity="0.22" />
-      </g>
-    </svg>
+    />
   );
 }

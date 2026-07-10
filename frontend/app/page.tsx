@@ -40,7 +40,7 @@ export default function Home() {
   }, [movies, searchQuery, activeGenres]);
 
   return (
-    <main className="min-h-screen bg-transparent text-cream font-sans relative z-[1]">
+    <main className="min-h-screen flex flex-col bg-transparent text-cream font-sans relative z-[1] w-full min-w-0 overflow-x-hidden">
       <Header />
       <MovieGrid
         filteredMovies={filteredMovies}
@@ -57,6 +57,20 @@ export default function Home() {
         }
         onClearGenres={() => setActiveGenres([])}
       />
+
+      <footer className="mt-auto px-4 sm:px-8 lg:px-16 pt-10 pb-12 border-t border-green/[0.08]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <span
+            className="font-display text-base font-black tracking-[0.14em] text-green/80"
+            style={{ textShadow: '0 0 20px color-mix(in srgb, var(--color-green) 30%, transparent)' }}
+          >
+            MOVIEGROSS
+          </span>
+          <p className="font-mono text-[0.6rem] tracking-[0.16em] text-cream/30 m-0">
+            PREDICTIONS FROM A MODEL TRAINED ON 5,000+ THEATRICAL RUNS · NOT AFFILIATED WITH ANY STUDIO
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

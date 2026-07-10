@@ -195,5 +195,67 @@ def leaderboard():
     return jsonify(results)
 
 
+@app.route('/api/finished', methods=['GET'])
+def finished():
+    """Return movies that have finished their theatrical run and we predicted for,
+    including actual total gross computed from weekly_gross table and prediction error."""
+    try:
+        # Select movies that have a predicted_revenue and are no longer in theaters
+        cached = supabase.table('movies').select('*').eq('is_in_theaters', False).execute()
+    except Exception as e:
+        return jsonify([])
+
+    if not cached.data:
+        return jsonify([])
+
+    results = []
+    for movie in cached.data:
+        if not movie.get('predicted_revenue'):
+            continue
+        tid = movie.get('tmdb_id')
+        imdb_id = movie.get('imdb_id')
+
+        # Sum weekly gross to compute actual total if available
+        actual_total = None
+        if imdb_id:
+            weekly = supabase.table('weekly_gross').select('gross').eq('imdb_id', imdb_id).execute()
+            if weekly.data:
+                try:
+                    actual_total = sum([r.get('gross', 0) or 0 for r in weekly.data])
+                except Exception:
+                    actual_total = None
+
+        # Try to fetch poster/genres from TMDB if tmdb id present
+        poster = ''
+        genres = []
+        if tid:
+            try:
+                details = get_movie_details(tid)
+                poster = f"https://image.tmdb.org/t/p/w500{details.get('poster_path')}" if details.get('poster_path') else ''
+                genres = [g['name'] for g in details.get('genres', [])]
+            except Exception:
+                poster = ''
+                genres = []
+
+        results.append({
+            'tmdb_id': tid,
+            'title': movie.get('title'),
+            'poster': poster,
+            'genres': genres,
+            'predicted_revenue': movie.get('predicted_revenue'),
+            'actual_revenue': actual_total,
+        })
+
+    # Compute error and sort by absolute error (largest misses first)
+    def abs_error(item):
+        if item['actual_revenue'] is None:
+            return -1
+        return abs(item['predicted_revenue'] - item['actual_revenue'])
+
+    results = [r for r in results if r['actual_revenue'] is not None]
+    results.sort(key=abs_error, reverse=True)
+    return jsonify(results)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

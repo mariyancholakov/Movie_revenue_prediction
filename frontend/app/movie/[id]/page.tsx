@@ -80,7 +80,7 @@ export default function MoviePage() {
     <main style={{
       minHeight: '100vh',
       background: 'transparent',
-      color: '#DCF4E9',
+      color: '#F2EBDA',
       fontFamily: 'var(--font-dm-sans), sans-serif',
       position: 'relative',
       zIndex: 1,

@@ -84,7 +84,7 @@ export function MovieDetail({
           </h2>
 
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm mb-3 tracking-wide">
-            <span className="text-pink">{selected.release_date}</span>
+            <span className="font-mono text-cream/55 text-[0.82rem]">{selected.release_date}</span>
             {(selected.runtime ?? 0) > 0 && (
               <>
                 <span className="text-cream/20">·</span>
@@ -171,7 +171,7 @@ export function MovieDetail({
               <div>
                 <span
                   className="block text-[0.72rem] tracking-[0.25em] text-green font-bold font-sans mb-1"
-                  style={{ textShadow: "0 0 20px rgba(40,220,136,0.4)" }}
+                  style={{ textShadow: "0 0 20px rgba(234,180,76,0.4)" }}
                 >
                   ANALYZING...
                 </span>
@@ -193,7 +193,7 @@ export function MovieDetail({
           <div className="stat-grid bg-white/1.5 rounded-xl border border-green/8 overflow-hidden mb-10">
             <StatCard label="OPENING WEEKEND" value={fmt(prediction.opening_weekend)} />
             <StatCard label="PREDICTED TOTAL" value={fmt(prediction.predicted_revenue)} highlight />
-            <StatCard label="DECAY RATE λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} accent />
+            <StatCard label="DECAY RATE λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />
             {(selected.budget ?? 0) > 0 && (() => {
               const profit = prediction.predicted_revenue - selected.budget!;
               return (

@@ -90,8 +90,11 @@ export function MovieGrid({
                   className="object-cover"
                 />
               </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-bg/[0.96] to-transparent px-3 pb-3 pt-8">
-                <p className="m-0 text-[0.75rem] font-medium leading-[1.3] text-cream">
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-bg via-bg/85 to-transparent px-3 pb-3 pt-10">
+                <p
+                  className="m-0 text-[0.75rem] font-semibold leading-[1.3] text-cream"
+                  style={{ textShadow: '0 1px 6px rgba(0,0,0,0.9)' }}
+                >
                   {movie.title}
                 </p>
               </div>

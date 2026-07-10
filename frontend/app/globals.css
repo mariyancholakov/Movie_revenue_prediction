@@ -1,62 +1,74 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────────────────
+   MOVIEGROSS — "Marquee at night" palette.
+   Token names are kept from the original theme for continuity, but the
+   values are the new box-office identity:
+     bg     → midnight ink        green  → marquee gold (brand / positive)
+     pink   → theatrical red       purple → muted plum (structural)
+     cream  → warm screen-white
+   ───────────────────────────────────────────────────────────────────────── */
 @theme {
-  --color-bg:     #040C09;
-  --color-green:  #28DC88;
-  --color-purple: #50267B;
-  --color-pink:   #DC287C;
-  --color-cream:  #DCF4E9;
+  --color-bg:     #0B0E17;   /* midnight ink */
+  --color-green:  #EAB44C;   /* marquee gold — brand, primary, hit/positive */
+  --color-purple: #6C5A8C;   /* muted plum — structural secondary */
+  --color-pink:   #E5484D;   /* theatrical red — loss / over / accent */
+  --color-cream:  #F2EBDA;   /* warm screen-white — text */
 
   --font-sans:    var(--font-dm-sans), sans-serif;
-  --font-display: var(--font-playfair), serif;
+  --font-display: var(--font-fraunces), serif;
+  --font-mono:    var(--font-space-mono), ui-monospace, monospace;
 }
 
 html, body {
   background: var(--color-bg);
+  overflow-x: hidden;
 }
 
-/* Grain / noise texture overlay */
-/* body::before {
+/* Warm film grain — barely-there texture over the whole page */
+body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.045;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23grain)'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23grain)'/%3E%3C/svg%3E");
   background-repeat: repeat;
-  background-size: 192px 192px;
-} */
+  background-size: 200px 200px;
+}
 
 /* Slim scrollbar */
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-green) 22%, transparent);
+  background: color-mix(in srgb, var(--color-green) 30%, transparent);
   border-radius: 2px;
 }
 
-/* ─── Background threads ─────────────────────────────────────────────────── */
-
-.thread {
-  transform-box: fill-box;
-  transform-origin: center;
+::selection {
+  background: color-mix(in srgb, var(--color-green) 30%, transparent);
+  color: var(--color-cream);
 }
 
-@keyframes threadSpin1 {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-@keyframes threadSpin2 {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(-360deg); }
+/* ─── Marquee bulbs (hero signature) ─────────────────────────────────────── */
+
+.bulb {
+  width: 7px;
+  height: 7px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 30%, #FFF3D4, var(--color-green) 55%, #A8791F 100%);
+  box-shadow:
+    0 0 6px 1px color-mix(in srgb, var(--color-green) 75%, transparent),
+    0 0 14px 3px color-mix(in srgb, var(--color-green) 30%, transparent);
+  animation: bulbGlow 1.8s ease-in-out infinite;
 }
 
-.thread-1 { animation: threadSpin1 180s linear infinite; }
-.thread-2 { animation: threadSpin2 150s linear 8s infinite; }
-.thread-3 { animation: threadSpin1 220s linear 4s infinite; }
-.thread-4 { animation: threadSpin2 190s linear 12s infinite; }
-.thread-5 { animation: threadSpin1 160s linear 2s infinite; }
+@keyframes bulbGlow {
+  0%, 100% { opacity: 0.42; transform: scale(0.86); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
 
 /* ─── Keyframes ───────────────────────────────────────────────────────────── */
 
@@ -191,12 +203,25 @@ html, body {
   border-radius: 6px;
   background: linear-gradient(
     90deg,
-    #070f0b 0%,
-    #0d1f16 40%,
-    #14291e 50%,
-    #0d1f16 60%,
-    #070f0b 100%
+    #0d101c 0%,
+    #171b2b 40%,
+    #202538 50%,
+    #171b2b 60%,
+    #0d101c 100%
   );
   background-size: 1400px 100%;
   animation: skeletonShimmer 1.7s ease-in-out infinite;
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .bulb { opacity: 0.85 !important; transform: none !important; }
 }

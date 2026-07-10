@@ -49,10 +49,10 @@ export function SearchBar({
         <div className="flex flex-wrap gap-[0.4rem] items-center">
           <button
             onClick={onClearGenres}
-            className={`rounded-full font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
+            className={`rounded-full font-mono font-medium text-[0.62rem] tracking-[0.12em] px-[0.85rem] py-[0.32rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
               activeGenres.length === 0
-                ? 'bg-pink/10 border-pink text-pink'
-                : 'bg-transparent border-purple/60 text-cream/75 hover:border-purple/80 hover:text-cream'
+                ? 'bg-green/12 border-green/70 text-green'
+                : 'bg-transparent border-cream/12 text-cream/60 hover:border-green/40 hover:text-cream'
             }`}
           >
             ALL
@@ -61,10 +61,10 @@ export function SearchBar({
             <button
               key={genre}
               onClick={() => onToggleGenre(genre)}
-              className={`rounded-full font-sans font-semibold text-[0.65rem] tracking-[0.08em] px-[0.8rem] py-[0.3rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
+              className={`rounded-full font-mono font-medium text-[0.62rem] tracking-[0.12em] px-[0.85rem] py-[0.32rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
                 activeGenres.includes(genre)
-                  ? 'bg-pink/10 border-pink text-pink'
-                  : 'bg-transparent border-purple/60 text-cream/75 hover:border-purple/80 hover:text-cream'
+                  ? 'bg-green/12 border-green/70 text-green'
+                  : 'bg-transparent border-cream/12 text-cream/60 hover:border-green/40 hover:text-cream'
               }`}
             >
               {genre.toUpperCase()}
