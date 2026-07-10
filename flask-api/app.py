@@ -7,6 +7,7 @@ from scraper import get_now_playing, get_movie_details, get_opening_weekend, get
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
+import json
 from dotenv import load_dotenv
 
 app = Flask(__name__)
@@ -106,6 +107,22 @@ def build_feature_row(details, opening_weekend):
     df_row = pd.DataFrame([row])
     df_row = df_row.reindex(columns=feature_columns, fill_value=0)
     return df_row
+
+
+def features_to_json(feature_row):
+    """JSON-safe dict of the model's feature row (numpy types -> native)."""
+    return json.loads(feature_row.iloc[0].to_json())
+
+
+def store_features(tmdb_id, feature_row):
+    """Best-effort snapshot of the prediction-time features for later retraining.
+    Silently no-ops if the `features` column doesn't exist yet (migration not run),
+    so predictions keep working regardless."""
+    try:
+        supabase.table('movies').update({'features': features_to_json(feature_row)}) \
+            .eq('tmdb_id', tmdb_id).execute()
+    except Exception as e:
+        print(f"[features] snapshot skipped for {tmdb_id}: {e}")
 
 @app.route('/api/now-playing', methods=['GET'])
 def now_playing():
@@ -218,6 +235,7 @@ def predict():
         'last_scraped': now.isoformat(),
     }
     supabase.table('movies').upsert(movie_record).execute()
+    store_features(tmdb_id, feature_row)
 
     if decay_data:
         weekly_records = [
@@ -268,64 +286,109 @@ def leaderboard():
 
 @app.route('/api/finished', methods=['GET'])
 def finished():
-    """Return movies that have finished their theatrical run and we predicted for,
-    including actual total gross computed from weekly_gross table and prediction error."""
+    """Movies whose theatrical run has ended and we predicted for, with the real
+    total revenue (TMDB `revenue`, captured by /api/refresh-finished) so the
+    prediction error is measured in the same unit the model was trained on.
+    Sorted by largest absolute miss first."""
     try:
-        # Select movies that have a predicted_revenue and are no longer in theaters
         cached = supabase.table('movies').select('*').eq('is_in_theaters', False).execute()
-    except Exception as e:
-        return jsonify([])
-
-    if not cached.data:
+    except Exception:
         return jsonify([])
 
     results = []
-    for movie in cached.data:
-        if not movie.get('predicted_revenue'):
+    for movie in (cached.data or []):
+        actual = movie.get('actual_revenue')
+        predicted = movie.get('predicted_revenue')
+        if not actual or not predicted:
             continue
         tid = movie.get('tmdb_id')
-        imdb_id = movie.get('imdb_id')
 
-        # Sum weekly gross to compute actual total if available
-        actual_total = None
-        if imdb_id:
-            weekly = supabase.table('weekly_gross').select('gross').eq('imdb_id', imdb_id).execute()
-            if weekly.data:
-                try:
-                    actual_total = sum([r.get('gross', 0) or 0 for r in weekly.data])
-                except Exception:
-                    actual_total = None
-
-        # Try to fetch poster/genres from TMDB if tmdb id present
-        poster = ''
-        genres = []
+        poster, genres = '', []
         if tid:
             try:
                 details = get_movie_details(tid)
                 poster = f"https://image.tmdb.org/t/p/w500{details.get('poster_path')}" if details.get('poster_path') else ''
                 genres = [g['name'] for g in details.get('genres', [])]
             except Exception:
-                poster = ''
-                genres = []
+                pass
 
         results.append({
             'tmdb_id': tid,
             'title': movie.get('title'),
             'poster': poster,
             'genres': genres,
-            'predicted_revenue': movie.get('predicted_revenue'),
-            'actual_revenue': actual_total,
+            'predicted_revenue': predicted,
+            'actual_revenue': int(actual),
         })
 
-    # Compute error and sort by absolute error (largest misses first)
-    def abs_error(item):
-        if item['actual_revenue'] is None:
-            return -1
-        return abs(item['predicted_revenue'] - item['actual_revenue'])
-
-    results = [r for r in results if r['actual_revenue'] is not None]
-    results.sort(key=abs_error, reverse=True)
+    results.sort(key=lambda x: abs(x['predicted_revenue'] - x['actual_revenue']), reverse=True)
     return jsonify(results)
+
+
+@app.route('/api/refresh-finished', methods=['POST'])
+def refresh_finished():
+    """Detect movies whose run has ended and capture their real revenue.
+
+    A predicted movie is 'finished' once it drops out of TMDB now-playing AND
+    TMDB has populated its total `revenue`. We store that revenue as the ground
+    truth (matching the training label's unit) plus a feature snapshot, building
+    the labeled dataset a future retrain will learn from. Safe to call repeatedly
+    (e.g. from a daily cron); movies awaiting a TMDB revenue update stay pending."""
+    now = datetime.now(timezone.utc)
+    try:
+        now_playing_ids = {m['tmdb_id'] for m in get_now_playing()}
+        tracked = supabase.table('movies').select('*').eq('is_in_theaters', True).execute().data or []
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    finished, pending = [], 0
+    for movie in tracked:
+        tid = movie.get('tmdb_id')
+        if tid is None or tid in now_playing_ids:
+            continue  # still playing (or unreleased)
+
+        try:
+            details = get_movie_details(tid)
+        except Exception:
+            continue
+        revenue = details.get('revenue') or 0
+
+        if revenue <= 0:
+            pending += 1  # left theaters but TMDB revenue not in yet — retry later
+            continue
+
+        update = {
+            'is_in_theaters': False,
+            'actual_revenue': int(revenue),
+            'finished_at': now.isoformat(),
+        }
+        # Backfill a feature snapshot if the prediction predates feature capture.
+        if not movie.get('features') and movie.get('opening_weekend'):
+            try:
+                update['features'] = features_to_json(build_feature_row(details, movie['opening_weekend']))
+            except Exception:
+                pass
+
+        try:
+            supabase.table('movies').update(update).eq('tmdb_id', tid).execute()
+        except Exception as e:
+            return jsonify({'error': f'update failed (did you run the migration?): {e}'}), 500
+
+        predicted = movie.get('predicted_revenue')
+        finished.append({
+            'tmdb_id': tid,
+            'title': movie.get('title'),
+            'predicted_revenue': predicted,
+            'actual_revenue': int(revenue),
+            'error_pct': round(abs(predicted - revenue) / revenue * 100, 1) if predicted else None,
+        })
+
+    return jsonify({
+        'checked': len(tracked),
+        'newly_finished': len(finished),
+        'pending_revenue': pending,
+        'finished': finished,
+    })
 
 
 if __name__ == '__main__':
