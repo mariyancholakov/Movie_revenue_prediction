@@ -4,7 +4,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_cast, get_movie_credits
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
 from dotenv import load_dotenv
@@ -30,6 +30,45 @@ feature_columns = joblib.load('models/feature_columns_final.pkl')
 MAJOR_STUDIOS = ['Warner Bros', 'Disney', 'Marvel', 'Universal', 'Paramount', 'Sony', 'Legendary', 'Columbia']
 GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
           'Drama', 'Family', 'Fantasy', 'Horror', 'Mystery', 'Romance', 'Science Fiction', 'Thriller']
+
+# How long a prediction stays cached. A complete result (with a decay curve) is
+# good for a week; a partial one (decay scrape failed / not enough weekends yet)
+# is retried on a much shorter TTL so a transient failure doesn't stick.
+FULL_TTL = timedelta(days=7)
+DECAY_RETRY_TTL = timedelta(hours=6)
+
+
+def build_fitted_curve(weeks, gross, decay_rate):
+    """Reconstruct the fitted exponential-decay curve from a stored decay rate,
+    anchored to the opening-weekend gross, so cached predictions render the same
+    model curve as freshly-scraped ones."""
+    if not weeks or decay_rate is None:
+        return [], []
+    max_w = max(weeks)
+    if max_w <= 0:
+        return [], []
+    amplitude = gross[0]
+    xs = np.linspace(0, max_w, 200)
+    ys = amplitude * np.exp(-decay_rate * xs)
+    return xs.tolist(), ys.tolist()
+
+
+def decay_curve_from_db(weekly_rows, decay_rate, half_life):
+    """Build the full decay_curve payload (incl. the fitted model curve) from
+    stored weekly-gross rows. Returns None when there is no usable decay data."""
+    if not weekly_rows or decay_rate is None:
+        return None
+    weeks = [r['week'] for r in weekly_rows]
+    gross = [r['gross'] for r in weekly_rows]
+    fitted_weeks, fitted_gross = build_fitted_curve(weeks, gross, decay_rate)
+    return {
+        'weeks': weeks,
+        'actual_gross': gross,
+        'fitted_weeks': fitted_weeks,
+        'fitted_gross': fitted_gross,
+        'decay_rate': decay_rate,
+        'half_life': half_life,
+    }
 
 def build_feature_row(details, opening_weekend):
     """Convert TMDB movie details into model feature row"""
@@ -92,32 +131,65 @@ def movie_cast(tmdb_id):
 def predict():
     data = request.json
     tmdb_id = data['tmdb_id']
+    now = datetime.now(timezone.utc)
 
     # Check cache first
     cached = supabase.table('movies').select('*').eq('tmdb_id', tmdb_id).execute()
     if cached.data:
         movie = cached.data[0]
-        from datetime import datetime, timezone
+        imdb_id = movie.get('imdb_id')
         last_scraped = datetime.fromisoformat(movie['last_scraped'])
-        age_days = (datetime.now(timezone.utc) - last_scraped).days
-        
-        if age_days < 7:
-            # Fetch weekly gross from DB too
-            weekly = supabase.table('weekly_gross').select('*').eq('imdb_id', movie['imdb_id']).order('week').execute()
+        age = now - last_scraped
+
+        weekly_rows = []
+        if imdb_id:
+            weekly_rows = supabase.table('weekly_gross').select('*') \
+                .eq('imdb_id', imdb_id).order('week').execute().data or []
+        has_decay = movie.get('decay_rate') is not None and bool(weekly_rows)
+
+        base = {
+            'title': movie['title'],
+            'predicted_revenue': movie['predicted_revenue'],
+            'opening_weekend': movie['opening_weekend'],
+            'cached': True,
+        }
+
+        # Fresh + complete → serve straight from cache.
+        if has_decay and age < FULL_TTL:
             return jsonify({
-                'title': movie['title'],
-                'predicted_revenue': movie['predicted_revenue'],
-                'opening_weekend': movie['opening_weekend'],
-                'decay_curve': {
-                    'weeks': [r['week'] for r in weekly.data],
-                    'actual_gross': [r['gross'] for r in weekly.data],
-                    'decay_rate': movie['decay_rate'],
-                    'half_life': movie['half_life'],
-                } if weekly.data else None,
-                'cached': True
+                **base,
+                'decay_curve': decay_curve_from_db(weekly_rows, movie['decay_rate'], movie.get('half_life')),
             })
 
-    # Not cached or stale — scrape as before
+        # Prediction cached without a decay curve is *partial*. Don't serve a
+        # stuck N/A for a week — retry just the weekly-grossing scrape on a
+        # short TTL (the opening weekend and model output are still valid).
+        if not has_decay and age < FULL_TTL:
+            if age < DECAY_RETRY_TTL:
+                # Retried recently — avoid hammering Box Office Mojo on reloads.
+                return jsonify({**base, 'decay_curve': None})
+
+            decay_data = None
+            if imdb_id:
+                weekly_data = get_weekly_grossing(imdb_id)
+                decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
+
+            update = {'last_scraped': now.isoformat()}
+            if decay_data:
+                update['decay_rate'] = decay_data['decay_rate']
+                update['half_life'] = decay_data['half_life']
+                supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
+                supabase.table('weekly_gross').insert([
+                    {'imdb_id': imdb_id, 'week': w, 'gross': int(g)}
+                    for w, g in zip(decay_data['weeks'], decay_data['actual_gross'])
+                ]).execute()
+            supabase.table('movies').update(update).eq('tmdb_id', tmdb_id).execute()
+
+            return jsonify({**base, 'decay_curve': decay_data})
+
+        # else: stale beyond FULL_TTL → fall through to a full re-scrape below.
+
+    # Not cached or stale — full scrape + model prediction.
     details = get_movie_details(tmdb_id)
     imdb_id = details.get('external_ids', {}).get('imdb_id')
     if not imdb_id:
@@ -134,7 +206,6 @@ def predict():
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
 
     # Store in Supabase
-    from datetime import datetime, timezone
     movie_record = {
         'imdb_id': imdb_id,
         'tmdb_id': tmdb_id,
@@ -144,7 +215,7 @@ def predict():
         'decay_rate': decay_data['decay_rate'] if decay_data else None,
         'half_life': decay_data['half_life'] if decay_data else None,
         'is_in_theaters': True,
-        'last_scraped': datetime.now(timezone.utc).isoformat(),
+        'last_scraped': now.isoformat(),
     }
     supabase.table('movies').upsert(movie_record).execute()
 

@@ -38,6 +38,13 @@ export function MovieDetail({
 }: MovieDetailProps) {
   const [copied, setCopied] = useState(false);
 
+  const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
+  const notReleased = !Number.isNaN(releaseTime) && releaseTime > Date.now();
+  const daysSinceRelease = Number.isNaN(releaseTime)
+    ? Infinity
+    : (Date.now() - releaseTime) / 86_400_000;
+  const justOpened = daysSinceRelease >= 0 && daysSinceRelease < 10;
+
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     setCopied(true);
@@ -139,7 +146,18 @@ export function MovieDetail({
             </div>
           )}
           <div className="mt-auto pt-4">
-          {!prediction && !predicting && (
+          {notReleased && (
+            <div className="rounded-lg border border-green/20 bg-green/5 px-5 py-4">
+              <p className="text-green/90 text-sm font-semibold tracking-[0.04em] mb-1">
+                Not yet in theaters
+              </p>
+              <p className="text-cream/55 text-[0.82rem] leading-[1.6]">
+                Predictions unlock once the film opens and box-office data is available.
+              </p>
+            </div>
+          )}
+
+          {!notReleased && !prediction && !predicting && (
             <button
               onClick={onPredict}
               className="predict-btn w-full bg-green text-bg border-0 font-extrabold text-lg tracking-[0.12em] py-4 rounded transition duration-300 ease-in-out"
@@ -148,7 +166,7 @@ export function MovieDetail({
             </button>
           )}
 
-          {predicting && !prediction && (
+          {!notReleased && predicting && !prediction && (
             <div className="flex items-center gap-6 py-2">
               <div className="relative w-13 h-13 shrink-0">
                 <div
@@ -226,7 +244,9 @@ export function MovieDetail({
 
       {prediction?.error && (
         <p className="text-pink text-sm mt-6">
-          Could not fetch data for this movie. It may not have box office data yet.
+          {justOpened
+            ? "This film just opened — box-office data usually lands within a few days. Check back soon."
+            : "No box-office data is available for this film yet."}
         </p>
       )}
     </section>
