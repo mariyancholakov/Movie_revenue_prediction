@@ -9,6 +9,9 @@ flask-api/.env.*
 # retrain.py artifacts — timestamped candidates and model backups
 flask-api/models/candidate_*.pkl
 flask-api/models/box_office_model_backup_*.pkl
+# scheduled-pipeline runtime state + logs
+flask-api/models/pipeline_state.json
+flask-api/logs/
 
 # ── Next.js ──────────────────────────────────────────────────────────────────
 frontend/.next/

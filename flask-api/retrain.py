@@ -92,12 +92,10 @@ def fmt(m):
     return f"MAE ${m['mae']/1e6:8.2f}M | MAPE {m['mape']:6.1f}% | R2 {m['r2']:.4f}"
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--promote', action='store_true',
-                    help='overwrite the production model if the augmented model wins on the holdout')
-    args = ap.parse_args()
-
+def run_retrain(promote=False):
+    """Validate a seed+captured model against a seed-only baseline and, if
+    `promote` and it wins the holdout, swap it into production (backing up first).
+    Returns a summary dict. Importable by the scheduled capture job."""
     seed = pd.read_csv(SEED_CSV).dropna(subset=[LABEL])
     captured = load_captured()
     print(f"seed rows: {len(seed)} | captured finished rows: {len(captured)}\n")
@@ -123,9 +121,15 @@ def main():
     verb = 'better' if delta > 0 else ('same' if delta == 0 else 'worse')
     print(f"  -> augmented is {verb} by ${abs(delta)/1e6:.2f}M MAE\n")
 
+    result = {
+        'seed_rows': len(seed), 'captured_rows': len(captured),
+        'baseline': base_m, 'augmented': aug_m, 'wins': bool(wins),
+        'candidate_path': None, 'promoted': False, 'backup_path': None,
+    }
+
     if len(captured) == 0:
         print("No captured rows yet — nothing to add. Collect finished runs first.")
-        return
+        return result
 
     # 5. Final artifact: train on everything for maximum data.
     all_data = pd.concat([seed[FEATURES + [LABEL]], captured], ignore_index=True)
@@ -134,21 +138,33 @@ def main():
     ts = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
     candidate_path = f'{MODELS_DIR}/candidate_{ts}.pkl'
     joblib.dump(final, candidate_path)
+    result['candidate_path'] = candidate_path
     print(f"Saved candidate model -> {candidate_path}")
 
-    if not args.promote:
+    if not promote:
         print("\nRead-only run. Re-run with --promote to swap it into production (only if it wins).")
-        return
+        return result
 
     if not wins:
         print("\nNot promoting: augmented model did not beat baseline on the holdout.")
-        return
+        return result
 
     backup = f'{MODELS_DIR}/box_office_model_backup_{ts}.pkl'
     shutil.copy(PROD_MODEL, backup)
     joblib.dump(final, PROD_MODEL)
+    result['promoted'] = True
+    result['backup_path'] = backup
     print(f"\nPROMOTED. Backed up previous model -> {backup}")
     print("Restart the Flask app to load the new model.")
+    return result
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--promote', action='store_true',
+                    help='overwrite the production model if the augmented model wins on the holdout')
+    args = ap.parse_args()
+    run_retrain(promote=args.promote)
 
 
 if __name__ == '__main__':

@@ -325,21 +325,23 @@ def finished():
     return jsonify(results)
 
 
-@app.route('/api/refresh-finished', methods=['POST'])
-def refresh_finished():
+def capture_finished_runs():
     """Detect movies whose run has ended and capture their real revenue.
 
     A predicted movie is 'finished' once it drops out of TMDB now-playing AND
     TMDB has populated its total `revenue`. We store that revenue as the ground
     truth (matching the training label's unit) plus a feature snapshot, building
     the labeled dataset a future retrain will learn from. Safe to call repeatedly
-    (e.g. from a daily cron); movies awaiting a TMDB revenue update stay pending."""
+    (e.g. from a weekly job); movies awaiting a TMDB revenue update stay pending.
+
+    Returns a summary dict (with an 'error' key on failure). Standalone-safe:
+    used by both the HTTP endpoint and the scheduled capture_finished.py job."""
     now = datetime.now(timezone.utc)
     try:
         now_playing_ids = {m['tmdb_id'] for m in get_now_playing()}
         tracked = supabase.table('movies').select('*').eq('is_in_theaters', True).execute().data or []
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return {'error': str(e)}
 
     finished, pending = [], 0
     for movie in tracked:
@@ -372,7 +374,7 @@ def refresh_finished():
         try:
             supabase.table('movies').update(update).eq('tmdb_id', tid).execute()
         except Exception as e:
-            return jsonify({'error': f'update failed (did you run the migration?): {e}'}), 500
+            return {'error': f'update failed (did you run the migration?): {e}'}
 
         predicted = movie.get('predicted_revenue')
         finished.append({
@@ -383,12 +385,18 @@ def refresh_finished():
             'error_pct': round(abs(predicted - revenue) / revenue * 100, 1) if predicted else None,
         })
 
-    return jsonify({
+    return {
         'checked': len(tracked),
         'newly_finished': len(finished),
         'pending_revenue': pending,
         'finished': finished,
-    })
+    }
+
+
+@app.route('/api/refresh-finished', methods=['POST'])
+def refresh_finished():
+    result = capture_finished_runs()
+    return jsonify(result), (500 if 'error' in result else 200)
 
 
 if __name__ == '__main__':

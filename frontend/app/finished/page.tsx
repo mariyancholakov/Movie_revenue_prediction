@@ -101,7 +101,9 @@ export default function FinishedPage() {
               {entries.map((entry, i) => {
                 const diff = entry.predicted_revenue - entry.actual_revenue;
                 const abs = Math.abs(diff);
-                const pct = entry.predicted_revenue > 0 ? (abs / entry.predicted_revenue) * 100 : 0;
+                // Error relative to the actual result (standard MAPE), i.e. how far
+                // the prediction was from what the movie really made.
+                const pct = entry.actual_revenue > 0 ? (abs / entry.actual_revenue) * 100 : 0;
                 const color = diff > 0 ? 'text-pink' : 'text-green';
 
                 return (
