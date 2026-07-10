@@ -6,6 +6,10 @@ flask-api/venv/
 flask-api/.env
 flask-api/.env.*
 
+# retrain.py artifacts — timestamped candidates and model backups
+flask-api/models/candidate_*.pkl
+flask-api/models/box_office_model_backup_*.pkl
+
 # ── Next.js ──────────────────────────────────────────────────────────────────
 frontend/.next/
 frontend/out/
