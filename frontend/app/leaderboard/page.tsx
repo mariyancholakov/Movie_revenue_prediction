@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { RunningHead } from '@/components/RunningHead';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
 
@@ -18,27 +19,6 @@ interface LeaderboardEntry {
   decay_rate: number | null;
 }
 
-const MEDAL = [
-  {
-    border: 'border-[#C9A227]/30',
-    bg: 'bg-[#C9A227]/[0.06]',
-    badge: 'border-[#C9A227]/50 bg-[#C9A227]/10 text-[#C9A227]',
-    bar: 'bg-[#C9A227]/40',
-  },
-  {
-    border: 'border-[#9EA7AA]/25',
-    bg: 'bg-[#9EA7AA]/[0.05]',
-    badge: 'border-[#9EA7AA]/45 bg-[#9EA7AA]/10 text-[#9EA7AA]',
-    bar: 'bg-[#9EA7AA]/35',
-  },
-  {
-    border: 'border-[#B87333]/28',
-    bg: 'bg-[#B87333]/[0.06]',
-    badge: 'border-[#B87333]/45 bg-[#B87333]/10 text-[#B87333]',
-    bar: 'bg-[#B87333]/40',
-  },
-];
-
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
@@ -53,214 +33,153 @@ export default function LeaderboardPage() {
   const maxRevenue = entries[0]?.predicted_revenue ?? 1;
 
   return (
-    <main className="min-h-screen bg-transparent text-cream font-sans relative z-1">
+    <main className="min-h-screen text-ink font-sans">
+      <RunningHead active="rankings" />
 
-      {/* Nav */}
-      <nav className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-8 pb-5 relative z-10 flex items-center justify-between border-b border-green/[0.07]">
-        <Link href="/" className="no-underline">
-          <span
-            className="font-display text-xl font-bold text-green tracking-[0.22em]"
-            style={{ textShadow: '0 0 24px color-mix(in srgb, var(--color-green) 25%, transparent)' }}
-          >
-            MOVIEGROSS
-          </span>
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link
-            href="/"
-            className="text-[0.65rem] tracking-[0.18em] text-cream/35 hover:text-cream/65 transition-colors font-semibold font-sans no-underline"
-          >
-            NOW PLAYING
-          </Link>
-          <span className="text-[0.65rem] tracking-[0.18em] text-green font-semibold font-sans">
-            RANKINGS
-          </span>
+      <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
+        {/* Heading */}
+        <div className="flex items-end justify-between gap-4 mb-3">
+          <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0">
+            Box-Office Rankings
+          </h1>
+          {status === 'ok' && entries.length > 0 && (
+            <span className="font-mono text-ink2 text-[0.66rem] tracking-[0.1em] pb-1.5 whitespace-nowrap">
+              {entries.length} FILM{entries.length !== 1 ? 'S' : ''} PRICED
+            </span>
+          )}
         </div>
-      </nav>
+        <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-3">
+          Every film now playing, ranked by the model&rsquo;s predicted total run.
+        </p>
 
-      <div className="px-4 sm:px-8 lg:px-16 pt-10 pb-24 max-w-240">
-
-        {/* Page heading */}
-        <div className="mb-10">
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-cream mb-1.5">
-            Box Office Rankings
-          </h2>
-          <p className="text-cream/35 text-[0.82rem] leading-relaxed">
-            Predicted total runs for films currently in theaters — sorted by projected revenue.
-            {status === 'ok' && entries.length > 0 && (
-              <span className="text-cream/25"> · {entries.length} film{entries.length !== 1 ? 's' : ''} analyzed</span>
-            )}
-          </p>
-        </div>
+        {/* Legend */}
+        {status === 'ok' && entries.length > 0 && (
+          <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-4 h-2.5 bg-ink2" /> Opening weekend
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-4 h-2.5" style={{ background: 'color-mix(in srgb, var(--color-ink2) 30%, transparent)' }} /> → Predicted total
+            </span>
+          </div>
+        )}
+        <div className="rule-double mb-2" />
 
         {/* Loading */}
         {status === 'loading' && (
-          <div className="space-y-2.5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="skeleton-card rounded-xl" style={{ height: 82 }} />
+          <div className="space-y-px pt-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="paper-skeleton h-[70px]" />
             ))}
           </div>
         )}
 
         {/* Error */}
         {status === 'error' && (
-          <div className="flex flex-col items-center py-20 text-center">
-            <div className="w-12 h-12 rounded-full border border-pink/30 flex items-center justify-center mb-5 text-pink/60 text-xl">
-              !
-            </div>
-            <p className="text-cream/60 text-sm font-medium mb-1">Can&apos;t connect to the API</p>
-            <p className="text-cream/25 text-[0.78rem]">
-              Make sure the Flask server is running on{' '}
-              <span className="font-mono text-green/50">{API_URL}</span>
+          <div className="border border-ink/25 bg-panel/50 px-6 py-8 text-center mt-6">
+            <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
+            <p className="text-ink2 text-[0.85rem] m-0">
+              No connection to the box-office desk. Start the Flask server on{' '}
+              <span className="font-mono text-ink">{API_URL}</span>.
             </p>
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty */}
         {status === 'ok' && entries.length === 0 && (
-          <div className="flex flex-col items-center py-20 text-center max-w-sm mx-auto">
-            <div
-              className="w-16 h-16 rounded-full border border-green/15 flex items-center justify-center mb-5 text-2xl"
-              style={{ boxShadow: '0 0 32px color-mix(in srgb, var(--color-green) 8%, transparent)' }}
-            >
-              🏆
-            </div>
-            <p className="text-cream/60 text-sm font-medium mb-2">No rankings yet</p>
-            <p className="text-cream/25 text-[0.78rem] leading-relaxed">
-              Rankings appear here after movies are analyzed.{' '}
-              <Link href="/" className="text-green/60 hover:text-green/80 transition-colors underline">
-                Go to Now Playing
+          <div className="py-16 text-center max-w-md mx-auto">
+            <p className="font-display text-ink text-xl font-bold mb-2">The chart is blank</p>
+            <p className="text-ink2 text-[0.85rem] leading-relaxed">
+              Rankings post here once films are priced.{' '}
+              <Link href="/" className="text-red underline underline-offset-2 hover:no-underline">
+                Head to Now Playing
               </Link>{' '}
-              and hit &ldquo;Predict Revenue&rdquo; on any film to get started.
+              and run the numbers on any film.
             </p>
           </div>
         )}
 
-        {/* Rankings list */}
+        {/* Chart */}
         {status === 'ok' && entries.length > 0 && (
-          <div>
-            {/* Column headers */}
-            <div className="hidden sm:grid grid-cols-[3.5rem_1fr_9rem_11rem_7rem] gap-4 px-4 mb-2.5">
-              <span />
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/20 font-semibold">FILM</span>
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/20 font-semibold text-right">OPENING WKD</span>
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/20 font-semibold text-right">PREDICTED TOTAL</span>
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/20 font-semibold text-right">MULT.</span>
-            </div>
+          <div className="border-b border-rule">
+            {entries.map((entry, i) => {
+              const multiplier = entry.predicted_revenue / Math.max(entry.opening_weekend, 1);
+              const multColor =
+                multiplier >= 3.5 ? 'text-ink font-bold' :
+                multiplier >= 2.5 ? 'text-ink' :
+                'text-red';
+              const predPct = (entry.predicted_revenue / maxRevenue) * 100;
+              const openPct = (entry.opening_weekend / maxRevenue) * 100;
+              const lead = i === 0;
 
-            <div className="space-y-2">
-              {entries.map((entry, i) => {
-                const multiplier = entry.predicted_revenue / entry.opening_weekend;
-                const multColor =
-                  multiplier >= 3.5 ? 'text-green' :
-                  multiplier >= 2.5 ? 'text-cream/60' :
-                  'text-pink';
-                const barPct = (entry.predicted_revenue / maxRevenue) * 100;
-                const medal = i < 3 ? MEDAL[i] : null;
+              return (
+                <Link
+                  key={entry.tmdb_id}
+                  href={`/movie/${entry.tmdb_id}`}
+                  className="no-underline text-inherit block group ledger-row border-t border-rule"
+                >
+                  <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
+                    {/* Rank */}
+                    <span className={`font-mono tabular-nums text-right w-5 sm:w-7 shrink-0 ${lead ? 'text-red text-[1.05rem] sm:text-[1.2rem] font-bold' : 'text-ink3 text-[0.9rem] sm:text-[0.95rem]'}`}>
+                      {i + 1}
+                    </span>
 
-                return (
-                  <Link
-                    key={entry.tmdb_id}
-                    href={`/movie/${entry.tmdb_id}`}
-                    className="no-underline text-inherit block group"
-                  >
-                    <div
-                      className={`
-                        relative rounded-xl overflow-hidden border transition-all duration-300
-                        ${medal
-                          ? `${medal.border} ${medal.bg} hover:brightness-110`
-                          : 'border-green/[0.07] bg-green/2 hover:border-green/13 hover:bg-green/4.5'
-                        }
-                      `}
-                    >
-                      {/* Revenue bar */}
-                      <div
-                        className={`absolute bottom-0 left-0 h-0.5 transition-all duration-700 ${medal ? medal.bar : 'bg-green/20'}`}
-                        style={{ width: `${barPct}%` }}
+                    {/* Poster */}
+                    <div className="shrink-0 border border-ink/30">
+                      <Image
+                        src={entry.poster}
+                        alt={entry.title}
+                        width={lead ? 44 : 38}
+                        height={lead ? 66 : 57}
+                        className="object-cover block"
                       />
+                    </div>
 
-                      <div className="grid grid-cols-[3.5rem_1fr_auto] sm:grid-cols-[3.5rem_1fr_9rem_11rem_7rem] gap-4 items-center px-4 py-3.5">
+                    {/* Title */}
+                    <div className="min-w-0 flex-1 sm:flex-none sm:w-52">
+                      <p className={`truncate leading-tight m-0 text-ink group-hover:text-red transition-colors ${lead ? 'text-[0.95rem] sm:text-[1rem] font-bold' : 'text-[0.85rem] sm:text-[0.9rem] font-semibold'}`}>
+                        {entry.title}
+                      </p>
+                      {entry.genres.length > 0 && (
+                        <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.06em] truncate mt-0.5 uppercase">
+                          {entry.genres.slice(0, 2).join(' · ')}
+                        </p>
+                      )}
+                    </div>
 
-                        {/* Rank */}
-                        <div className="flex items-center justify-center">
-                          {medal ? (
-                            <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border ${medal.badge}`}>
-                              {i + 1}
-                            </span>
-                          ) : (
-                            <span className="text-cream/20 text-sm font-mono tabular-nums text-center w-7 leading-none">
-                              {i + 1}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Poster + title */}
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="shrink-0">
-                            <Image
-                              src={entry.poster}
-                              alt={entry.title}
-                              width={medal ? 48 : 42}
-                              height={medal ? 72 : 63}
-                              className="rounded-sm object-cover"
-                              style={medal ? { boxShadow: '0 4px 14px rgba(0,0,0,0.55)' } : undefined}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate leading-tight mb-0.5 text-cream">
-                              {entry.title}
-                            </p>
-                            {entry.genres.length > 0 && (
-                              <p className="text-cream/45 text-[0.67rem] truncate">
-                                {entry.genres.slice(0, 3).join(' · ')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Mobile: predicted only */}
-                        <div className="sm:hidden text-right shrink-0">
-                          <p className="font-mono text-[0.5rem] text-cream/25 tracking-[0.14em] mb-0.5">PREDICTED</p>
-                          <p className="font-mono text-green text-sm font-bold tabular-nums" style={{ textShadow: '0 0 16px rgba(234,180,76,0.3)' }}>
-                            {fmt(entry.predicted_revenue)}
-                          </p>
-                        </div>
-
-                        {/* Desktop: opening */}
-                        <div className="hidden sm:block text-right">
-                          <p className="font-mono text-cream/55 text-[0.82rem] tabular-nums">
-                            {fmt(entry.opening_weekend)}
-                          </p>
-                        </div>
-
-                        {/* Desktop: predicted total */}
-                        <div className="hidden sm:block text-right">
-                          <p
-                            className="font-mono text-green font-bold text-[0.9rem] tabular-nums"
-                            style={{ textShadow: '0 0 20px rgba(234,180,76,0.28)' }}
-                          >
-                            {fmt(entry.predicted_revenue)}
-                          </p>
-                        </div>
-
-                        {/* Desktop: multiplier */}
-                        <div className="hidden sm:block text-right">
-                          <p className={`font-mono text-[0.9rem] font-bold tabular-nums ${multColor}`}>
-                            {multiplier.toFixed(1)}×
-                          </p>
-                        </div>
-
+                    {/* Bar (desktop) — opening weekend solid, extended to predicted total in tint */}
+                    <div className="hidden sm:block flex-1 min-w-0">
+                      <div className="relative h-6 w-full">
+                        <div
+                          className="absolute inset-y-0 left-0"
+                          style={{ width: `${predPct}%`, background: 'color-mix(in srgb, var(--color-ink2) 28%, transparent)' }}
+                        />
+                        <div className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${openPct}%` }} />
+                        {/* opening/total boundary tick */}
+                        <div className="absolute inset-y-0 w-px bg-paper" style={{ left: `${openPct}%` }} />
                       </div>
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
 
-            <p className="text-cream/12 text-[0.65rem] tracking-[0.18em] mt-10 text-center">
-              MULTIPLIER = PREDICTED TOTAL ÷ OPENING WEEKEND
-            </p>
+                    {/* Predicted total */}
+                    <p className={`text-right font-mono tabular-nums m-0 w-[5.5rem] sm:w-24 shrink-0 text-ink ${lead ? 'text-[0.98rem] sm:text-[1.05rem] font-bold' : 'text-[0.9rem] sm:text-[0.95rem] font-bold'}`}>
+                      {fmt(entry.predicted_revenue)}
+                    </p>
+
+                    {/* Multiplier */}
+                    <p className={`text-right font-mono text-[0.82rem] sm:text-[0.9rem] tabular-nums m-0 w-11 sm:w-12 shrink-0 ${multColor}`}>
+                      {multiplier.toFixed(1)}×
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
+        )}
+
+        {status === 'ok' && entries.length > 0 && (
+          <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] mt-8 uppercase">
+            Multiplier = predicted total ÷ opening weekend · bars to scale
+          </p>
         )}
       </div>
     </main>

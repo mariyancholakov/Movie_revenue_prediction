@@ -22,38 +22,40 @@ export function SearchBar({
   const isFiltering = query.trim() !== '' || activeGenres.length > 0;
 
   return (
-    <div className="mb-7">
-      {/* Search input */}
-      <div className="relative mb-[0.85rem]">
+    <div>
+      {/* Search field */}
+      <div className="relative max-w-md">
         <input
           type="text"
-          placeholder="Search movies..."
+          placeholder="Look up a title…"
           value={query}
           onChange={e => onQueryChange(e.target.value)}
-          className="w-full bg-cream/4 border rounded-md border-green/30 text-cream font-sans text-[0.85rem] py-[0.65rem] transition-[border-color,box-shadow] duration-200 placeholder:text-cream/40 focus:outline-none focus:border-green/80 px-4 focus:ring-[3px] focus:ring-green/7"
-          style={{ paddingRight: query ? '2.5rem' : '1rem' }}
+          className="w-full bg-transparent border-0 border-b border-ink/40 text-ink font-sans
+                     text-[0.95rem] py-2 pr-8 transition-colors duration-200
+                     placeholder:text-ink3 placeholder:italic focus:outline-none
+                     focus:border-b-ink focus:ring-0"
+          style={{ paddingLeft: 0 }}
         />
         {query && (
           <button
             onClick={() => onQueryChange('')}
             aria-label="Clear search"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 text-cream/35 text-[1.1rem] leading-none px-[0.2rem] py-0 transition-colors duration-150 hover:text-cream/75"
+            className="absolute right-1 top-1/2 -translate-y-1/2 bg-transparent border-0
+                       text-ink3 text-[1.1rem] leading-none hover:text-red transition-colors"
           >
             ×
           </button>
         )}
       </div>
 
-      {/* Genre pills */}
+      {/* Genre index */}
       {allGenres.length > 0 && (
-        <div className="flex flex-wrap gap-[0.4rem] items-center">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-5">
           <button
             onClick={onClearGenres}
-            className={`rounded-full font-mono font-medium text-[0.62rem] tracking-[0.12em] px-[0.85rem] py-[0.32rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
-              activeGenres.length === 0
-                ? 'bg-green/12 border-green/70 text-green'
-                : 'bg-transparent border-cream/12 text-cream/60 hover:border-green/40 hover:text-cream'
-            }`}
+            data-active={activeGenres.length === 0}
+            className="tab font-sans text-[0.66rem] tracking-[0.14em] font-semibold pb-0.5
+                       data-[active=true]:text-ink text-ink2"
           >
             ALL
           </button>
@@ -61,11 +63,9 @@ export function SearchBar({
             <button
               key={genre}
               onClick={() => onToggleGenre(genre)}
-              className={`rounded-full font-mono font-medium text-[0.62rem] tracking-[0.12em] px-[0.85rem] py-[0.32rem] whitespace-nowrap border transition-[border-color,color,background] duration-150 ${
-                activeGenres.includes(genre)
-                  ? 'bg-green/12 border-green/70 text-green'
-                  : 'bg-transparent border-cream/12 text-cream/60 hover:border-green/40 hover:text-cream'
-              }`}
+              data-active={activeGenres.includes(genre)}
+              className="tab font-sans text-[0.66rem] tracking-[0.14em] font-medium pb-0.5
+                         data-[active=true]:text-ink data-[active=true]:font-semibold text-ink2"
             >
               {genre.toUpperCase()}
             </button>
@@ -75,11 +75,13 @@ export function SearchBar({
 
       {/* Live result count */}
       {isFiltering && (
-        <p className={`mt-3 mb-0 text-[0.68rem] tracking-[0.18em] font-semibold ${
-          resultCount === 0 ? 'text-pink/60' : 'text-cream/28'
-        }`}>
+        <p
+          className={`mt-4 mb-0 font-mono text-[0.7rem] tracking-[0.1em] ${
+            resultCount === 0 ? 'text-red' : 'text-ink2'
+          }`}
+        >
           {resultCount === 0
-            ? 'NO RESULTS'
+            ? 'NO ENTRIES MATCH'
             : `${resultCount} OF ${totalCount} FILMS`}
         </p>
       )}

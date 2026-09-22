@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { MovieDetail } from '@/components/MovieDetail';
+import { RunningHead } from '@/components/RunningHead';
 import type { Movie, Prediction } from '@/components/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
@@ -77,31 +78,13 @@ export default function MoviePage() {
   }, [allMovies, movie, tmdbId]);
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      background: 'transparent',
-      color: '#F2EBDA',
-      fontFamily: 'var(--font-dm-sans), sans-serif',
-      position: 'relative',
-      zIndex: 1,
-    }}>
-      <nav className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-8 pb-0 relative z-10">
-        <Link href="/" className="no-underline">
-          <span
-            className="font-display text-lg font-bold text-green tracking-[0.22em]"
-            style={{ textShadow: '0 0 24px color-mix(in srgb, var(--color-green) 25%, transparent)' }}
-          >
-            MOVIEGROSS
-          </span>
-        </Link>
-      </nav>
-
-     
+    <main className="min-h-screen text-ink font-sans">
+      <RunningHead active="none" />
 
       {!movie && !notFound && <MovieDetailSkeleton />}
 
       {movie && (
-        <div style={{ maxWidth: '900px', margin: '0 auto', width: '100%', position: 'relative', zIndex: 1 }}>
+        <div className="max-w-[62rem] mx-auto w-full">
           <MovieDetail
             selected={movie}
             prediction={prediction}
@@ -111,29 +94,20 @@ export default function MoviePage() {
             fullPage
           />
 
-          {/* Similar films */}
           {similarMovies.length > 0 && (
-            <div className="px-4 sm:px-16 pb-16">
-              <div className="h-px bg-linear-to-r from-green/10 via-green/3 to-transparent mb-8" />
-              <p className='text-cream/25 text-[0.62rem] mb-5 font-semibold tracking-[0.22em] uppercase'>
-                Similar Films
-              </p>
-              <div className="flex flex-wrap justify-center gap-[0.85rem] pb-2">
+            <div className="px-4 sm:px-8 lg:px-14 pb-20">
+              <div className="rule-hair mb-5" />
+              <h2 className="font-display text-ink text-[1.15rem] font-bold m-0 mb-5">See Also</h2>
+              <div className="flex flex-wrap gap-4">
                 {similarMovies.map(m => (
-                  <Link
-                    key={m.tmdb_id}
-                    href={`/movie/${m.tmdb_id}`}
-                    style={{ textDecoration: 'none', color: 'inherit' }}
-                  >
-                    <div
-                      className="transition-transform duration-200 hover:-translate-y-1"
-                    >
+                  <Link key={m.tmdb_id} href={`/movie/${m.tmdb_id}`} className="no-underline text-inherit group">
+                    <div className="plate w-[84px] overflow-hidden bg-panel">
                       <Image
                         src={m.poster}
                         alt={m.title}
-                        width={88}
-                        height={132}
-                        className="block rounded-sm shadow-[0_4px_18px_rgba(0,0,0,0.5)] border border-green/[0.07] object-cover"
+                        width={84}
+                        height={126}
+                        className="block object-cover"
                       />
                     </div>
                   </Link>
@@ -145,9 +119,13 @@ export default function MoviePage() {
       )}
 
       {notFound && (
-        <div className="px-4 sm:px-16 py-24 text-center">
-          <p className="text-cream/32 text-[0.85rem] tracking-[0.15em]">
-            MOVIE NOT FOUND
+        <div className="px-4 sm:px-14 py-24 text-center">
+          <p className="font-display text-ink text-2xl font-bold mb-2">Not on file</p>
+          <p className="text-ink2 text-[0.88rem]">
+            No entry for that film.{' '}
+            <Link href="/" className="text-red underline underline-offset-2 hover:no-underline">
+              Back to Now Playing
+            </Link>
           </p>
         </div>
       )}
@@ -157,17 +135,17 @@ export default function MoviePage() {
 
 function MovieDetailSkeleton() {
   return (
-    <div className="px-4 sm:px-16 py-12" style={{ maxWidth: '900px', margin: '0 auto' }}>
-      <div className="skeleton-card" style={{ width: 90, height: 14, marginBottom: '2rem', borderRadius: 2 }} />
-      <div style={{ display: 'flex', gap: '2rem' }}>
-        <div className="skeleton-card" style={{ width: 140, height: 210, flexShrink: 0, borderRadius: 6 }} />
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="skeleton-card" style={{ height: 30, width: '65%', borderRadius: 3 }} />
-          <div className="skeleton-card" style={{ height: 13, width: '28%', borderRadius: 2 }} />
-          <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <div className="skeleton-card" style={{ height: 12, width: '90%', borderRadius: 2 }} />
-            <div className="skeleton-card" style={{ height: 12, width: '82%', borderRadius: 2 }} />
-            <div className="skeleton-card" style={{ height: 12, width: '70%', borderRadius: 2 }} />
+    <div className="px-4 sm:px-8 lg:px-14 py-10 max-w-[62rem] mx-auto">
+      <div className="paper-skeleton h-3 w-24 mb-8" />
+      <div className="flex flex-col sm:flex-row gap-7 sm:gap-10">
+        <div className="paper-skeleton w-52 sm:w-60 md:w-72 aspect-[2/3] border border-ink/15 shrink-0 mx-auto sm:mx-0" />
+        <div className="flex-1 flex flex-col gap-3 w-full">
+          <div className="paper-skeleton h-9 w-3/4" />
+          <div className="paper-skeleton h-3 w-1/3" />
+          <div className="mt-3 flex flex-col gap-2.5">
+            <div className="paper-skeleton h-3 w-[92%]" />
+            <div className="paper-skeleton h-3 w-[85%]" />
+            <div className="paper-skeleton h-3 w-[70%]" />
           </div>
         </div>
       </div>

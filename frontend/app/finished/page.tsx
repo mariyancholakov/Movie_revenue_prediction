@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { RunningHead } from '@/components/RunningHead';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
 
@@ -28,122 +29,176 @@ export default function FinishedPage() {
       .catch(() => setStatus('error'));
   }, []);
 
+  const meanError = useMemo(() => {
+    const valid = entries.filter(e => e.actual_revenue > 0);
+    if (!valid.length) return null;
+    const sum = valid.reduce(
+      (a, e) => a + Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue,
+      0
+    );
+    return (sum / valid.length) * 100;
+  }, [entries]);
+
+  const maxVal = useMemo(
+    () => Math.max(1, ...entries.map(e => Math.max(e.predicted_revenue, e.actual_revenue))),
+    [entries]
+  );
+
   return (
-    <main className="min-h-screen bg-transparent text-cream font-sans relative z-[1]">
+    <main className="min-h-screen text-ink font-sans">
+      <RunningHead active="finished" />
 
-      <nav className="px-4 sm:px-8 md:px-16 pt-6 sm:pt-8 pb-0 relative z-10 flex items-center gap-6">
-        <Link href="/" className="no-underline">
-          <span
-            className="font-display text-lg font-bold text-green tracking-[0.22em]"
-            style={{ textShadow: '0 0 24px color-mix(in srgb, var(--color-green) 25%, transparent)' }}
-          >
-            MOVIEGROSS
-          </span>
-        </Link>
-        <Link
-          href="/"
-          className="text-[0.65rem] tracking-[0.18em] text-cream/35 hover:text-cream/65 transition-colors font-semibold font-sans no-underline"
-        >
-          NOW PLAYING
-        </Link>
-        <Link
-          href="/leaderboard"
-          className="text-[0.65rem] tracking-[0.18em] text-cream/35 hover:text-cream/65 transition-colors font-semibold font-sans no-underline"
-        >
-          RANKINGS
-        </Link>
-        <span className="text-[0.65rem] tracking-[0.18em] text-green/70 font-semibold font-sans">
-          FINISHED
-        </span>
-      </nav>
-
-      <div className="px-4 sm:px-8 lg:px-16 pt-10 pb-20 max-w-[900px]">
-        <h2 className="font-display text-2xl sm:text-3xl font-bold text-cream mb-1">Finished Runs</h2>
-        <p className="text-cream/35 text-[0.82rem] mb-10">
-          Movies that have finished their theatrical run and we predicted for — see how far off we were.
+      <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
+        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
+          The Ledger
+        </h1>
+        <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-5">
+          Films whose theatrical runs have closed — the model&rsquo;s call, settled against the
+          final gross. Overshoots post <span className="text-red font-semibold">in&nbsp;the&nbsp;red</span>.
         </p>
 
+        {/* Aggregate proof */}
+        {status === 'ok' && entries.length > 0 && meanError != null && (
+          <div className="flex flex-wrap gap-x-10 gap-y-3 border-y border-ink/25 py-5 mb-6">
+            <div>
+              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Settled</p>
+              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{entries.length}</p>
+            </div>
+            <div>
+              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Mean Error</p>
+              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{meanError.toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Within 20%</p>
+              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">
+                {Math.round(
+                  (entries.filter(e => e.actual_revenue > 0 &&
+                    Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue <= 0.2).length /
+                    entries.length) * 100
+                )}%
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Legend */}
+        {status === 'ok' && entries.length > 0 && (
+          <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
+            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-2.5 bg-ink2" /> Actual gross</span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block" style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }} /> Predicted
+            </span>
+            <span className="flex items-center gap-1.5"><span className="text-red font-semibold not-italic">Over</span> = model overshot</span>
+          </div>
+        )}
+        <div className="rule-double mb-2" />
+
         {status === 'loading' && (
-          <div className="space-y-3">
+          <div className="space-y-px pt-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="skeleton-card rounded-lg" style={{ height: 72 }} />
+              <div key={i} className="paper-skeleton h-[66px]" />
             ))}
           </div>
         )}
 
         {status === 'error' && (
-          <div className="flex flex-col items-center py-20 text-center">
-            <div className="w-12 h-12 rounded-full border border-pink/30 flex items-center justify-center mb-5 text-pink/60 text-xl">!</div>
-            <p className="text-cream/60 text-sm font-medium mb-1">Can&apos;t connect to the API</p>
-            <p className="text-cream/25 text-[0.78rem]">Make sure the Flask server is running on <span className="font-mono text-green/50">{API_URL}</span></p>
+          <div className="border border-ink/25 bg-panel/50 px-6 py-8 text-center mt-6">
+            <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
+            <p className="text-ink2 text-[0.85rem] m-0">
+              No connection to the box-office desk. Start the Flask server on{' '}
+              <span className="font-mono text-ink">{API_URL}</span>.
+            </p>
           </div>
         )}
 
         {status === 'ok' && entries.length === 0 && (
-          <div className="flex flex-col items-center py-20 text-center max-w-sm mx-auto">
-            <p className="text-[2rem] mb-4">📉</p>
-            <p className="text-cream/60 text-sm font-medium mb-2">No finished runs yet</p>
-            <p className="text-cream/25 text-[0.78rem] leading-relaxed">Finished runs will appear here after the data is available.</p>
+          <div className="py-16 text-center max-w-md mx-auto">
+            <p className="font-display text-ink text-xl font-bold mb-2">The ledger is empty</p>
+            <p className="text-ink2 text-[0.85rem] leading-relaxed m-0">
+              Settled runs post here once films close out their theatrical release.
+            </p>
           </div>
         )}
 
         {status === 'ok' && entries.length > 0 && (
-          <div>
-            <div className="hidden sm:grid grid-cols-[2rem_1fr_9rem_9rem_9rem] gap-4 px-3 mb-3 items-center">
-              <span />
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/22 font-semibold">FILM</span>
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/22 font-semibold text-right">PREDICTED</span>
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/22 font-semibold text-right">ACTUAL</span>
-              <span className="text-[0.58rem] tracking-[0.2em] text-cream/22 font-semibold text-right">ERROR</span>
-            </div>
+          <div className="border-b border-rule">
+            {entries.map((entry) => {
+              const diff = entry.predicted_revenue - entry.actual_revenue;
+              const abs = Math.abs(diff);
+              const pct = entry.actual_revenue > 0 ? (abs / entry.actual_revenue) * 100 : 0;
+              const over = diff > 0;
+              const color = over ? 'text-red' : 'text-ink';
+              const actualPct = (entry.actual_revenue / maxVal) * 100;
+              const predPct = (entry.predicted_revenue / maxVal) * 100;
 
-            <div className="divide-y divide-green/[0.07]">
-              {entries.map((entry, i) => {
-                const diff = entry.predicted_revenue - entry.actual_revenue;
-                const abs = Math.abs(diff);
-                // Error relative to the actual result (standard MAPE), i.e. how far
-                // the prediction was from what the movie really made.
-                const pct = entry.actual_revenue > 0 ? (abs / entry.actual_revenue) * 100 : 0;
-                const color = diff > 0 ? 'text-pink' : 'text-green';
+              return (
+                <Link key={entry.tmdb_id} href={`/movie/${entry.tmdb_id}`} className="no-underline text-inherit block group ledger-row border-t border-rule">
+                  <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
+                    {/* Film */}
+                    <div className="shrink-0 border border-ink/30">
+                      <Image src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
+                    </div>
+                    <div className="min-w-0 w-[9rem] sm:w-52 shrink-0">
+                      <p className="text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">
+                        {entry.title}
+                      </p>
+                      {entry.genres.length > 0 && (
+                        <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.06em] truncate mt-0.5 uppercase">
+                          {entry.genres.slice(0, 2).join(' · ')}
+                        </p>
+                      )}
+                    </div>
 
-                return (
-                  <Link key={entry.tmdb_id} href={`/movie/${entry.tmdb_id}`} className="no-underline text-inherit block">
-                    <div className="grid grid-cols-[2rem_1fr_auto] sm:grid-cols-[2rem_1fr_9rem_9rem_9rem] gap-4 items-center px-3 py-4 rounded-lg hover:bg-green/[0.04] transition-colors">
-                      <span className="text-cream/20 text-sm font-mono text-right tabular-nums leading-none">{i + 1}</span>
-
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="shrink-0">
-                          <Image src={entry.poster} alt={entry.title} width={36} height={54} className="rounded-sm object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-cream text-sm font-medium truncate leading-tight">{entry.title}</p>
-                          {entry.genres.length > 0 && (<p className="text-cream/30 text-[0.68rem] truncate mt-0.5">{entry.genres.slice(0,3).join(' · ')}</p>)}
-                        </div>
-                      </div>
-
-                      <div className="sm:hidden text-right shrink-0">
-                        <p className="font-mono text-[0.5rem] text-cream/25 tracking-[0.14em] mb-0.5">PREDICTED</p>
-                        <p className="font-mono text-green text-sm font-bold tabular-nums">{fmt(entry.predicted_revenue)}</p>
-                      </div>
-
-                      <div className="hidden sm:block text-right">
-                        <p className="font-mono text-cream/45 text-[0.82rem] tabular-nums">{fmt(entry.predicted_revenue)}</p>
-                      </div>
-
-                      <div className="hidden sm:block text-right">
-                        <p className="font-mono text-cream/70 text-[0.82rem] tabular-nums">{fmt(entry.actual_revenue)}</p>
-                      </div>
-
-                      <div className="hidden sm:block text-right">
-                        <p className={`font-mono text-[0.82rem] font-bold tabular-nums ${color}`}>{(diff > 0 ? 'Over' : 'Under') } {fmt(abs)}</p>
-                        <p className="font-mono text-cream/30 text-[0.7rem]">{pct.toFixed(1)}%</p>
+                    {/* Bar (desktop): actual gross in ink, overshoot in red, predicted tick */}
+                    <div className="hidden sm:block flex-1 min-w-0">
+                      <div className="relative h-6 w-full">
+                        {/* actual gross — the truth */}
+                        <div className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${actualPct}%` }} />
+                        {/* faint trace of the overshoot, past the actual bar (over only) */}
+                        {over && (
+                          <div
+                            className="absolute inset-y-0"
+                            style={{ left: `${actualPct}%`, width: `${predPct - actualPct}%`, background: 'color-mix(in srgb, var(--color-red) 50%, transparent)' }}
+                          />
+                        )}
+                        {/* predicted — an ink caret above the bar (always legible) */}
+                        <div
+                          className="absolute"
+                          style={{ left: `calc(${predPct}% - 4px)`, top: '-7px', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }}
+                        />
                       </div>
                     </div>
-                  </Link>
-                );
-              })}
-            </div>
+
+                    {/* Mobile: error only */}
+                    <div className="sm:hidden text-right shrink-0 ml-auto">
+                      <p className={`font-mono text-[0.85rem] font-bold tabular-nums m-0 ${color}`}>
+                        {over ? 'Over' : 'Under'} {fmt(abs)}
+                      </p>
+                      <p className="font-mono text-ink3 text-[0.66rem] tabular-nums m-0">{pct.toFixed(1)}%</p>
+                    </div>
+
+                    {/* Actual */}
+                    <p className="hidden sm:block text-right font-mono text-ink text-[0.9rem] font-bold tabular-nums m-0 w-24 shrink-0">
+                      {fmt(entry.actual_revenue)}
+                    </p>
+                    {/* Error */}
+                    <div className="hidden sm:block text-right w-28 shrink-0">
+                      <p className={`font-mono text-[0.85rem] font-bold tabular-nums m-0 ${color}`}>
+                        {over ? 'Over' : 'Under'} {fmt(abs)}
+                      </p>
+                      <p className="font-mono text-ink3 text-[0.66rem] tabular-nums m-0">{pct.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
+        )}
+
+        {status === 'ok' && entries.length > 0 && (
+          <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] uppercase mt-4">
+            Bars to scale · error relative to final gross
+          </p>
         )}
       </div>
     </main>

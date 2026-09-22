@@ -1,33 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Fraunces, Space_Mono } from "next/font/google";
-import { BackgroundThreads } from "@/components/BackgroundThreads";
+import { Bodoni_Moda, Libre_Franklin, Courier_Prime } from "next/font/google";
 import "./globals.css";
 
-// Body — clean, warm humanist grotesque
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+// Display — trade-paper Didone. Masthead + headlines.
+const bodoni = Bodoni_Moda({
+  variable: "--font-bodoni",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-// Display — glamorous editorial serif, cinematic marquee feel
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "900"],
+  weight: ["400", "500", "600", "700", "800", "900"],
   style: ["normal", "italic"],
 });
 
-// Data — box-office ticker / ledger numerals
-const spaceMono = Space_Mono({
-  variable: "--font-space-mono",
+// Text / UI — Franklin Gothic lineage, the American newspaper workhorse.
+const franklin = Libre_Franklin({
+  variable: "--font-franklin",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
+
+// Figures — screenplay + accounting ledger. All money and data, tabular.
+const courier = Courier_Prime({
+  variable: "--font-courier",
   subsets: ["latin"],
   weight: ["400", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
-  title: "MOVIEGROSS — Box Office Predictor",
-  description: "Predict the total box-office run of any film now playing",
+  title: "MOVIEGROSS — The Box-Office Ledger",
+  description:
+    "The predicted total box-office run of every film now playing, typeset like the weekend grosses — from a model trained on 5,000+ theatrical releases.",
 };
 
 export const viewport: Viewport = {
@@ -43,12 +44,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${fraunces.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${franklin.variable} ${bodoni.variable} ${courier.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <BackgroundThreads />
-        {children}
-      </body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

@@ -36,3 +36,7 @@ yarn-error.log*
 *.key
 *.p12
 *.pfx
+
+# Impeccable local/verification artifacts
+.impeccable/review/
+.impeccable/config.local.json

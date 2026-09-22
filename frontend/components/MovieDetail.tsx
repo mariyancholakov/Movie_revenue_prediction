@@ -20,6 +20,13 @@ const fmtRuntime = (mins: number) => {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
+const fmtDate = (d: string) => {
+  const t = new Date(d);
+  return Number.isNaN(t.getTime())
+    ? d
+    : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 interface MovieDetailProps {
   selected: Movie;
   prediction: Prediction | null;
@@ -27,6 +34,18 @@ interface MovieDetailProps {
   onBack: () => void;
   onPredict: () => void;
   fullPage?: boolean;
+}
+
+// One ruled row of the particulars ledger.
+function Particular({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline gap-4 py-2 border-b border-rule">
+      <span className="font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase w-24 shrink-0">
+        {label}
+      </span>
+      <span className="font-sans text-[0.85rem] text-ink leading-snug">{children}</span>
+    </div>
+  );
 }
 
 export function MovieDetail({
@@ -52,201 +71,174 @@ export function MovieDetail({
   };
 
   return (
-    <section className="detail-panel px-4 sm:px-8 lg:px-16 py-8 sm:py-12 relative">
-      {selected && (
-    <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-green/3 blur-[80px] -z-10 pointer-events-none" />
-  )}
-      <div className="flex items-center gap-3 mb-6 sm:mb-10">
+    <section className="px-4 sm:px-8 lg:px-14 py-7 sm:py-10">
+      {/* Controls */}
+      <div className="flex items-center justify-between gap-3 mb-7">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-4 py-2 rounded-md border border-purple/80 hover:bg-purple/25 hover:border-purple hover:text-cream bg-purple/15 text-cream/80 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
+          className="font-sans text-[0.68rem] tracking-[0.14em] font-semibold text-ink2
+                     hover:text-red transition-colors bg-transparent border-0 p-0"
         >
-          ← Back to all movies
+          ‹ ALL FILMS
         </button>
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 px-4 py-2 rounded-md border border-green/30 hover:bg-green/8 hover:border-green/60 hover:text-cream bg-transparent text-cream/50 text-xs tracking-[0.12em] font-medium transition-colors font-sans"
+          className="font-sans text-[0.68rem] tracking-[0.14em] font-semibold text-ink2
+                     hover:text-red transition-colors bg-transparent border-0 p-0"
         >
-          {copied ? '✓ Copied' : '↗ Share'}
+          {copied ? "LINK COPIED" : "COPY LINK"}
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-6 sm:gap-10">
-        <div className="shrink-0 flex flex-col items-center sm:items-start">
-          <div className="relative w-48 sm:w-64 md:w-80 aspect-2/3 sm:aspect-auto sm:h-full sm:min-h-[384px] md:min-h-[480px] rounded-md overflow-hidden shadow-2xl shadow-green/5">
+      <div className="flex flex-col sm:flex-row gap-7 sm:gap-10">
+        {/* Poster plate */}
+        <div className="shrink-0 mx-auto sm:mx-0">
+          <div className="relative w-52 sm:w-60 md:w-72 aspect-[2/3] plate overflow-hidden bg-panel">
             <Image
               src={selected.poster}
               alt={selected.title}
               fill
-              sizes="(max-width: 640px) 192px, (max-width: 768px) 256px, 320px"
-              className="object-cover object-top"
+              sizes="(max-width: 640px) 208px, (max-width: 768px) 240px, 288px"
+              className="object-cover"
               priority
             />
           </div>
         </div>
 
+        {/* Entry */}
         <div className="flex flex-col flex-1 min-w-0">
-          <h2 className="font-display text-2xl sm:text-4xl font-bold text-cream mb-2 leading-tight">
+          <h1 className="font-display text-ink text-[1.9rem] sm:text-[2.9rem] font-bold leading-[1.02] m-0">
             {selected.title}
-          </h2>
-
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm mb-3 tracking-wide">
-            <span className="font-mono text-cream/55 text-[0.82rem]">{selected.release_date}</span>
-            {(selected.runtime ?? 0) > 0 && (
-              <>
-                <span className="text-cream/20">·</span>
-                <span className="text-cream/50">{fmtRuntime(selected.runtime!)}</span>
-              </>
-            )}
-            {selected.vote_average != null && (
-              <>
-                <span className="text-cream/20">·</span>
-                <span className="text-green/70 font-semibold">★ {selected.vote_average.toFixed(1)}</span>
-              </>
-            )}
-          </p>
+          </h1>
 
           {selected.genres && selected.genres.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {selected.genres.map((g) => (
-                <span
-                  key={g}
-                  className="text-[0.62rem] font-semibold tracking-[0.08em] text-green/70 bg-green/8 border border-green/15 rounded-full px-3 py-1 uppercase"
-                >
-                  {g}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="text-cream/70 text-sm leading-[1.7] mb-4">
-            {selected.overview}
-          </p>
-
-          {selected.director && (
-            <p className="text-sm mb-2">
-              <span className="text-cream/40 tracking-wide">Director: </span>
-              <span className="text-cream/70">{selected.director}</span>
+            <p className="font-mono text-[0.66rem] tracking-[0.12em] text-ink2 uppercase mt-3 mb-0">
+              {selected.genres.join("  ·  ")}
             </p>
           )}
 
-          {selected.cast && selected.cast.length > 0 && (
-            <p className="text-sm mb-3">
-              <span className="text-cream/40 tracking-wide">Cast: </span>
-              <span className="text-cream/70">{selected.cast.join(", ")}</span>
+          {selected.overview && (
+            <p className="text-ink2 text-[0.9rem] leading-[1.65] mt-4 mb-5 max-w-prose">
+              {selected.overview}
             </p>
           )}
 
-          {(selected.budget ?? 0) > 0 && (
-            <div className="inline-flex items-center gap-2 mb-6">
-              <span className="text-cream/40 text-sm tracking-wide">Budget:</span>
-              <span className="text-sm font-semibold font-sans tabular-nums text-cream/70 bg-purple/4 border border-purple/80 hover:border-purple rounded-full px-3 py-0.5">
-                {fmt(selected.budget!)}
-              </span>
-            </div>
-          )}
-          <div className="mt-auto pt-4">
-          {notReleased && (
-            <div className="rounded-lg border border-green/20 bg-green/5 px-5 py-4">
-              <p className="text-green/90 text-sm font-semibold tracking-[0.04em] mb-1">
-                Not yet in theaters
-              </p>
-              <p className="text-cream/55 text-[0.82rem] leading-[1.6]">
-                Predictions unlock once the film opens and box-office data is available.
-              </p>
-            </div>
-          )}
+          {/* Particulars ledger */}
+          <div className="border-t border-ink/25">
+            <Particular label="Released">{fmtDate(selected.release_date)}</Particular>
+            {(selected.runtime ?? 0) > 0 && (
+              <Particular label="Runtime">{fmtRuntime(selected.runtime!)}</Particular>
+            )}
+            {selected.vote_average != null && (
+              <Particular label="TMDB">
+                <span className="font-mono tabular-nums">{selected.vote_average.toFixed(1)}</span>
+                <span className="text-ink3"> / 10</span>
+              </Particular>
+            )}
+            {selected.director && <Particular label="Directed by">{selected.director}</Particular>}
+            {selected.cast && selected.cast.length > 0 && (
+              <Particular label="Starring">{selected.cast.join(", ")}</Particular>
+            )}
+            {(selected.budget ?? 0) > 0 && (
+              <Particular label="Budget">
+                <span className="font-mono tabular-nums">{fmt(selected.budget!)}</span>
+                <span className="text-ink3"> reported</span>
+              </Particular>
+            )}
+          </div>
 
-          {!notReleased && !prediction && !predicting && (
-            <button
-              onClick={onPredict}
-              className="predict-btn w-full bg-green text-bg border-0 font-extrabold text-lg tracking-[0.12em] py-4 rounded transition duration-300 ease-in-out"
-            >
-              Predict Revenue with AI
-            </button>
-          )}
+          {/* Action */}
+          <div className="mt-6">
+            {notReleased && (
+              <div className="border-l-2 border-red pl-4 py-1">
+                <p className="font-display text-ink text-[1.05rem] font-bold mb-1">Not yet in theaters</p>
+                <p className="text-ink2 text-[0.83rem] leading-[1.55] m-0">
+                  The ledger opens once the film releases and the box office starts reporting.
+                </p>
+              </div>
+            )}
 
-          {!notReleased && predicting && !prediction && (
-            <div className="flex items-center gap-6 py-2">
-              <div className="relative w-13 h-13 shrink-0">
-                <div
-                  className="absolute inset-0 rounded-full border-[1.5px] border-green/12 border-t-green border-r-green/45"
-                  style={{ animation: "spinArc 1.1s linear infinite" }}
-                />
-                <div
-                  className="absolute inset-2.5 rounded-full border border-green/8 border-b-green border-l-green/30"
-                  style={{ animation: "spinArc 0.75s linear infinite reverse" }}
-                />
-                <div
-                  className="absolute inset-5 rounded-full border border-green/55"
-                  style={{ animation: "pulseRing 2s ease-out infinite" }}
-                />
-                <div
-                  className="absolute inset-5 rounded-full border border-green/55"
-                  style={{ animation: "pulseRing 2s ease-out 1s infinite" }}
-                />
+            {!notReleased && !prediction && !predicting && (
+              <button
+                onClick={onPredict}
+                className="ledger-btn w-full font-sans font-bold text-[0.82rem] tracking-[0.18em] py-4"
+              >
+                RUN THE NUMBERS
+              </button>
+            )}
+
+            {!notReleased && predicting && !prediction && (
+              <div className="border border-ink/25 px-5 py-4">
+                <p className="font-mono text-[0.68rem] tracking-[0.2em] text-ink mb-3">TOTTING UP…</p>
+                <div className="relative h-1 bg-panel overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 w-1/3 bg-red"
+                    style={{ animation: "tapeScan 1.1s ease-in-out infinite" }}
+                  />
+                </div>
+                <p className="font-sans text-[0.72rem] text-ink3 mt-3 m-0">
+                  Modeling the weekend-by-weekend trajectory
+                </p>
               </div>
-              <div>
-                <span
-                  className="block text-[0.72rem] tracking-[0.25em] text-green font-bold font-sans mb-1"
-                  style={{ textShadow: "0 0 20px rgba(234,180,76,0.4)" }}
-                >
-                  ANALYZING...
-                </span>
-                <span className="text-[0.6rem] tracking-[0.15em] text-cream/28 font-sans">
-                  MODELING BOX OFFICE TRAJECTORY
-                </span>
-              </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
       </div>
 
-      {/* Prediction results — full width below the poster+info row */}
+      {/* Prediction ledger */}
       {prediction && !prediction.error && (
-        <div className="mt-12">
-          <div className="h-px bg-linear-to-r from-green/20 via-green/8 to-transparent mb-10" />
+        <div className="ledger-in mt-11">
+          <div className="rule-double mb-1" />
+          <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
+            The Prediction
+          </p>
 
-          <div className="stat-grid bg-white/1.5 rounded-xl border border-green/8 overflow-hidden mb-10">
-            <StatCard label="OPENING WEEKEND" value={fmt(prediction.opening_weekend)} />
-            <StatCard label="PREDICTED TOTAL" value={fmt(prediction.predicted_revenue)} highlight />
-            <StatCard label="DECAY RATE λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />
-            {(selected.budget ?? 0) > 0 && (() => {
-              const profit = prediction.predicted_revenue - selected.budget!;
-              return (
-                <StatCard
-                  label="EST. PROFIT"
-                  value={fmtProfit(profit)}
-                  highlight={profit >= 0}
-                  accent={profit < 0}
-                />
-              );
-            })()}
+          <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-l border-ink/20 mb-11">
+            {[
+              <StatCard key="ow" label="Opening Weekend" value={fmt(prediction.opening_weekend)}
+                countTo={prediction.opening_weekend} format={fmt} />,
+              <StatCard key="pt" label="Predicted Total" value={fmt(prediction.predicted_revenue)} highlight
+                countTo={prediction.predicted_revenue} format={fmt} />,
+              <StatCard key="dr" label="Decay Rate λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />,
+              (selected.budget ?? 0) > 0
+                ? (() => {
+                    const profit = prediction.predicted_revenue - selected.budget!;
+                    return (
+                      <StatCard key="pf" label="Est. Profit" value={fmtProfit(profit)} accent={profit < 0} />
+                    );
+                  })()
+                : <StatCard key="mult" label="Multiplier"
+                    value={`${(prediction.predicted_revenue / Math.max(prediction.opening_weekend, 1)).toFixed(1)}×`} />,
+            ].map((cell, i) => (
+              <div key={i} className="border-r border-b border-ink/20">
+                {cell}
+              </div>
+            ))}
           </div>
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div>
-              <p className="text-cream/25 text-[0.62rem] tracking-[0.22em] mb-6 font-semibold uppercase">
-                Weekend Gross Decay
-              </p>
+              <div className="flex items-end justify-between mb-5">
+                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">Weekend Gross Decay</h3>
+                <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>
+              </div>
               <DecayCurve data={prediction.decay_curve} />
             </div>
           )}
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length <= 2 && (
-            <p className="text-cream/25 text-sm italic">
-              Not enough weekly data yet — check back after a few more weekends.
+            <p className="text-ink2 text-[0.85rem] italic">
+              Not enough weekends on the books yet — check back after a few more.
             </p>
           )}
         </div>
       )}
 
       {prediction?.error && (
-        <p className="text-pink text-sm mt-6">
+        <p className="text-red text-[0.85rem] mt-6 border-l-2 border-red pl-4 py-1">
           {justOpened
-            ? "This film just opened — box-office data usually lands within a few days. Check back soon."
-            : "No box-office data is available for this film yet."}
+            ? "This film just opened — the box office usually reports within a few days. Check back soon."
+            : "No box-office figures are on the books for this film yet."}
         </p>
       )}
     </section>

@@ -4,6 +4,15 @@ interface DecayCurveProps {
   data: DecayCurveData;
 }
 
+const INK = '#1C1814';
+const RED = '#C0281F';
+const RULE = '#CBC2AD';
+const INK2 = '#554D40';
+const INK3 = '#6E6555';
+const MONO = 'var(--font-courier), monospace';
+
+// A printed weekend-gross chart: ink line + hatched fill for the actual run,
+// a dashed red line for the model's fit, ruled gridlines, Courier labels.
 export function DecayCurve({ data }: DecayCurveProps) {
   const { weeks, actual_gross, fitted_weeks = [], fitted_gross = [] } = data;
   const maxGross = Math.max(...actual_gross, ...(fitted_gross.length ? fitted_gross : [0]));
@@ -12,8 +21,8 @@ export function DecayCurve({ data }: DecayCurveProps) {
   if (maxGross === 0 || maxWeek === 0) return null;
 
   const width = 640;
-  const height = 260;
-  const pad = { top: 24, right: 24, bottom: 52, left: 68 };
+  const height = 280;
+  const pad = { top: 26, right: 20, bottom: 54, left: 66 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
 
@@ -38,131 +47,118 @@ export function DecayCurve({ data }: DecayCurveProps) {
   return (
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
       <defs>
-        <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#EAB44C" stopOpacity="0.22" />
-          <stop offset="85%" stopColor="#EAB44C" stopOpacity="0.02" />
-          <stop offset="100%" stopColor="#EAB44C" stopOpacity="0" />
-        </linearGradient>
-        <filter id="pink-glow" x="-20%" y="-50%" width="140%" height="200%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <filter id="green-glow" x="-20%" y="-80%" width="140%" height="260%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
+        <pattern id="ink-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />
+        </pattern>
       </defs>
 
       <g transform={`translate(${pad.left},${pad.top})`}>
-
-        {/* Horizontal grid lines */}
+        {/* Horizontal gridlines */}
         {yTicks.slice(1).map(t => (
           <line
             key={`grid-${t}`}
-            x1={0} y1={yScale(maxGross * t)}
-            x2={innerW} y2={yScale(maxGross * t)}
-            stroke="rgba(242,235,218,0.05)"
+            x1={0}
+            y1={yScale(maxGross * t)}
+            x2={innerW}
+            y2={yScale(maxGross * t)}
+            stroke={RULE}
             strokeWidth={1}
           />
         ))}
 
-        {/* Baseline */}
-        <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke="rgba(242,235,218,0.12)" strokeWidth={1} />
-        <line x1={0} y1={0} x2={0} y2={innerH} stroke="rgba(242,235,218,0.08)" strokeWidth={1} />
+        {/* Axes */}
+        <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke={INK} strokeWidth={1.5} />
+        <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
 
-        {/* Area fill */}
-        <path d={areaPath} fill="url(#area-fill)" />
+        {/* Hatched area under the actual run */}
+        <path d={areaPath} fill="url(#ink-hatch)" />
 
-        {/* Actual gross line */}
-        <path
-          d={actualLinePath}
-          fill="none"
-          stroke="#EAB44C"
-          strokeWidth={2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          filter="url(#green-glow)"
-        />
-
-        {/* Data point dots */}
-        {weeks.map((w, i) => (
-          <g key={`dot-${i}`}>
-            <circle cx={xScale(w)} cy={yScale(actual_gross[i])} r={5} fill="#0B0E17" stroke="#EAB44C" strokeWidth={2} />
-            <circle cx={xScale(w)} cy={yScale(actual_gross[i])} r={2.5} fill="#EAB44C" />
-          </g>
-        ))}
-
-        {/* Fitted curve */}
+        {/* Model fit — dashed red */}
         <path
           d={fittedPath}
           fill="none"
-          stroke="#E5484D"
-          strokeWidth={2.5}
+          stroke={RED}
+          strokeWidth={2}
+          strokeDasharray="5 4"
           strokeLinecap="round"
           strokeLinejoin="round"
-          filter="url(#pink-glow)"
-          opacity={0.85}
         />
 
-        {/* X tick labels */}
+        {/* Actual gross — solid ink */}
+        <path
+          d={actualLinePath}
+          fill="none"
+          stroke={INK}
+          strokeWidth={2.25}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+
+        {/* Data points */}
         {weeks.map((w, i) => (
-          <text
-            key={`xtick-${i}`}
-            x={xScale(w)} y={innerH + 22}
-            textAnchor="middle"
-            fill="rgba(242,235,218,0.4)"
-            fontSize={10}
-            fontFamily="var(--font-dm-sans), sans-serif"
-          >
-            Wk {w + 1}
-          </text>
+          <circle
+            key={`dot-${i}`}
+            cx={xScale(w)}
+            cy={yScale(actual_gross[i])}
+            r={3.5}
+            fill={INK}
+            stroke="#EDE7DA"
+            strokeWidth={1.5}
+          />
         ))}
 
-        {/* X axis label */}
+        {/* X ticks + labels */}
+        {weeks.map((w, i) => (
+          <g key={`xtick-${i}`}>
+            <line x1={xScale(w)} y1={innerH} x2={xScale(w)} y2={innerH + 5} stroke={INK} strokeWidth={1} />
+            <text
+              x={xScale(w)}
+              y={innerH + 20}
+              textAnchor="middle"
+              fill={INK2}
+              fontSize={10}
+              fontFamily={MONO}
+            >
+              {w + 1}
+            </text>
+          </g>
+        ))}
         <text
-          x={innerW / 2} y={innerH + 44}
+          x={innerW / 2}
+          y={innerH + 44}
           textAnchor="middle"
-          fill="rgba(242,235,218,0.2)"
+          fill={INK3}
           fontSize={9}
           letterSpacing="0.18em"
-          fontFamily="var(--font-dm-sans), sans-serif"
+          fontFamily={MONO}
         >
           WEEKEND
         </text>
 
-        {/* Y tick labels */}
+        {/* Y ticks + labels */}
         {yTicks.map((t, i) => (
-          <text
-            key={`ytick-${i}`}
-            x={-10} y={yScale(maxGross * t) + 4}
-            textAnchor="end"
-            fill="rgba(242,235,218,0.35)"
-            fontSize={10}
-            fontFamily="var(--font-dm-sans), sans-serif"
-          >
-            ${(maxGross * t / 1e6).toFixed(0)}M
-          </text>
+          <g key={`ytick-${i}`}>
+            <line x1={-5} y1={yScale(maxGross * t)} x2={0} y2={yScale(maxGross * t)} stroke={INK} strokeWidth={1} />
+            <text
+              x={-10}
+              y={yScale(maxGross * t) + 3.5}
+              textAnchor="end"
+              fill={INK2}
+              fontSize={10}
+              fontFamily={MONO}
+            >
+              ${(maxGross * t / 1e6).toFixed(0)}M
+            </text>
+          </g>
         ))}
 
         {/* Legend */}
-        <g transform={`translate(${innerW - 140}, -14)`}>
-          <line x1={0} y1={6} x2={14} y2={6} stroke="#EAB44C" strokeWidth={2} />
-          <circle cx={7} cy={6} r={2.5} fill="#EAB44C" />
-          <text x={20} y={10} fill="rgba(242,235,218,0.45)" fontSize={10} fontFamily="var(--font-dm-sans), sans-serif">
-            Actual
-          </text>
-          <line x1={66} y1={6} x2={80} y2={6} stroke="#E5484D" strokeWidth={2.5} />
-          <text x={86} y={10} fill="rgba(242,235,218,0.45)" fontSize={10} fontFamily="var(--font-dm-sans), sans-serif">
-            Model
-          </text>
+        <g transform={`translate(${innerW - 150}, -16)`}>
+          <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />
+          <text x={22} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>ACTUAL</text>
+          <line x1={78} y1={6} x2={94} y2={6} stroke={RED} strokeWidth={2} strokeDasharray="5 4" />
+          <text x={100} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>MODEL</text>
         </g>
-
       </g>
     </svg>
   );

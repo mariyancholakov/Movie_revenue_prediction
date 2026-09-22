@@ -1,227 +1,163 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   MOVIEGROSS — "Marquee at night" palette.
-   Token names are kept from the original theme for continuity, but the
-   values are the new box-office identity:
-     bg     → midnight ink        green  → marquee gold (brand / positive)
-     pink   → theatrical red       purple → muted plum (structural)
-     cream  → warm screen-white
+   MOVIEGROSS — "The Box-Office Ledger"
+   Ink on warm newsprint. Structure comes from ruled hairlines and newspaper
+   double-rules, never from cards, glows, or shadows. ONE spot red, reserved
+   for negatives / over-budget / misses ("in the red") and a few nameplate
+   rules. Money & data are set in Courier Prime (screenplay + accounting).
    ───────────────────────────────────────────────────────────────────────── */
 @theme {
-  --color-bg:     #0B0E17;   /* midnight ink */
-  --color-green:  #EAB44C;   /* marquee gold — brand, primary, hit/positive */
-  --color-purple: #6C5A8C;   /* muted plum — structural secondary */
-  --color-pink:   #E5484D;   /* theatrical red — loss / over / accent */
-  --color-cream:  #F2EBDA;   /* warm screen-white — text */
+  --color-paper:  #EDE7DA;   /* warm newsprint — the page ground */
+  --color-panel:  #E4DCC9;   /* deeper newsprint band — headers, striping */
+  --color-ink:    #1C1814;   /* warm printing ink — headlines, primary figures */
+  --color-ink2:   #554D40;   /* warm gray — metadata, secondary text (AA on paper) */
+  --color-ink3:   #6E6555;   /* muted — tertiary text / small labels (AA on paper) */
+  --color-rule:   #CBC2AD;   /* hairline rule */
+  --color-red:    #C0281F;   /* spot red — loss / over / miss / nameplate accent */
 
-  --font-sans:    var(--font-dm-sans), sans-serif;
-  --font-display: var(--font-fraunces), serif;
-  --font-mono:    var(--font-space-mono), ui-monospace, monospace;
+  --font-sans:    var(--font-franklin), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bodoni), Georgia, serif;
+  --font-mono:    var(--font-courier), ui-monospace, "Courier New", monospace;
 }
 
 html, body {
-  background: var(--color-bg);
+  background: var(--color-paper);
+  color: var(--color-ink);
   overflow-x: hidden;
 }
 
-/* Warm film grain — barely-there texture over the whole page */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 9999;
-  opacity: 0.04;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='256' height='256'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23grain)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 200px 200px;
-}
-
-/* Slim scrollbar */
-::-webkit-scrollbar { width: 3px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-green) 30%, transparent);
-  border-radius: 2px;
+body {
+  font-family: var(--font-sans);
+  /* barely-there newsprint tooth — material, not decoration */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  background-blend-mode: multiply;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-green) 30%, transparent);
-  color: var(--color-cream);
+  background: color-mix(in srgb, var(--color-red) 22%, transparent);
+  color: var(--color-ink);
 }
 
-/* ─── Marquee bulbs (hero signature) ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: var(--color-paper); }
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink3);
+  border: 3px solid var(--color-paper);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink2); }
 
-.bulb {
-  width: 7px;
-  height: 7px;
-  border-radius: 9999px;
-  background: radial-gradient(circle at 35% 30%, #FFF3D4, var(--color-green) 55%, #A8791F 100%);
-  box-shadow:
-    0 0 6px 1px color-mix(in srgb, var(--color-green) 75%, transparent),
-    0 0 14px 3px color-mix(in srgb, var(--color-green) 30%, transparent);
-  animation: bulbGlow 1.8s ease-in-out infinite;
+:focus-visible {
+  outline: 2px solid var(--color-red);
+  outline-offset: 2px;
 }
 
-@keyframes bulbGlow {
-  0%, 100% { opacity: 0.42; transform: scale(0.86); }
-  50%      { opacity: 1;    transform: scale(1); }
+/* ─── Newspaper rules ─────────────────────────────────────────────────────── */
+
+/* Classic thick-over-thin double rule for section breaks / the nameplate. */
+.rule-double {
+  border: 0;
+  height: 4px;
+  background:
+    linear-gradient(var(--color-ink), var(--color-ink)) top/100% 2px no-repeat,
+    linear-gradient(var(--color-ink), var(--color-ink)) bottom/100% 1px no-repeat;
+}
+.rule-hair { border: 0; height: 1px; background: var(--color-rule); }
+
+/* ─── Ledger controls ─────────────────────────────────────────────────────── */
+
+.ledger-btn {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  border: 1px solid var(--color-ink);
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+.ledger-btn:hover:not(:disabled) {
+  background: var(--color-red);
+  border-color: var(--color-red);
+}
+.ledger-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.tab {
+  transition: color 0.16s ease, border-color 0.16s ease;
+  border-bottom: 2px solid transparent;
+}
+.tab:hover { color: var(--color-ink); }
+.tab[data-active="true"] {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-red);
 }
 
-/* ─── Keyframes ───────────────────────────────────────────────────────────── */
+/* ─── Motion — three authored moments, all reduced-motion safe ────────────── */
 
-@keyframes letterBounce {
-  0%   { transform: translateY(0); }
-  38%  { transform: translateY(-8px); }
-  65%  { transform: translateY(-3px); }
-  100% { transform: translateY(0); }
+/* Nameplate + rules settle onto the page like drying ink. Default = visible. */
+@keyframes inkSettle {
+  from { opacity: 0; filter: blur(6px); transform: translateY(6px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
 }
+.ink-settle { animation: inkSettle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-@keyframes cardFadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+/* Ledger rows / poster captions enter in reading order. */
+@keyframes rowIn {
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.row-in { animation: rowIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-@keyframes panelSlideIn {
-  from { opacity: 0; transform: translateX(30px); }
-  to   { opacity: 1; transform: translateX(0); }
+/* The prediction ledger unfurls when the numbers land. */
+@keyframes ledgerIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ledger-in { animation: ledgerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Analyzing indicator: a thin adding-machine tape scanning. */
+@keyframes tapeScan {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-@keyframes predictPulse {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-green) 45%, transparent); }
-  50%       { box-shadow: 0 0 32px 6px color-mix(in srgb, var(--color-green) 10%, transparent); }
+/* Newsprint placeholder shimmer (loading). */
+@keyframes paperShimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.paper-skeleton {
+  background:
+    linear-gradient(90deg,
+      var(--color-panel) 0%,
+      color-mix(in srgb, var(--color-panel) 55%, var(--color-paper)) 45%,
+      var(--color-paper) 50%,
+      color-mix(in srgb, var(--color-panel) 55%, var(--color-paper)) 55%,
+      var(--color-panel) 100%);
+  background-size: 1200px 100%;
+  animation: paperShimmer 1.6s ease-in-out infinite;
 }
 
-@keyframes waveBeat {
-  0%, 100% { transform: scaleY(0.15); opacity: 0.45; }
-  50%       { transform: scaleY(1);    opacity: 1; }
+/* Poster keyline + hover lift for the picture page (no glow). */
+.plate {
+  border: 1px solid var(--color-ink);
+  box-shadow: 3px 4px 0 -1px color-mix(in srgb, var(--color-ink) 14%, transparent);
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.22s ease;
+}
+.plate:hover {
+  transform: translateY(-3px);
+  box-shadow: 5px 8px 0 -1px color-mix(in srgb, var(--color-ink) 20%, transparent);
 }
 
-@keyframes skeletonShimmer {
-  0%   { background-position: -700px 0; }
-  100% { background-position:  700px 0; }
-}
-
-@keyframes spinArc {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes pulseRing {
-  0%   { transform: scale(1);   opacity: 0.55; }
-  100% { transform: scale(2.4); opacity: 0; }
-}
-
-/* ─── Component classes (animation-dependent — can't be Tailwind) ─────────── */
-
-.wave-letter {
-  display: inline-block;
-}
-
-.title-wave:hover .wave-letter,
-.title-wave.is-waving .wave-letter {
-  animation: letterBounce 0.65s cubic-bezier(0.34, 1.3, 0.64, 1) both;
-}
-
-.movie-card {
-  animation: cardFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  will-change: transform;
-  transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease;
-}
-
-
-
-.detail-panel {
-  animation: panelSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.predict-btn {
-  animation: predictPulse 2.8s ease-in-out infinite;
-}
-
-.predict-btn:hover:not(:disabled) {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 8px 28px color-mix(in srgb, var(--color-green) 38%, transparent) !important;
-  animation-play-state: paused;
-}
-
-.wave-bars {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  height: 28px;
-}
-
-.wave-bar {
-  width: 3px;
-  height: 28px;
-  background: var(--color-green);
-  border-radius: 2px;
-  transform-origin: center;
-  transform: scaleY(0.15);
-  animation: waveBeat 0.9s ease-in-out infinite;
-}
-
-/* ─── Stat grid (responsive 2-col mobile / 4-col desktop) ───────────────── */
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-@media (min-width: 640px) {
-  .stat-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  .stat-grid > * + * {
-    border-left: 1px solid rgba(40, 220, 136, 0.1);
-  }
-}
-
-@media (max-width: 639px) {
-  .stat-grid > * {
-    border-right: 1px solid rgba(40, 220, 136, 0.1);
-    border-bottom: 1px solid rgba(40, 220, 136, 0.1);
-  }
-  .stat-grid > *:nth-child(2n) {
-    border-right: none;
-  }
-  .stat-grid > *:last-child:nth-child(odd) {
-    border-right: none;
-  }
-  .stat-grid > *:last-child {
-    border-bottom: none;
-  }
-  .stat-grid > *:nth-last-child(2):nth-child(odd) {
-    border-bottom: none;
-  }
-}
-
-.skeleton-card {
-  aspect-ratio: 2 / 3;
-  border-radius: 6px;
-  background: linear-gradient(
-    90deg,
-    #0d101c 0%,
-    #171b2b 40%,
-    #202538 50%,
-    #171b2b 60%,
-    #0d101c 100%
-  );
-  background-size: 1400px 100%;
-  animation: skeletonShimmer 1.7s ease-in-out infinite;
-}
-
-/* ─── Reduced motion ─────────────────────────────────────────────────────── */
+/* Ledger row hover wash. */
+.ledger-row { transition: background 0.14s ease; }
+.ledger-row:hover { background: color-mix(in srgb, var(--color-ink) 5%, transparent); }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .bulb { opacity: 0.85 !important; transform: none !important; }
+  .plate:hover { transform: none; }
 }
