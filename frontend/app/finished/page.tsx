@@ -103,8 +103,7 @@ export default function FinishedPage() {
             </h1>
             <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
               Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
-              to the final gross. When a film fell short of the prediction, the gap posts{' '}
-              <span className="text-red">in&nbsp;the&nbsp;red</span>.
+              to the final gross. When a film fell short of the prediction, the gap posts in&nbsp;the&nbsp;red.
             </p>
           </div>
 
