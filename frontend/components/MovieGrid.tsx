@@ -65,11 +65,8 @@ export function MovieGrid({
         <div className="border border-ink/25 bg-panel/50 px-6 py-8 max-w-lg mx-auto text-center">
           <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
           <p className="text-ink2 text-[0.85rem] leading-relaxed m-0">
-            No connection to the box-office desk. Start the Flask server on{' '}
-            <span className="font-mono text-ink">
-              {process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000'}
-            </span>{' '}
-            and reload.
+            We couldn&rsquo;t reach the box-office desk just now. Please check
+            your connection and reload in a moment.
           </p>
         </div>
       )}

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bodoni_Moda, Libre_Franklin, Courier_Prime } from "next/font/google";
+import { Footer } from "@/components/Footer";
 import "./globals.css";
 
 // Display — trade-paper Didone. Masthead + headlines.
@@ -46,7 +47,10 @@ export default function RootLayout({
       lang="en"
       className={`${franklin.variable} ${bodoni.variable} ${courier.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Footer />
+      </body>
     </html>
   );
 }

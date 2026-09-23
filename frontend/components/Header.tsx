@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 const TABS = [
   { href: '/', label: 'NOW PLAYING', active: true },
@@ -8,22 +8,28 @@ const TABS = [
   { href: '/finished', label: 'THE LEDGER', active: false },
 ];
 
-export function Header() {
-  const [edition, setEdition] = useState('');
+// The masthead edition date is client-only on purpose: rendering it during SSR
+// would bake in the server's timezone/date and mismatch on hydration. reading it
+// through useSyncExternalStore (server snapshot '', client snapshot the local
+// date) keeps hydration clean without a setState-in-effect.
+const subscribeToNothing = () => () => {};
+const getEditionSnapshot = () =>
+  new Date()
+    .toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+    .toUpperCase();
+const getServerEditionSnapshot = () => '';
 
-  useEffect(() => {
-    const d = new Date();
-    setEdition(
-      d
-        .toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-        })
-        .toUpperCase()
-    );
-  }, []);
+export function Header() {
+  const edition = useSyncExternalStore(
+    subscribeToNothing,
+    getEditionSnapshot,
+    getServerEditionSnapshot
+  );
 
   return (
     <header className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10 text-center">
