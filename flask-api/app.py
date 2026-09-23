@@ -23,10 +23,13 @@ ALLOWED_ORIGINS = [
 ]
 CORS(app, origins=ALLOWED_ORIGINS)
 
-supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_KEY')
-)
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
+if SUPABASE_KEY.startswith('sb_publishable_'):
+    # The publishable key is meant to be public. The API needs the secret key
+    # (sb_secret_…), which bypasses RLS; with RLS enabled (migrations/002)
+    # a publishable key can neither read nor write.
+    print("WARNING: SUPABASE_KEY is a publishable key; use the secret key (sb_secret_…) server-side.")
+supabase = create_client(os.getenv('SUPABASE_URL'), SUPABASE_KEY)
 try:
     test = supabase.table('movies').select('count').execute()
     print("Supabase connected successfully")
