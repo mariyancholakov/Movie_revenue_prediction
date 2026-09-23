@@ -329,7 +329,7 @@ export function MovieDetail({
             {[
               <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)}
                 countTo={prediction.opening_weekend} format={fmt} />,
-              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)}
+              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} headline
                 countTo={prediction.predicted_revenue} format={fmt} />,
               settled != null && (
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} countTo={settled} format={fmt} />
