@@ -3,8 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { MovieGrid } from '@/components/MovieGrid';
 import type { Movie } from '@/components/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+import { API_URL } from '@/lib/api';
 
 export default function Home() {
   const [movies, setMovies] = useState<Movie[]>([]);

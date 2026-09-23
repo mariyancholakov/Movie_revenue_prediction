@@ -4,8 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+import { API_URL } from '@/lib/api';
 
 const fmt = (n: number) =>
   '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');

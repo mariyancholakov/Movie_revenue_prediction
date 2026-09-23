@@ -6,8 +6,7 @@ import Image from 'next/image';
 import { MovieDetail } from '@/components/MovieDetail';
 import { RunningHead } from '@/components/RunningHead';
 import type { Movie, Prediction } from '@/components/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+import { API_URL } from '@/lib/api';
 
 export default function MoviePage() {
   const params = useParams();
