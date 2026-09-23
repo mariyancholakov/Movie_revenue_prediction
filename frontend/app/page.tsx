@@ -17,6 +17,8 @@ export default function Home() {
       .catch(() => setStatus('error'));
   }, []);
 
+  const posters = useMemo(() => movies.map(m => m.poster).filter(Boolean), [movies]);
+
   const allGenres = useMemo(() => {
     const set = new Set<string>();
     movies.forEach(m => m.genres?.forEach(g => set.add(g)));
@@ -40,8 +42,9 @@ export default function Home() {
 
   return (
     <main className="flex-1 flex flex-col text-ink font-sans w-full min-w-0 overflow-x-clip">
-      <Header />
+      <Header filmCount={movies.length} />
       <MovieGrid
+        posters={posters}
         filteredMovies={filteredMovies}
         totalCount={movies.length}
         status={status}

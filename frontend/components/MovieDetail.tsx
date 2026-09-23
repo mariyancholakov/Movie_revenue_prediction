@@ -8,7 +8,8 @@ import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
-import { Typed, TypedLoader, typeOut } from "./Typed";
+import { Typed, typeOut } from "./Typed";
+import { FilmLeader } from "./FilmLeader";
 
 const fmt = fmtMoney;
 
@@ -308,8 +309,8 @@ export function MovieDetail({
             )}
 
             {!notReleased && predicting && !prediction && (
-              <div className="border border-ink/25 px-5 py-4">
-                <TypedLoader />
+              <div className="border border-ink/25 px-5 py-3">
+                <FilmLeader />
               </div>
             )}
           </div>
