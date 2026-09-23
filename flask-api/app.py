@@ -10,10 +10,17 @@ import os
 import json
 from dotenv import load_dotenv
 
-app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
-
 load_dotenv()
+
+app = Flask(__name__)
+
+# Allowed browser origins come from the environment so the deployed frontend
+# (e.g. the Vercel URL) can be whitelisted without a code change. Comma-separated;
+# defaults to local dev.
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if o.strip()
+]
+CORS(app, origins=ALLOWED_ORIGINS)
 
 supabase = create_client(
     os.getenv('SUPABASE_URL'),
@@ -124,6 +131,23 @@ def store_features(tmdb_id, feature_row):
     except Exception as e:
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
 
+@app.route('/health', methods=['GET'])
+def health():
+    """Lightweight liveness probe for the host's health check. Reports whether
+    the model loaded and whether Supabase is reachable, but always returns 200 so
+    a transient DB blip doesn't get the whole service restarted."""
+    db_ok = True
+    try:
+        supabase.table('movies').select('count').limit(1).execute()
+    except Exception:
+        db_ok = False
+    return jsonify({
+        'status': 'ok',
+        'model_loaded': model is not None,
+        'db': 'ok' if db_ok else 'unreachable',
+    })
+
+
 @app.route('/api/now-playing', methods=['GET'])
 def now_playing():
     movies = get_now_playing()
@@ -144,10 +168,13 @@ def movie_cast(tmdb_id):
         'vote_count': vote_count,
     })
 
-@app.route('/api/predict', methods=['POST'])
-def predict():
-    data = request.json
-    tmdb_id = data['tmdb_id']
+def predict_for(tmdb_id):
+    """Core prediction pipeline: returns (payload_dict, status_code), honoring the
+    Supabase cache. Shared by the /api/predict endpoint and the warm_cache job so
+    a pre-warmed film and a live request go through exactly the same path.
+
+    Never raises for expected external failures (TMDB/Mojo down, missing data) —
+    those come back as an {'error': ...} payload with a 4xx/5xx code."""
     now = datetime.now(timezone.utc)
 
     # Check cache first
@@ -173,10 +200,10 @@ def predict():
 
         # Fresh + complete → serve straight from cache.
         if has_decay and age < FULL_TTL:
-            return jsonify({
+            return {
                 **base,
                 'decay_curve': decay_curve_from_db(weekly_rows, movie['decay_rate'], movie.get('half_life')),
-            })
+            }, 200
 
         # Prediction cached without a decay curve is *partial*. Don't serve a
         # stuck N/A for a week — retry just the weekly-grossing scrape on a
@@ -184,7 +211,7 @@ def predict():
         if not has_decay and age < FULL_TTL:
             if age < DECAY_RETRY_TTL:
                 # Retried recently — avoid hammering Box Office Mojo on reloads.
-                return jsonify({**base, 'decay_curve': None})
+                return {**base, 'decay_curve': None}, 200
 
             decay_data = None
             if imdb_id:
@@ -202,22 +229,30 @@ def predict():
                 ]).execute()
             supabase.table('movies').update(update).eq('tmdb_id', tmdb_id).execute()
 
-            return jsonify({**base, 'decay_curve': decay_data})
+            return {**base, 'decay_curve': decay_data}, 200
 
         # else: stale beyond FULL_TTL → fall through to a full re-scrape below.
 
     # Not cached or stale — full scrape + model prediction.
     details = get_movie_details(tmdb_id)
+    if not details:
+        # TMDB unreachable or unknown id — transient upstream failure.
+        return {'error': 'Movie data is temporarily unavailable. Please try again.'}, 503
     imdb_id = details.get('external_ids', {}).get('imdb_id')
     if not imdb_id:
-        return jsonify({'error': 'Could not find IMDB ID'}), 400
+        return {'error': 'Could not find IMDB ID'}, 400
 
     opening_weekend = get_opening_weekend(imdb_id)
     if not opening_weekend:
-        return jsonify({'error': 'Could not find opening weekend data'}), 400
+        return {'error': 'Could not find opening weekend data'}, 400
 
-    feature_row = build_feature_row(details, opening_weekend)
-    predicted_revenue = float(model.predict(feature_row)[0])
+    try:
+        feature_row = build_feature_row(details, opening_weekend)
+        predicted_revenue = float(model.predict(feature_row)[0])
+    except (KeyError, ValueError) as e:
+        # Malformed/incomplete TMDB details (e.g. missing release_date).
+        print(f"[predict] feature build failed for {tmdb_id}: {e}")
+        return {'error': 'Not enough data to predict for this film yet.'}, 400
 
     weekly_data = get_weekly_grossing(imdb_id)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
@@ -226,7 +261,7 @@ def predict():
     movie_record = {
         'imdb_id': imdb_id,
         'tmdb_id': tmdb_id,
-        'title': details['title'],
+        'title': details.get('title'),
         'opening_weekend': opening_weekend,
         'predicted_revenue': round(predicted_revenue),
         'decay_rate': decay_data['decay_rate'] if decay_data else None,
@@ -245,13 +280,32 @@ def predict():
         supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
         supabase.table('weekly_gross').insert(weekly_records).execute()
 
-    return jsonify({
-        'title': details['title'],
+    return {
+        'title': details.get('title'),
         'predicted_revenue': round(predicted_revenue),
         'opening_weekend': opening_weekend,
         'decay_curve': decay_data,
         'cached': False
-    })
+    }, 200
+
+
+@app.route('/api/predict', methods=['POST'])
+def predict():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or 'tmdb_id' not in data:
+        return jsonify({'error': 'Request body must be JSON with a "tmdb_id".'}), 400
+    try:
+        tmdb_id = int(data['tmdb_id'])
+    except (TypeError, ValueError):
+        return jsonify({'error': '"tmdb_id" must be an integer.'}), 400
+
+    try:
+        payload, status = predict_for(tmdb_id)
+    except Exception as e:
+        # Last-resort guard: never leak a stack trace to the client.
+        print(f"[predict] unexpected error for {tmdb_id}: {e}")
+        return jsonify({'error': 'Something went wrong generating the prediction.'}), 500
+    return jsonify(payload), status
 
 @app.route('/api/leaderboard', methods=['GET'])
 def leaderboard():
@@ -400,4 +454,9 @@ def refresh_finished():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Local dev entrypoint only. In production the app is served by gunicorn
+    # (see Procfile), which imports the module-level `app` and never runs this.
+    # debug defaults OFF; opt in locally with FLASK_DEBUG=1.
+    debug = os.getenv('FLASK_DEBUG', '').lower() in ('1', 'true', 'yes')
+    port = int(os.getenv('PORT', '5000'))
+    app.run(debug=debug, host='0.0.0.0', port=port)

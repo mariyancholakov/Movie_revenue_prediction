@@ -22,41 +22,60 @@ TMDB_GENRE_MAP = {
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 
+def _tmdb_get(url):
+    """GET a TMDB endpoint and return parsed JSON, or None on any failure
+    (network error, non-200, or unparseable body). Callers handle None so a
+    TMDB outage or rate-limit becomes a graceful empty state, not a 500."""
+    try:
+        response = requests.get(url, timeout=10)
+    except requests.RequestException as e:
+        print(f"[tmdb] request failed: {e}")
+        return None
+    if response.status_code != 200:
+        print(f"[tmdb] {response.status_code} for {url.split('?')[0]}")
+        return None
+    try:
+        return response.json()
+    except ValueError:
+        print(f"[tmdb] non-JSON response for {url.split('?')[0]}")
+        return None
+
 def get_now_playing():
-    """Fetch movies currently in theaters from TMDB"""
+    """Fetch movies currently in theaters from TMDB. Returns [] on failure."""
     url = f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}&language=en-US&page=1"
-    response = requests.get(url)
-    data = response.json()
-    
+    data = _tmdb_get(url)
+    if not data or 'results' not in data:
+        return []
+
     movies = []
     for movie in data['results']:
+        poster_path = movie.get('poster_path')
         movies.append({
             'tmdb_id': movie['id'],
             'title': movie['title'],
-            'poster': f"https://image.tmdb.org/t/p/w500{movie['poster_path']}",
-            'release_date': movie['release_date'],
-            'overview': movie['overview'],
+            'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
+            'release_date': movie.get('release_date', ''),
+            'overview': movie.get('overview', ''),
             'genres': [TMDB_GENRE_MAP[gid] for gid in movie.get('genre_ids', []) if gid in TMDB_GENRE_MAP],
         })
     return movies
 
 def get_movie_details(tmdb_id):
-    """Get full movie details from TMDB by ID"""
+    """Get full movie details from TMDB by ID. Returns {} on failure."""
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
-    response = requests.get(url)
-    return response.json()
+    return _tmdb_get(url) or {}
 
 def get_movie_cast(tmdb_id, limit=6):
-    """Get top cast names for a movie from TMDB"""
+    """Get top cast names for a movie from TMDB. Returns [] on failure."""
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-    response = requests.get(url)
-    data = response.json()
+    data = _tmdb_get(url) or {}
     return [actor['name'] for actor in data.get('cast', [])[:limit]]
 
 def get_movie_credits(tmdb_id, cast_limit=6):
-    """Get cast and director from a single TMDB credits call"""
+    """Get cast and director from a single TMDB credits call.
+    Returns ([], None) on failure."""
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-    data = requests.get(url).json()
+    data = _tmdb_get(url) or {}
     cast = [actor['name'] for actor in data.get('cast', [])[:cast_limit]]
     director = next(
         (m['name'] for m in data.get('crew', []) if m['job'] == 'Director'),
@@ -65,9 +84,13 @@ def get_movie_credits(tmdb_id, cast_limit=6):
     return cast, director
 
 def get_opening_weekend(imdb_id):
-    """Scrape opening weekend from Box Office Mojo"""
+    """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""
     url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
-    response = requests.get(url, headers=HEADERS, timeout=10)
+    try:
+        response = requests.get(url, headers=HEADERS, timeout=10)
+    except requests.RequestException as e:
+        print(f"[mojo] opening-weekend request failed for {imdb_id}: {e}")
+        return None
     if response.status_code != 200:
         return None
     
@@ -85,32 +108,38 @@ def get_opening_weekend(imdb_id):
     return None
 
 def get_weekly_grossing(imdb_id):
-    """Scrape weekly grossing data from Box Office Mojo"""
+    """Scrape weekly grossing data from Box Office Mojo. Returns None on any failure."""
     main_url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
-    response = requests.get(main_url, headers=HEADERS, timeout=10)
-    if response.status_code != 200:
+    try:
+        response = requests.get(main_url, headers=HEADERS, timeout=10)
+        if response.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        release_links = [a['href'] for a in soup.find_all('a', href=True)
+                         if '/release/' in a['href'] and 'weekend' in a['href']]
+        if not release_links:
+            return None
+
+        match = re.search(r'rl\d+', release_links[0])
+        if not match:
+            return None
+        release_id = match.group()
+        weekend_url = f"https://www.boxofficemojo.com/release/{release_id}/weekend/"
+        time.sleep(0.5)
+        response2 = requests.get(weekend_url, headers=HEADERS, timeout=10)
+        if response2.status_code != 200:
+            return None
+
+        soup2 = BeautifulSoup(response2.text, 'html.parser')
+        tables = soup2.find_all('table')
+        if not tables:
+            return None
+
+        return pd.read_html(StringIO(str(tables[0])))[0]
+    except (requests.RequestException, ValueError) as e:
+        print(f"[mojo] weekly-grossing scrape failed for {imdb_id}: {e}")
         return None
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
-    release_links = [a['href'] for a in soup.find_all('a', href=True) 
-                     if '/release/' in a['href'] and 'weekend' in a['href']]
-    if not release_links:
-        return None
-    
-    release_id = re.search(r'rl\d+', release_links[0]).group()
-    weekend_url = f"https://www.boxofficemojo.com/release/{release_id}/weekend/"
-    time.sleep(0.5)
-    response2 = requests.get(weekend_url, headers=HEADERS, timeout=10)
-    if response2.status_code != 200:
-        return None
-    
-    soup2 = BeautifulSoup(response2.text, 'html.parser')
-    tables = soup2.find_all('table')
-    if not tables:
-        return None
-    
-    df = pd.read_html(StringIO(str(tables[0])))[0]
-    return df
 
 def parse_and_fit_decay(df_weekly):
     """Parse weekly data and fit exponential decay curve"""

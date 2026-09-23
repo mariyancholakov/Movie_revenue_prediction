@@ -56,12 +56,16 @@ export function MovieDetail({
   onPredict,
 }: MovieDetailProps) {
   const [copied, setCopied] = useState(false);
+  // Capture "now" once at mount. Reading the clock during render is impure
+  // (react-hooks/purity) and can drift between the server render and hydration;
+  // these release-timing flags only need a single stable reading.
+  const [now] = useState(() => Date.now());
 
   const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
-  const notReleased = !Number.isNaN(releaseTime) && releaseTime > Date.now();
+  const notReleased = !Number.isNaN(releaseTime) && releaseTime > now;
   const daysSinceRelease = Number.isNaN(releaseTime)
     ? Infinity
-    : (Date.now() - releaseTime) / 86_400_000;
+    : (now - releaseTime) / 86_400_000;
   const justOpened = daysSinceRelease >= 0 && daysSinceRelease < 10;
 
   const handleShare = () => {
