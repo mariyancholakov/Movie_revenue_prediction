@@ -1,5 +1,6 @@
 'use client';
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
@@ -125,6 +126,35 @@ export function MovieDetail({
   // (react-hooks/purity) and can drift between the server render and hydration;
   // these release-timing flags only need a single stable reading.
   const [now] = useState(() => Date.now());
+  const root = useRef<HTMLElement>(null);
+
+  // When the numbers land: the rule draws, the four figures post one after
+  // another, then the decay chart inks its line and plots each weekend.
+  // A failed prediction just slides its notice in.
+  useGSAP(() => {
+    if (!prediction) return;
+    motion(() => {
+      if (prediction.error) {
+        gsap.from('[role=alert]', { x: -12, opacity: 0, duration: 0.45, ease: EASE });
+        return;
+      }
+      const tl = gsap.timeline({ defaults: { ease: EASE } })
+        .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' })
+        .from('[data-ledger-label]', { opacity: 0, duration: 0.3 }, '-=0.3')
+        .from('[data-cell]', { y: 16, opacity: 0, duration: 0.5, stagger: 0.08 }, '-=0.15')
+        .from('[data-ledger-follow]', { y: 12, opacity: 0, duration: 0.5, stagger: 0.1 }, '-=0.2');
+
+      const line = root.current?.querySelector<SVGPathElement>('[data-line]');
+      if (line) {
+        const len = line.getTotalLength();
+        tl.fromTo(line, { strokeDasharray: len, strokeDashoffset: len },
+          { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut', clearProps: 'strokeDasharray,strokeDashoffset' }, '-=0.25')
+          .from('[data-area]', { opacity: 0, duration: 0.6 }, '<0.3')
+          .from('[data-dot]', { scale: 0, transformOrigin: '50% 50%', duration: 0.3, stagger: 0.06, ease: 'back.out(2)' }, '<')
+          .from('[data-fit]', { opacity: 0, duration: 0.5 }, '-=0.3');
+      }
+    });
+  }, { scope: root, dependencies: [prediction] });
 
   const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
   const notReleased = !Number.isNaN(releaseTime) && releaseTime > now;
@@ -145,7 +175,7 @@ export function MovieDetail({
   };
 
   return (
-    <section className="px-4 sm:px-8 lg:px-14 py-7 sm:py-10">
+    <section ref={root} className="px-4 sm:px-8 lg:px-14 py-7 sm:py-10">
       {/* Controls */}
       <div className="flex items-center justify-between gap-3 mb-7">
         <button
@@ -261,9 +291,9 @@ export function MovieDetail({
 
       {/* Prediction ledger */}
       {prediction && !prediction.error && (
-        <div className="ledger-in mt-11">
-          <div className="rule-double mb-1" />
-          <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
+        <div className="mt-11">
+          <div data-ledger-rule className="rule-double mb-1" />
+          <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
             The Prediction
           </p>
 
@@ -295,7 +325,7 @@ export function MovieDetail({
                   })()
                 : <StatCard key="pf" label="Est. Profit" value="—" note="Budget not reported" />,
             ].map((cell, i) => (
-              <div key={i} className="border-r border-b border-ink/20">
+              <div key={i} data-cell className="border-r border-b border-ink/20">
                 {cell}
               </div>
             ))}
@@ -306,7 +336,7 @@ export function MovieDetail({
             const diff = prediction.predicted_revenue - actual;
             const over = diff > 0;
             return (
-              <div className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
+              <div data-ledger-follow className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
                 <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase m-0 mb-1.5">
                   Run settled
                 </p>
@@ -324,7 +354,7 @@ export function MovieDetail({
           })()}
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
-            <div>
+            <div data-ledger-follow>
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
                 <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>

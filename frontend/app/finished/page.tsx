@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
 import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
@@ -21,6 +22,21 @@ interface FinishedEntry {
 export default function FinishedPage() {
   const [entries, setEntries] = useState<FinishedEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const chart = useRef<HTMLDivElement>(null);
+
+  // Settling the books: rows post top-down, each actual gross runs out from
+  // the left, then the red overshoot extends past it and the predicted caret
+  // drops onto its mark.
+  useGSAP(() => {
+    if (status !== 'ok') return;
+    motion(() => {
+      gsap.timeline({ defaults: { ease: EASE } })
+        .from('[data-row]', { opacity: 0, y: 8, duration: 0.4, stagger: 0.05 })
+        .from('[data-bar-actual]', { scaleX: 0, transformOrigin: 'left center', duration: 0.8, stagger: 0.05, ease: 'power2.out' }, 0.1)
+        .from('[data-bar-over]', { scaleX: 0, transformOrigin: 'left center', duration: 0.5, stagger: 0.05, ease: 'power2.out' }, 0.7)
+        .from('[data-caret]', { y: -8, opacity: 0, duration: 0.35, stagger: 0.05, ease: 'back.out(2)' }, 0.8);
+    });
+  }, { scope: chart, dependencies: [status] });
 
   useEffect(() => {
     fetch(`${API_URL}/api/finished`)
@@ -117,7 +133,7 @@ export default function FinishedPage() {
         )}
 
         {status === 'ok' && entries.length > 0 && (
-          <div className="border-b border-rule">
+          <div ref={chart} className="border-b border-rule">
             {entries.map((entry) => {
               const diff = entry.predicted_revenue - entry.actual_revenue;
               const abs = Math.abs(diff);
@@ -128,7 +144,7 @@ export default function FinishedPage() {
               const predPct = (entry.predicted_revenue / maxVal) * 100;
 
               return (
-                <Link key={entry.tmdb_id} href={`/movie/${entry.tmdb_id}`} className="no-underline text-inherit block group ledger-row border-t border-rule">
+                <Link key={entry.tmdb_id} href={`/movie/${entry.tmdb_id}`} data-row className="no-underline text-inherit block group ledger-row border-t border-rule">
                   <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
                     {/* Film */}
                     <div className="shrink-0 border border-ink/30">
@@ -149,16 +165,18 @@ export default function FinishedPage() {
                     <div className="hidden sm:block flex-1 min-w-0">
                       <div className="relative h-6 w-full">
                         {/* actual gross — the truth */}
-                        <div className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${actualPct}%` }} />
+                        <div data-bar-actual className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${actualPct}%` }} />
                         {/* faint trace of the overshoot, past the actual bar (over only) */}
                         {over && (
                           <div
+                            data-bar-over
                             className="absolute inset-y-0"
                             style={{ left: `${actualPct}%`, width: `${predPct - actualPct}%`, background: 'color-mix(in srgb, var(--color-red) 50%, transparent)' }}
                           />
                         )}
                         {/* predicted — an ink caret above the bar (always legible) */}
                         <div
+                          data-caret
                           className="absolute"
                           style={{ left: `calc(${predPct}% - 4px)`, top: '-7px', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }}
                         />
