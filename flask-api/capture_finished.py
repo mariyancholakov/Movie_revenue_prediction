@@ -63,6 +63,8 @@ def main():
     titles = ", ".join(m['title'] for m in result['finished']) or "none"
     log(f"capture: checked {result['checked']} tracked | newly finished "
         f"{result['newly_finished']} ({titles}) | awaiting revenue {result['pending_revenue']}")
+    if result.get('revenue_updated'):
+        log(f"revenue revised upward for: {', '.join(result['revenue_updated'])}")
 
     # 2. Decide whether enough new labelled data has accumulated to retrain.
     trainable = len(load_captured())

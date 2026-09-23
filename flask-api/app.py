@@ -50,6 +50,10 @@ GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
 FULL_TTL = timedelta(days=7)
 DECAY_RETRY_TTL = timedelta(hours=6)
 
+# A run must be at least this old before it can be settled as finished. By
+# week 12 nearly all of a typical theatrical gross is in.
+MIN_RUN_DAYS = 84
+
 
 def build_fitted_curve(weeks, gross, decay_rate):
     """Reconstruct the fitted exponential-decay curve from a stored decay rate,
@@ -439,7 +443,11 @@ def capture_finished_runs():
     used by both the HTTP endpoint and the scheduled capture_finished.py job."""
     now = datetime.now(timezone.utc)
     try:
-        now_playing_ids = {m['tmdb_id'] for m in get_now_playing()}
+        now_playing = get_now_playing()
+        if not now_playing:
+            # An outage would otherwise look like every film leaving theaters.
+            return {'error': 'TMDB now-playing list unavailable; nothing captured.'}
+        now_playing_ids = {m['tmdb_id'] for m in now_playing}
         tracked = supabase.table('movies').select('*').eq('is_in_theaters', True).execute().data or []
     except Exception as e:
         return {'error': str(e)}
@@ -456,8 +464,12 @@ def capture_finished_runs():
             continue
         revenue = details.get('revenue') or 0
 
-        if revenue <= 0:
-            pending += 1  # left theaters but TMDB revenue not in yet — retry later
+        # Leaving the now-playing pages isn't proof the run is over (a film can
+        # slide off page 2 mid-run), and TMDB's `revenue` fills in *during* the
+        # run, so an early capture records a partial total. Require a minimum
+        # run length before settling.
+        if run_age_days(details) < MIN_RUN_DAYS or revenue <= 0:
+            pending += 1  # retry on a later run
             continue
 
         update = {
@@ -491,7 +503,42 @@ def capture_finished_runs():
         'newly_finished': len(finished),
         'pending_revenue': pending,
         'finished': finished,
+        'revenue_updated': refresh_settled_revenue(),
     }
+
+
+def run_age_days(details):
+    try:
+        released = datetime.strptime(details.get('release_date', ''), '%Y-%m-%d').replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return -1
+    return (datetime.now(timezone.utc) - released).days
+
+
+def refresh_settled_revenue():
+    """TMDB keeps revising `revenue` after a run ends (late territories,
+    corrections). Pull settled films' ground truth up to TMDB's latest figure
+    so the Ledger and retraining labels don't freeze a partial total. Only ever
+    raises a figure, and only within a year of release. Returns titles updated."""
+    try:
+        rows = supabase.table('movies').select('tmdb_id,title,actual_revenue') \
+            .eq('is_in_theaters', False).execute().data or []
+    except Exception as e:
+        print(f"[capture] revenue refresh skipped: {e}")
+        return []
+    updated = []
+    for movie in rows:
+        details = get_movie_details(movie['tmdb_id'])
+        latest = details.get('revenue') or 0
+        if not details or run_age_days(details) > 365 or latest <= (movie.get('actual_revenue') or 0):
+            continue
+        try:
+            supabase.table('movies').update({'actual_revenue': int(latest)}) \
+                .eq('tmdb_id', movie['tmdb_id']).execute()
+            updated.append(movie['title'])
+        except Exception as e:
+            print(f"[capture] revenue refresh failed for {movie['title']}: {e}")
+    return updated
 
 
 # Shared secret for the admin-only endpoints. Unset means those endpoints are

@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 from io import StringIO
 import re
 import time
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 
@@ -44,25 +45,66 @@ def _tmdb_get(url):
     """Like _tmdb_fetch, but just the JSON (None on any failure)."""
     return _tmdb_fetch(url)[0]
 
-def get_now_playing():
-    """Fetch movies currently in theaters from TMDB. Returns [] on failure."""
-    url = f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}&language=en-US&page=1"
-    data = _tmdb_get(url)
-    if not data or 'results' not in data:
-        return []
+# TMDB orders now-playing by popularity; the top NOW_PLAYING_PAGES pages
+# (20 films each) are what the site shows. No region filter: TMDB's US list only
+# covers films whose US release was in the last ~5 weeks, which drops the big
+# holdovers still in theaters.
+NOW_PLAYING_PAGES = 2
+NOW_PLAYING_TTL = 15 * 60  # seconds; every page load asks for this list
+# TMDB lists re-releases (e.g. an anniversary run) under the film's original
+# release date. Their Box Office Mojo page describes the original run, so
+# they can't be predicted meaningfully and are left out.
+MAX_RELEASE_AGE_DAYS = 180
+_now_playing_cache = {'at': 0.0, 'movies': None}
 
-    movies = []
-    for movie in data['results']:
-        poster_path = movie.get('poster_path')
-        movies.append({
-            'tmdb_id': movie['id'],
-            'title': movie['title'],
-            'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
-            'release_date': movie.get('release_date', ''),
-            'overview': movie.get('overview', ''),
-            'genres': [TMDB_GENRE_MAP[gid] for gid in movie.get('genre_ids', []) if gid in TMDB_GENRE_MAP],
-        })
+
+def _now_playing_page(page):
+    url = (f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}"
+           f"&language=en-US&page={page}")
+    return _tmdb_get(url)
+
+
+def _is_current_release(release_date):
+    try:
+        released = datetime.strptime(release_date, '%Y-%m-%d')
+    except (TypeError, ValueError):
+        return False
+    return datetime.now() - released <= timedelta(days=MAX_RELEASE_AGE_DAYS)
+
+
+def get_now_playing():
+    """Films now playing (top NOW_PLAYING_PAGES pages from TMDB, re-releases
+    removed), cached in-process for NOW_PLAYING_TTL. Returns [] on failure."""
+    if _now_playing_cache['movies'] is not None and time.time() - _now_playing_cache['at'] < NOW_PLAYING_TTL:
+        return _now_playing_cache['movies']
+
+    movies, seen = [], set()
+    for page in range(1, NOW_PLAYING_PAGES + 1):
+        data = _now_playing_page(page)
+        if not data or 'results' not in data:
+            break
+        for movie in data['results']:
+            if movie['id'] in seen:
+                continue  # TMDB can repeat a film across page boundaries
+            seen.add(movie['id'])
+            if not _is_current_release(movie.get('release_date', '')):
+                continue
+            poster_path = movie.get('poster_path')
+            movies.append({
+                'tmdb_id': movie['id'],
+                'title': movie['title'],
+                'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
+                'release_date': movie.get('release_date', ''),
+                'overview': movie.get('overview', ''),
+                'genres': [TMDB_GENRE_MAP[gid] for gid in movie.get('genre_ids', []) if gid in TMDB_GENRE_MAP],
+            })
+        if page >= data.get('total_pages', 1):
+            break
+
+    if movies:  # don't cache an outage
+        _now_playing_cache.update(at=time.time(), movies=movies)
     return movies
+
 
 def get_movie_details(tmdb_id, with_status=False):
     """Get full movie details from TMDB by ID. Returns {} on failure, or
