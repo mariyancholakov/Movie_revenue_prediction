@@ -29,5 +29,18 @@ export interface Prediction {
   error?: string;
   // Why the prediction failed, set alongside `error` by the API
   // ('network' is set client-side when the request never got an answer).
-  code?: 'no_box_office' | 'upstream' | 'not_found' | 'insufficient_data' | 'internal' | 'network';
+  code?: ErrorCode;
 }
+
+export type ErrorCode =
+  | 'not_released'           // release date is still ahead
+  | 'no_opening_weekend'     // on Box Office Mojo, but no US opening weekend yet
+  | 'no_us_release'          // Box Office Mojo has no page for the film
+  | 'no_listing'             // no IMDb id, so nothing to look up
+  | 'insufficient_data'      // TMDB lacks a detail the model needs
+  | 'not_found'              // TMDB has no film with this id
+  | 'tmdb_unavailable'       // TMDB didn't answer
+  | 'box_office_unavailable' // Box Office Mojo didn't answer
+  | 'bad_request'
+  | 'internal'
+  | 'network';

@@ -227,7 +227,7 @@ def movie(tmdb_id):
     if status == 404:
         return jsonify({'error': 'Movie not found.', 'code': 'not_found'}), 404
     if not page:
-        return jsonify({'error': 'Movie data is temporarily unavailable.', 'code': 'upstream'}), 503
+        return jsonify({'error': 'TMDB is not responding.', 'code': 'tmdb_unavailable'}), 503
     return jsonify(page)
 
 def predict_for(tmdb_id):
@@ -313,36 +313,56 @@ def predict_for(tmdb_id):
 
             return {**base, 'decay_curve': decay_data}, 200
 
-        # else: stale beyond FULL_TTL → fall through to a full re-scrape below.
+        # else: stale beyond FULL_TTL → fall through to a full re-scrape below,
+        # keeping the old result to serve if the refresh fails.
+        stale = {
+            **base,
+            'decay_curve': decay_curve_from_db(weekly_rows, movie['decay_rate'], movie.get('half_life'))
+            if has_decay else None,
+        }
+    else:
+        stale = None
+
+    def fail(code, message, status):
+        """An error payload, unless an older cached result can stand in."""
+        if stale:
+            print(f"[predict] refresh failed for {tmdb_id} ({code}); serving the cached result")
+            return stale, 200
+        return {'error': message, 'code': code}, status
 
     # Not cached or stale — full scrape + model prediction.
-    # Every error payload carries a `code` so the frontend can pick the right
-    # message: 'no_box_office' (nothing reported yet, usually a fresh release)
-    # vs. 'upstream' (a source is down) vs. 'not_found' / 'insufficient_data'.
+    # Every error payload carries a `code`; the frontend turns each one into
+    # a plain explanation (MovieDetail.tsx errorCopy).
     details, tmdb_status = get_movie_details(tmdb_id, with_status=True)
     if tmdb_status == 404:
-        return {'error': 'Movie not found.', 'code': 'not_found'}, 404
+        return fail('not_found', 'TMDB has no film with this id.', 404)
     if not details:
-        return {'error': 'Movie data is temporarily unavailable. Please try again.', 'code': 'upstream'}, 503
+        return fail('tmdb_unavailable', 'TMDB is not responding.', 503)
+    if run_age_days(details) < 0:
+        return fail('not_released', 'The film has not been released yet.', 422)
     imdb_id = details.get('external_ids', {}).get('imdb_id')
     if not imdb_id:
-        return {'error': 'No box-office listing for this film yet.', 'code': 'no_box_office'}, 404
+        return fail('no_listing', 'The film has no IMDb id, so no box-office listing.', 404)
 
-    title_page = get_title_page(imdb_id)
+    title_page, mojo_status = get_title_page(imdb_id, with_status=True)
+    if title_page is None:
+        if mojo_status == 404:
+            return fail('no_us_release', 'Box Office Mojo has no page for this film.', 404)
+        return fail('box_office_unavailable', 'Box Office Mojo is not responding.', 503)
     opening_weekend = get_opening_weekend(imdb_id, title_page)
     if not opening_weekend:
-        return {'error': 'No opening-weekend figures reported yet.', 'code': 'no_box_office'}, 404
+        return fail('no_opening_weekend', 'No US opening weekend has been reported.', 404)
 
     try:
         feature_row = build_feature_row(details, opening_weekend)
         predicted_revenue = score(feature_row)
     except ConnectionError as e:
         print(f"[predict] {e}")
-        return {'error': 'Movie data is temporarily unavailable. Please try again.', 'code': 'upstream'}, 503
+        return fail('tmdb_unavailable', 'TMDB is not responding.', 503)
     except (KeyError, ValueError) as e:
         # Malformed/incomplete TMDB details (e.g. missing release_date).
         print(f"[predict] feature build failed for {tmdb_id}: {e}")
-        return {'error': 'Not enough data to predict for this film yet.', 'code': 'insufficient_data'}, 422
+        return fail('insufficient_data', 'TMDB is missing details the model needs.', 422)
 
     weekly_data = get_weekly_grossing(imdb_id, title_page)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
@@ -389,11 +409,11 @@ def predict_for(tmdb_id):
 def predict():
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or 'tmdb_id' not in data:
-        return jsonify({'error': 'Request body must be JSON with a "tmdb_id".'}), 400
+        return jsonify({'error': 'Request body must be JSON with a "tmdb_id".', 'code': 'bad_request'}), 400
     try:
         tmdb_id = int(data['tmdb_id'])
     except (TypeError, ValueError):
-        return jsonify({'error': '"tmdb_id" must be an integer.'}), 400
+        return jsonify({'error': '"tmdb_id" must be an integer.', 'code': 'bad_request'}), 400
 
     try:
         payload, status = predict_for(tmdb_id)

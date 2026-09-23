@@ -162,19 +162,20 @@ def get_movie_page(tmdb_id, cast_limit=6):
         'vote_average': round(data.get('vote_average', 0), 1) if vote_count > 50 else None,
     }, 200
 
-def get_title_page(imdb_id):
+def get_title_page(imdb_id, with_status=False):
     """Fetch and parse a film's Box Office Mojo title page. Returns None on any
-    failure. Pass the result to get_opening_weekend / get_weekly_grossing so a
-    prediction downloads the page once instead of once per helper."""
+    failure, or (page or None, HTTP status or None) with with_status=True, so
+    callers can tell "Mojo has no page for this film" (404) from "Mojo is down
+    or blocking us". Pass the page to get_opening_weekend / get_weekly_grossing
+    so a prediction downloads it once instead of once per helper."""
     url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
     except requests.RequestException as e:
         print(f"[mojo] title-page request failed for {imdb_id}: {e}")
-        return None
-    if response.status_code != 200:
-        return None
-    return BeautifulSoup(response.text, 'html.parser')
+        return (None, None) if with_status else None
+    page = BeautifulSoup(response.text, 'html.parser') if response.status_code == 200 else None
+    return (page, response.status_code) if with_status else page
 
 def get_opening_weekend(imdb_id, title_page=None):
     """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""

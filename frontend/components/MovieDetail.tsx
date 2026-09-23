@@ -21,23 +21,67 @@ const fmtDate = (d: string) => {
     : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
-// Reader-facing copy for each failure the API reports. Only a genuine
-// "nothing reported yet" gets the just-opened / no-figures wording.
-function errorCopy(code: Prediction["code"], justOpened: boolean) {
+// Reader-facing copy for each failure the API reports: a short headline and
+// one or two sentences saying why, and what happens next.
+const RETRYABLE = new Set<Prediction["code"]>(["tmdb_unavailable", "box_office_unavailable", "network", "internal"]);
+
+function errorCopy(code: Prediction["code"], daysSinceRelease: number): { title: string; body: string } {
+  const days = Math.floor(daysSinceRelease);
   switch (code) {
-    case "no_box_office":
-      return justOpened
-        ? "This film just opened — the box office usually reports within a few days. Check back soon."
-        : "No box-office figures are on the books for this film yet.";
+    case "not_released":
+      return {
+        title: "Not released yet",
+        body: "Predictions start from a film\u2019s US opening weekend, so this one opens up after its first weekend in theaters.",
+      };
+    case "no_opening_weekend":
+      if (days < 4)
+        return {
+          title: "Opening weekend in progress",
+          body: `It opened ${days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`}. We predict from the first weekend\u2019s US gross, which is published the Monday after. Check back then.`,
+        };
+      if (days < 14)
+        return {
+          title: "Opening figures not in yet",
+          body: "The first weekend\u2019s US gross hasn\u2019t been published yet. It usually appears within a few days of the weekend.",
+        };
+      return {
+        title: "No US opening weekend",
+        body: "No US opening weekend was ever reported for this film, most likely because it had a limited or non-US release. Without it there\u2019s nothing to predict from.",
+      };
+    case "no_us_release":
+      return {
+        title: "No US box office",
+        body: "Box Office Mojo has no US listing for this film, so there\u2019s no opening weekend to predict from.",
+      };
+    case "no_listing":
+      return {
+        title: "No box-office listing",
+        body: "This film isn\u2019t linked to a box-office record yet, so there are no figures to predict from.",
+      };
     case "insufficient_data":
-      return "There isn’t enough reported data on this film to price it yet.";
+      return {
+        title: "Missing film details",
+        body: "TMDB is missing details the model needs, such as the release date or runtime.",
+      };
     case "not_found":
-      return "We couldn’t find this film on file.";
-    case "upstream":
+      return { title: "Film not found", body: "There\u2019s no film with this id on TMDB." };
+    case "tmdb_unavailable":
+      return {
+        title: "Film database unavailable",
+        body: "TMDB, where our film details come from, isn\u2019t responding. Try again in a minute.",
+      };
+    case "box_office_unavailable":
+      return {
+        title: "Box office source unavailable",
+        body: "Box Office Mojo, where the weekend grosses come from, isn\u2019t responding. Try again in a minute.",
+      };
     case "network":
-      return "Couldn’t reach the box-office desk just now. Please try again in a moment.";
+      return {
+        title: "Can\u2019t reach MOVIEGROSS",
+        body: "The prediction service didn\u2019t answer. Check your connection and try again.",
+      };
     default:
-      return "Something went wrong running the numbers. Please try again.";
+      return { title: "Something went wrong", body: "The prediction failed on our side. Please try again." };
   }
 }
 
@@ -80,7 +124,6 @@ export function MovieDetail({
   const daysSinceRelease = Number.isNaN(releaseTime)
     ? Infinity
     : (now - releaseTime) / 86_400_000;
-  const justOpened = daysSinceRelease >= 0 && daysSinceRelease < 10;
 
   // navigator.clipboard is missing on insecure origins and writeText rejects
   // when permission is denied, so report failure instead of claiming success.
@@ -283,11 +326,30 @@ export function MovieDetail({
         </div>
       )}
 
-      {prediction?.error && (
-        <p className="text-red text-[0.85rem] mt-6 border-l-2 border-red pl-4 py-1">
-          {errorCopy(prediction.code, justOpened)}
-        </p>
-      )}
+      {prediction?.error && (() => {
+        const { title, body } = errorCopy(prediction.code, daysSinceRelease);
+        return (
+          <div role="alert" className="mt-8 border-l-2 border-red pl-4 py-1 max-w-prose">
+            <p className="font-display text-ink text-[1.05rem] font-bold m-0 mb-1">{title}</p>
+            <p className="text-ink2 text-[0.85rem] leading-[1.55] m-0">{body}</p>
+            <div className="flex items-center gap-5 mt-3">
+              <span className="font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase">
+                Error · {prediction.code ?? "unknown"}
+              </span>
+              {RETRYABLE.has(prediction.code) && (
+                <button
+                  onClick={onPredict}
+                  disabled={predicting}
+                  className="font-sans text-[0.66rem] tracking-[0.14em] font-semibold text-red
+                             bg-transparent border-0 p-0 hover:text-ink transition-colors disabled:opacity-50"
+                >
+                  {predicting ? "TRYING…" : "TRY AGAIN"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }
