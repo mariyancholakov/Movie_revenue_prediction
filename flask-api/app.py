@@ -3,11 +3,12 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, MAX_RELEASE_AGE_DAYS
+from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, MAX_RELEASE_AGE_DAYS
 from model_lib import FRANCHISE_FEATURES
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
+import time
 import json
 import hmac
 from concurrent.futures import ThreadPoolExecutor
@@ -214,9 +215,37 @@ def health():
     })
 
 
+# Films whose lookup proved there's nothing to predict from: no Box Office
+# Mojo page, or still no opening weekend well after their US release. TMDB
+# occasionally lists a US theatrical date for such a film; once a prediction
+# has shown otherwise, it's left out of Now Playing for a day rather than
+# offered as a dead end. In-process only, so it resets on deploy.
+UNPRICEABLE_TTL = 24 * 60 * 60
+OPENING_GRACE_DAYS = 10  # past this, a missing opening weekend won't appear
+_unpriceable = {}  # tmdb id -> marked at
+
+
+def mark_unpriceable(tmdb_id, code):
+    if code == 'no_us_release':
+        _unpriceable[tmdb_id] = time.time()
+    elif code == 'no_opening_weekend':
+        us_date = get_us_theatrical_date(tmdb_id)
+        try:
+            opened = datetime.strptime(us_date or '', '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        except ValueError:
+            return
+        if (datetime.now(timezone.utc) - opened).days > OPENING_GRACE_DAYS:
+            _unpriceable[tmdb_id] = time.time()
+
+
+def is_unpriceable(tmdb_id):
+    marked = _unpriceable.get(tmdb_id)
+    return marked is not None and time.time() - marked < UNPRICEABLE_TTL
+
+
 @app.route('/api/now-playing', methods=['GET'])
 def now_playing():
-    movies = get_now_playing()
+    movies = [m for m in get_now_playing() if not is_unpriceable(m['tmdb_id'])]
     return jsonify(movies)
 
 @app.route('/api/movie/<int:tmdb_id>', methods=['GET'])
@@ -328,6 +357,7 @@ def predict_for(tmdb_id):
         if stale:
             print(f"[predict] refresh failed for {tmdb_id} ({code}); serving the cached result")
             return stale, 200
+        mark_unpriceable(tmdb_id, code)
         return {'error': message, 'code': code}, status
 
     # Not cached or stale — full scrape + model prediction.

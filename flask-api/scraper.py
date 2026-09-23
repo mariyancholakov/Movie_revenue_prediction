@@ -6,6 +6,7 @@ from scipy.optimize import curve_fit
 from io import StringIO
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
@@ -74,13 +75,40 @@ def _is_current_release(release_date):
     return datetime.now() - released <= timedelta(days=MAX_RELEASE_AGE_DAYS)
 
 
+US_RELEASE_TTL = 24 * 60 * 60  # seconds; release schedules rarely change day to day
+_us_release_cache = {}  # tmdb id -> (fetched_at, date)
+
+
+def get_us_theatrical_date(tmdb_id):
+    """The film's first US theatrical release date (limited or wide) as
+    'YYYY-MM-DD', '' if it has none (a streaming premiere, or a release
+    outside the US), or None if TMDB couldn't be reached."""
+    hit = _us_release_cache.get(tmdb_id)
+    if hit and time.time() - hit[0] < US_RELEASE_TTL:
+        return hit[1]
+    data, status = _tmdb_fetch(f"https://api.themoviedb.org/3/movie/{tmdb_id}/release_dates?api_key={TMDB_API_KEY}")
+    if not data:
+        return '' if status == 404 else None
+    # TMDB release types: 2 = theatrical (limited), 3 = theatrical.
+    dates = [r.get('release_date', '')[:10]
+             for country in data.get('results', []) if country.get('iso_3166_1') == 'US'
+             for r in country.get('release_dates', []) if r.get('type') in (2, 3)]
+    date = min((d for d in dates if d), default='')
+    _us_release_cache[tmdb_id] = (time.time(), date)
+    return date
+
+
 def get_now_playing():
-    """Films now playing (top NOW_PLAYING_PAGES pages from TMDB, re-releases
-    removed), cached in-process for NOW_PLAYING_TTL. Returns [] on failure."""
+    """Films now playing in US theaters: the top NOW_PLAYING_PAGES pages from
+    TMDB, kept only if they opened in US theaters within MAX_RELEASE_AGE_DAYS.
+    That drops streaming premieres and releases outside the US (the model
+    predicts from the US opening weekend, so those can never be priced) and
+    re-releases (their first US date is the original run's). Cached in-process
+    for NOW_PLAYING_TTL. Returns [] on failure."""
     if _now_playing_cache['movies'] is not None and time.time() - _now_playing_cache['at'] < NOW_PLAYING_TTL:
         return _now_playing_cache['movies']
 
-    movies, seen = [], set()
+    candidates, seen = [], set()
     for page in range(1, NOW_PLAYING_PAGES + 1):
         data = _now_playing_page(page)
         if not data or 'results' not in data:
@@ -89,10 +117,8 @@ def get_now_playing():
             if movie['id'] in seen:
                 continue  # TMDB can repeat a film across page boundaries
             seen.add(movie['id'])
-            if not _is_current_release(movie.get('release_date', '')):
-                continue
             poster_path = movie.get('poster_path')
-            movies.append({
+            candidates.append({
                 'tmdb_id': movie['id'],
                 'title': movie['title'],
                 'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
@@ -102,6 +128,19 @@ def get_now_playing():
             })
         if page >= data.get('total_pages', 1):
             break
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        us_dates = list(pool.map(get_us_theatrical_date, [m['tmdb_id'] for m in candidates]))
+    today = datetime.now().strftime('%Y-%m-%d')
+    movies = []
+    for movie, us_date in zip(candidates, us_dates):
+        if us_date is None:
+            # TMDB didn't answer: fall back to the primary release date rather
+            # than drop the film over an outage.
+            if _is_current_release(movie['release_date']):
+                movies.append({**movie, 'us_release_date': ''})
+        elif us_date and us_date <= today and _is_current_release(us_date):
+            movies.append({**movie, 'us_release_date': us_date})
 
     if movies:  # don't cache an outage
         _now_playing_cache.update(at=time.time(), movies=movies)
