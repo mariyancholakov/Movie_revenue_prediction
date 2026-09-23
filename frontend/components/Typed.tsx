@@ -24,10 +24,11 @@ export function Typed({ text, className }: { text: string; className?: string })
           {ch}
         </span>
       ))}
+      {/* takes no net width, so a typed figure aligns like plain text */}
       <span
         data-caret
         aria-hidden
-        className="inline-block w-[0.55em] h-[0.95em] bg-current align-[-0.1em] ml-[0.08em] opacity-0"
+        className="inline-block w-[0.55em] h-[0.95em] bg-current align-[-0.1em] ml-[0.08em] -mr-[0.63em] opacity-0"
       />
     </span>
   );

@@ -143,6 +143,7 @@ export function MovieDetail({
       const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
       const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
       typeOut(tl, root.current!.querySelector('[data-ledger-label]')!, { pace: 0.25 });
+      typeOut(tl, root.current!.querySelector('[data-ledger-basis]')!, { pace: 0.25 });
       tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '+=0.1');
       figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
 
@@ -321,9 +322,16 @@ export function MovieDetail({
         return (
         <div className="mt-11">
           <div data-ledger-rule className="rule-double mb-1" />
-          <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
-            <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
-          </p>
+          {/* Dateline at left; at right, what every figure below is worked
+              out from (why the chart and the errors speak of the US) */}
+          <div className="flex flex-wrap justify-between gap-x-6 gap-y-1.5 font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
+            <p data-ledger-label className="m-0">
+              <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
+            </p>
+            <p data-ledger-basis className="m-0">
+              <Typed text="Predicted from the US opening weekend" />
+            </p>
+          </div>
 
           {/* A settled run adds its final gross and the miss, making two rows
               of three; otherwise the four figures share one row. */}
