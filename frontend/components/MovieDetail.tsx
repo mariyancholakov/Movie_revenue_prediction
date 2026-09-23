@@ -2,16 +2,19 @@
 import { useRef, useState } from "react";
 import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
 import { estProfit } from "@/lib/profit";
+import { parseDay } from "@/lib/release";
+import { fmtMoney } from "@/lib/money";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 import { Typed, TypedLoader, typeOut } from "./Typed";
 
-const fmt = (n: number) => {
-  const a = Math.abs(n);
-  return (n < 0 ? "\u2212$" : "$") + (a >= 1e9 ? (a / 1e9).toFixed(2) + "B" : (a / 1e6).toFixed(1) + "M");
-};
+const fmt = fmtMoney;
+
+// Below this US opening a film is a limited release, where the model (trained
+// on the typical wide-release run) is least reliable.
+const LIMITED_OPENING = 1_000_000;
 
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
@@ -142,6 +145,7 @@ export function MovieDetail({
       const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
       const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
       typeOut(tl, root.current!.querySelector('[data-ledger-label]')!, { pace: 0.25 });
+      typeOut(tl, root.current!.querySelector('[data-ledger-basis]')!, { pace: 0.25 });
       tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '+=0.1');
       figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
 
@@ -161,9 +165,12 @@ export function MovieDetail({
 
   const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
   const notReleased = !Number.isNaN(releaseTime) && releaseTime > now;
-  const daysSinceRelease = Number.isNaN(releaseTime)
+  // Opening-weekend timing counts from the US release, which can trail the
+  // film's first release elsewhere.
+  const usRelease = parseDay(selected.us_release_date)?.getTime() ?? releaseTime;
+  const daysSinceRelease = Number.isNaN(usRelease)
     ? Infinity
-    : (now - releaseTime) / 86_400_000;
+    : (now - usRelease) / 86_400_000;
 
   // Shares this film's page. Phones get the native share sheet; elsewhere the
   // link is copied. navigator.clipboard is missing on insecure origins and
@@ -317,9 +324,16 @@ export function MovieDetail({
         return (
         <div className="mt-11">
           <div data-ledger-rule className="rule-double mb-1" />
-          <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
-            <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
-          </p>
+          {/* Dateline at left; at right, what every figure below is worked
+              out from (why the chart and the errors speak of the US) */}
+          <div className="flex flex-wrap justify-between gap-x-6 gap-y-1.5 font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
+            <p data-ledger-label className="m-0">
+              <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
+            </p>
+            <p data-ledger-basis className="m-0">
+              <Typed text="Predicted from the US opening weekend" />
+            </p>
+          </div>
 
           {/* A settled run adds its final gross and the miss, making two rows
               of three; otherwise the four figures share one row. */}
@@ -355,7 +369,14 @@ export function MovieDetail({
             ))}
           </div>
 
-          <p data-ledger-follow className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 uppercase mt-3 mb-11 leading-relaxed">
+          {/* The model learned from wide releases; from a tiny opening it
+              can't tell whether a film will expand or vanish. */}
+          {prediction.opening_weekend < LIMITED_OPENING && (
+            <p data-ledger-follow className="font-mono text-[0.6rem] tracking-[0.12em] text-ink2 uppercase mt-3 mb-0 leading-relaxed">
+              Limited release: an opening this small makes the prediction rough
+            </p>
+          )}
+          <p data-ledger-follow className={`font-mono text-[0.6rem] tracking-[0.12em] text-ink3 uppercase mb-11 leading-relaxed ${prediction.opening_weekend < LIMITED_OPENING ? "mt-1" : "mt-3"}`}>
             {profit != null
               ? `Profit: studio\u2019s ~50% of the gross, minus the ${fmt(selected.budget!)} budget`
               : "Profit needs a reported budget"}
@@ -366,7 +387,6 @@ export function MovieDetail({
             <div data-ledger-follow>
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
-                <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>
               </div>
               <DecayCurve data={prediction.decay_curve} />
             </div>

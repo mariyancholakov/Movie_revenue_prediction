@@ -5,7 +5,7 @@ XGBoost model trained on 5,000+ past releases. Every prediction is later
 settled against the real result on **The Ledger**, so the model's track record
 is public.
 
-- **Now Playing** (`/`): current films, searchable by title and genre.
+- **Now Playing** (`/`): films in US theaters, searchable by title and genre. Streaming premieres and releases outside the US are left out: the model predicts from the US opening weekend.
 - **Movie page** (`/movie/<tmdb_id>`): run the numbers for a film. It shows
   the US opening weekend, predicted worldwide total, decay rate λ, and the US
   weekend-gross decay curve.
@@ -60,7 +60,7 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | Method | Path | |
 |---|---|---|
 | GET | `/health` | Liveness, model and DB status |
-| GET | `/api/now-playing` | Current films (top 2 TMDB pages, re-releases removed) |
+| GET | `/api/now-playing` | Films in US theaters (top 2 TMDB pages, kept only with a US theatrical release in the last 180 days) |
 | GET | `/api/movie/<tmdb_id>` | One film's page data; 404 if unknown |
 | POST | `/api/predict` | `{"tmdb_id": 123}` → prediction; errors carry a `code` |
 | GET | `/api/leaderboard` | Priced now-playing films |

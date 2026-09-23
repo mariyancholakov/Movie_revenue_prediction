@@ -6,9 +6,9 @@ import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
+import { fmtMoney } from '@/lib/money';
 
-const fmt = (n: number) =>
-  '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
+const fmt = fmtMoney;
 // Signed, actual minus predicted: \u2212 (in the red) when the film fell short
 // of the call, + when it beat it. Red only ever marks a negative, site-wide.
 const fmtDiff = (n: number) => (n > 0 ? '+' : n < 0 ? '\u2212' : '') + fmt(Math.abs(n));

@@ -3,6 +3,8 @@ export interface Movie {
   title: string;
   poster: string;
   release_date: string;
+  // First US theatrical date ('' if unknown); predictions start from the US opening.
+  us_release_date?: string;
   overview: string;
   genres?: string[];
   cast?: string[];

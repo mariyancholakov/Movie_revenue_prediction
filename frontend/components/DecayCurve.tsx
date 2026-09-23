@@ -1,4 +1,5 @@
 import type { DecayCurveData } from './types';
+import { fmtAxis } from '@/lib/money';
 
 interface DecayCurveProps {
   data: DecayCurveData;
@@ -150,7 +151,7 @@ export function DecayCurve({ data }: DecayCurveProps) {
               fontSize={10}
               fontFamily={MONO}
             >
-              ${(maxGross * t / 1e6).toFixed(0)}M
+              {fmtAxis(maxGross * t, maxGross)}
             </text>
           </g>
         ))}

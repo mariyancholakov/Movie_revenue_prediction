@@ -7,11 +7,9 @@ import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
 import { estProfit } from '@/lib/profit';
+import { fmtMoney } from '@/lib/money';
 
-const fmt = (n: number) => {
-  const a = Math.abs(n);
-  return (n < 0 ? '\u2212$' : '$') + (a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : (a / 1e6).toFixed(1) + 'M');
-};
+const fmt = fmtMoney;
 
 // Shared by the column heads and every row, so the two can never drift apart.
 const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
