@@ -73,6 +73,10 @@ export default function FinishedPage() {
     return median * 100;
   }, [entries]);
 
+  // Films the model called to within 20% of the final gross, either way.
+  const withinTwenty = entries.filter(e => e.actual_revenue > 0 &&
+    Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue <= 0.2).length;
+
   const maxVal = useMemo(
     () => Math.max(1, ...entries.map(e => Math.max(e.predicted_revenue, e.actual_revenue))),
     [entries]
@@ -83,38 +87,34 @@ export default function FinishedPage() {
       <RunningHead active="finished" />
 
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
-        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
-          The Ledger
-        </h1>
-        <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-5">
-          Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
-          to the final gross. When the model called it too high, the difference posts{' '}
-          <span className="text-red">in&nbsp;the&nbsp;red</span>.
-        </p>
-
-        {/* Aggregate proof */}
-        {status === 'ok' && entries.length > 0 && medianError != null && (
-          <div className="flex flex-wrap gap-x-10 gap-y-3 border-y border-ink/25 py-5 mb-6">
-            <div>
-              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Settled</p>
-              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{entries.length}</p>
-            </div>
-            <div>
-              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Median Error</p>
-              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{medianError.toFixed(1)}%</p>
-            </div>
-            <div>
-              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Within 20%</p>
-              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">
-                {Math.round(
-                  (entries.filter(e => e.actual_revenue > 0 &&
-                    Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue <= 0.2).length /
-                    entries.length) * 100
-                )}%
-              </p>
-            </div>
+        {/* Heading and intro at left, the scorecard at right */}
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-x-12 gap-y-6 mb-6">
+          <div className="max-w-xl">
+            <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
+              The Ledger
+            </h1>
+            <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
+              Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
+              to the final gross. When a film fell short of the prediction, the gap posts{' '}
+              <span className="text-red">in&nbsp;the&nbsp;red</span>.
+            </p>
           </div>
-        )}
+
+          {status === 'ok' && entries.length > 0 && medianError != null && (
+            <dl className="flex gap-x-10 m-0 shrink-0">
+              {[
+                ['Films settled', String(entries.length)],
+                ['Median miss', `${medianError.toFixed(1)}%`],
+                ['Within 20% of actual', `${withinTwenty} of ${entries.length}`],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-2">{label}</dt>
+                  <dd className="font-mono text-ink text-[1.4rem] tabular-nums leading-none m-0">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
 
         <div className="rule-double mb-2" />
 
