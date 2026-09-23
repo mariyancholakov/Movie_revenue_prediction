@@ -8,12 +8,6 @@ import { DecayCurve } from "./DecayCurve";
 const fmt = (n: number) =>
   "$" + (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : (n / 1e6).toFixed(1) + "M");
 
-const fmtProfit = (n: number) => {
-  const sign = n >= 0 ? "+" : "−";
-  const abs = Math.abs(n);
-  return sign + "$" + (abs >= 1e9 ? (abs / 1e9).toFixed(2) + "B" : (abs / 1e6).toFixed(1) + "M");
-};
-
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -226,9 +220,12 @@ export function MovieDetail({
               <StatCard key="dr" label="Decay Rate λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />,
               (selected.budget ?? 0) > 0
                 ? (() => {
-                    const profit = prediction.predicted_revenue - selected.budget!;
+                    // Gross ÷ budget, not "profit": theaters keep roughly half the
+                    // gross and marketing isn't in the reported budget, so a
+                    // subtraction would overstate what the studio clears.
+                    const ratio = prediction.predicted_revenue / selected.budget!;
                     return (
-                      <StatCard key="pf" label="Est. Profit" value={fmtProfit(profit)} accent={profit < 0} />
+                      <StatCard key="gb" label="Gross ÷ Budget" value={`${ratio.toFixed(1)}×`} accent={ratio < 1} />
                     );
                   })()
                 : <StatCard key="mult" label="Multiplier"
