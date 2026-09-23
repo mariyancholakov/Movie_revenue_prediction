@@ -70,16 +70,9 @@ export default function LeaderboardPage() {
 
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
         {/* Heading */}
-        <div className="flex items-end justify-between gap-4 mb-3">
-          <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0">
-            Box-Office Rankings
-          </h1>
-          {status === 'ok' && entries.length > 0 && (
-            <span className="font-mono text-ink2 text-[0.66rem] tracking-[0.1em] pb-1.5 whitespace-nowrap">
-              {entries.length} FILM{entries.length !== 1 ? 'S' : ''} PRICED
-            </span>
-          )}
-        </div>
+        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
+          Rankings
+        </h1>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-6">
           Every film now playing, ranked by the model&rsquo;s predicted worldwide total. Profit is
           estimated as the studio&rsquo;s roughly half of that gross, minus the budget.
@@ -120,7 +113,7 @@ export default function LeaderboardPage() {
             <div className={`${ROW} pt-1 pb-2 ${HEAD}`}>
               <span className={`${COL.rank} text-right`}>#</span>
               <span className={COL.poster} />
-              <span className={COL.title}>Film</span>
+              <span className={COL.title}>{entries.length} film{entries.length !== 1 ? 's' : ''}</span>
               <span className={`${COL.bar} items-center gap-4`}>
                 <span className="flex items-center gap-1.5">
                   <span className="inline-block w-3 h-2 bg-ink2" /> Opening weekend
