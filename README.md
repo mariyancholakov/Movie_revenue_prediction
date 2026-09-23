@@ -11,8 +11,10 @@ is public.
   weekend-gross decay curve.
 - **Rankings** (`/leaderboard`): priced films ranked by predicted total.
 - **The Ledger** (`/finished`): settled runs, predicted vs. actual.
-- **How It Works** (`/how-it-works`): the pipeline worked through for one film
-  now playing, including what raised or lowered its multiplier.
+- **How It Works** (`/how-it-works`): the whole pipeline explained step by
+  step (opening weekend, the features, the multiplier, the total, the decay
+  curve, the Ledger, retraining and the model's limits), worked through with
+  the real figures of any film now playing, picked from a menu.
 
 ## How it works
 
@@ -31,6 +33,11 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   TMDB `revenue` (worldwide), while the opening weekend and decay curve are
   US domestic. Results are cached in Supabase for 7 days, and films in
   theaters are re-scored with the current model on every read.
+- **Explaining:** `/api/explain/<tmdb_id>` breaks a film's multiplier into
+  factors for the How It Works page. XGBoost's per-feature contributions
+  (SHAP values) add up to the log multiplier, so grouped (budget, genre,
+  franchise, ...) and exponentiated they multiply back out to the prediction
+  exactly: starting point × each factor = multiplier (`MultiplierModel.explain`).
 - **Tracking:** only a current release (at most 180 days old) is tracked as
   a run. Opening an older film's page caches its numbers but never puts it
   on the Ledger.
