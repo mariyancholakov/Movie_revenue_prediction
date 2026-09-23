@@ -12,6 +12,14 @@
 ALTER TABLE public.movies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.weekly_gross ENABLE ROW LEVEL SECURITY;
 
--- Verify: both rows should show rowsecurity = true.
+-- The project was created with a permissive "Allow all operations" policy
+-- (TO public, USING true) on both tables, which would let the publishable
+-- key keep reading and writing everything despite RLS.
+DROP POLICY IF EXISTS "Allow all operations" ON public.movies;
+DROP POLICY IF EXISTS "Allow all operations" ON public.weekly_gross;
+
+-- Verify: both rows should show rowsecurity = true, and the second query
+-- should return no rows.
 -- SELECT tablename, rowsecurity FROM pg_tables
 -- WHERE schemaname = 'public' AND tablename IN ('movies', 'weekly_gross');
+-- SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public';
