@@ -493,6 +493,45 @@ def leaderboard():
     return jsonify(results)
 
 
+@app.route('/api/explain/<int:tmdb_id>', methods=['GET'])
+def explain(tmdb_id):
+    """How the model reached one film's number, for the How It Works page:
+    the feature snapshot it read and the factors its multiplier is made of.
+    Only for a priced film still in theaters (what Rankings lists), so the
+    breakdown always matches the prediction shown everywhere else."""
+    if not hasattr(model, 'explain'):
+        return jsonify({'error': 'The current model cannot be broken down.', 'code': 'internal'}), 503
+    rows = supabase.table('movies').select('*').eq('tmdb_id', tmdb_id).execute().data
+    movie = rows[0] if rows else None
+    if not movie or movie.get('is_in_theaters') is not True or not movie.get('opening_weekend'):
+        return jsonify({'error': 'This film has no open run to explain.', 'code': 'not_found'}), 404
+    try:
+        feats = movie.get('features') or {}
+        if any(c not in feats for c in MODEL_FEATURES):
+            feats = complete_snapshot(movie)
+        X = pd.DataFrame([feats])
+        base, factors = model.explain(X)
+        predicted = round(score(X))
+    except Exception as e:
+        print(f"[explain] failed for {tmdb_id}: {e}")
+        return jsonify({'error': 'TMDB is not responding.', 'code': 'tmdb_unavailable'}), 503
+
+    weekly_rows = []
+    if movie.get('imdb_id') and movie.get('decay_rate') is not None:
+        weekly_rows = supabase.table('weekly_gross').select('*') \
+            .eq('imdb_id', movie['imdb_id']).order('week').execute().data or []
+    return jsonify({
+        'tmdb_id': tmdb_id,
+        'title': movie['title'],
+        'opening_weekend': movie['opening_weekend'],
+        'predicted_revenue': predicted,
+        'multiplier': predicted / movie['opening_weekend'],
+        'base_multiplier': base,
+        'factors': factors,
+        'features': {k: feats.get(k, 0) for k in MODEL_FEATURES},
+        'decay_curve': decay_curve_from_db(weekly_rows, movie.get('decay_rate'), movie.get('half_life')),
+    })
+
 # Poster + genres for finished films, which aren't in now-playing so they
 # need a TMDB lookup each. They never change once a run is settled, so keep them
 # in-process for a day instead of refetching the whole Ledger on every request.

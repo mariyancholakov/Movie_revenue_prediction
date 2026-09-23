@@ -8,13 +8,27 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
-from xgboost import XGBRegressor
+from xgboost import DMatrix, XGBRegressor
 
 # Added on top of the original 26 columns. release_year lets the model see
 # that runs have got shorter (the typical total / opening fell from ~7.8x
 # before 2017 to ~6.3x after 2020); the franchise flags separate sequels,
 # which open big and fall fast, from originals.
 FRANCHISE_FEATURES = ['in_collection', 'is_sequel', 'prior_parts', 'release_year']
+
+# How explain() groups the features into lines a reader can follow. Every
+# feature lands in exactly one group; the genre and season dummies are
+# summed so a film reads "genre x1.10", not fourteen near-zero lines.
+EXPLAIN_GROUPS = {
+    'opening': lambda f: f == 'opening_weekend',
+    'budget': lambda f: f == 'budget',
+    'runtime': lambda f: f == 'runtime',
+    'genre': lambda f: f.startswith('genre_'),
+    'timing': lambda f: f == 'release_month' or f.startswith('release_season_'),
+    'franchise': lambda f: f in ('in_collection', 'is_sequel', 'prior_parts'),
+    'origin': lambda f: f in ('is_major_studio', 'is_us_production', 'is_english'),
+    'era': lambda f: f == 'release_year',
+}
 
 
 def franchise_row(release_date, collection_id, collection_parts, tmdb_id=None):
@@ -67,3 +81,19 @@ class MultiplierModel:
     def predict(self, X):
         X = X.reindex(columns=self.features, fill_value=0)
         return np.exp(self.regressor_.predict(X[self.features])) * self._opening(X)
+
+    def explain(self, X):
+        """Break one film's predicted multiplier into factors.
+
+        XGBoost's per-feature contributions (SHAP values) add up, in log
+        space, to the predicted log multiplier. Exponentiated, they become
+        factors that multiply: base x opening x budget x ... = multiplier.
+        Returns (base, {group: factor}) for the first row of X."""
+        X = X.reindex(columns=self.features, fill_value=0).astype(float)
+        contribs = self.regressor_.get_booster().predict(DMatrix(X), pred_contribs=True)[0]
+        by_feature = dict(zip(self.features, contribs[:-1]))
+        factors = {
+            group: float(np.exp(sum(v for f, v in by_feature.items() if belongs(f))))
+            for group, belongs in EXPLAIN_GROUPS.items()
+        }
+        return float(np.exp(contribs[-1])), factors
