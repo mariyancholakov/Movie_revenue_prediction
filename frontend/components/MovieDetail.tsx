@@ -12,6 +12,10 @@ import { Typed, TypedLoader, typeOut } from "./Typed";
 
 const fmt = fmtMoney;
 
+// Below this US opening a film is a limited release, where the model (trained
+// on the typical wide-release run) is least reliable.
+const LIMITED_OPENING = 1_000_000;
+
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -365,7 +369,14 @@ export function MovieDetail({
             ))}
           </div>
 
-          <p data-ledger-follow className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 uppercase mt-3 mb-11 leading-relaxed">
+          {/* The model learned from wide releases; from a tiny opening it
+              can't tell whether a film will expand or vanish. */}
+          {prediction.opening_weekend < LIMITED_OPENING && (
+            <p data-ledger-follow className="font-mono text-[0.6rem] tracking-[0.12em] text-ink2 uppercase mt-3 mb-0 leading-relaxed">
+              Limited release: an opening this small makes the prediction rough
+            </p>
+          )}
+          <p data-ledger-follow className={`font-mono text-[0.6rem] tracking-[0.12em] text-ink3 uppercase mb-11 leading-relaxed ${prediction.opening_weekend < LIMITED_OPENING ? "mt-1" : "mt-3"}`}>
             {profit != null
               ? `Profit: studio\u2019s ~50% of the gross, minus the ${fmt(selected.budget!)} budget`
               : "Profit needs a reported budget"}
