@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+import { WireDown } from '@/components/WireDown';
+import { API_URL } from '@/lib/api';
 
 const fmt = (n: number) =>
   '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
@@ -29,14 +29,18 @@ export default function FinishedPage() {
       .catch(() => setStatus('error'));
   }, []);
 
-  const meanError = useMemo(() => {
-    const valid = entries.filter(e => e.actual_revenue > 0);
-    if (!valid.length) return null;
-    const sum = valid.reduce(
-      (a, e) => a + Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue,
-      0
-    );
-    return (sum / valid.length) * 100;
+  // Median, not mean: a handful of small releases the model overshoots by
+  // thousands of percent would otherwise swamp the headline figure. Every miss
+  // still appears in the table below.
+  const medianError = useMemo(() => {
+    const errs = entries
+      .filter(e => e.actual_revenue > 0)
+      .map(e => Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue)
+      .sort((a, b) => a - b);
+    if (!errs.length) return null;
+    const mid = Math.floor(errs.length / 2);
+    const median = errs.length % 2 ? errs[mid] : (errs[mid - 1] + errs[mid]) / 2;
+    return median * 100;
   }, [entries]);
 
   const maxVal = useMemo(
@@ -54,19 +58,19 @@ export default function FinishedPage() {
         </h1>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-5">
           Films whose theatrical runs have closed — the model&rsquo;s call, settled against the
-          final gross. Overshoots post <span className="text-red font-semibold">in&nbsp;the&nbsp;red</span>.
+          final worldwide gross. Overshoots post <span className="text-red font-semibold">in&nbsp;the&nbsp;red</span>.
         </p>
 
         {/* Aggregate proof */}
-        {status === 'ok' && entries.length > 0 && meanError != null && (
+        {status === 'ok' && entries.length > 0 && medianError != null && (
           <div className="flex flex-wrap gap-x-10 gap-y-3 border-y border-ink/25 py-5 mb-6">
             <div>
               <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Settled</p>
               <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{entries.length}</p>
             </div>
             <div>
-              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Mean Error</p>
-              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{meanError.toFixed(1)}%</p>
+              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Median Error</p>
+              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{medianError.toFixed(1)}%</p>
             </div>
             <div>
               <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Within 20%</p>
@@ -84,7 +88,7 @@ export default function FinishedPage() {
         {/* Legend */}
         {status === 'ok' && entries.length > 0 && (
           <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-2.5 bg-ink2" /> Actual gross</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-2.5 bg-ink2" /> Actual worldwide gross</span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block" style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }} /> Predicted
             </span>
@@ -101,15 +105,7 @@ export default function FinishedPage() {
           </div>
         )}
 
-        {status === 'error' && (
-          <div className="border border-ink/25 bg-panel/50 px-6 py-8 text-center mt-6">
-            <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
-            <p className="text-ink2 text-[0.85rem] m-0">
-              No connection to the box-office desk. Start the Flask server on{' '}
-              <span className="font-mono text-ink">{API_URL}</span>.
-            </p>
-          </div>
-        )}
+        {status === 'error' && <WireDown className="mt-6" />}
 
         {status === 'ok' && entries.length === 0 && (
           <div className="py-16 text-center max-w-md mx-auto">
@@ -136,7 +132,7 @@ export default function FinishedPage() {
                   <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
                     {/* Film */}
                     <div className="shrink-0 border border-ink/30">
-                      <Image src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
+                      <Poster src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
                     </div>
                     <div className="min-w-0 w-[9rem] sm:w-52 shrink-0">
                       <p className="text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">
@@ -197,7 +193,7 @@ export default function FinishedPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] uppercase mt-4">
-            Bars to scale · error relative to final gross
+            Bars to scale · error relative to final worldwide gross
           </p>
         )}
       </div>

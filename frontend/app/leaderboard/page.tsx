@@ -1,10 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
+import { WireDown } from '@/components/WireDown';
+import { API_URL } from '@/lib/api';
 
 const fmt = (n: number) =>
   '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
@@ -49,17 +49,17 @@ export default function LeaderboardPage() {
           )}
         </div>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-3">
-          Every film now playing, ranked by the model&rsquo;s predicted total run.
+          Every film now playing, ranked by the model&rsquo;s predicted worldwide run.
         </p>
 
         {/* Legend */}
         {status === 'ok' && entries.length > 0 && (
           <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-4 h-2.5 bg-ink2" /> Opening weekend
+              <span className="inline-block w-4 h-2.5 bg-ink2" /> US opening weekend
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-4 h-2.5" style={{ background: 'color-mix(in srgb, var(--color-ink2) 30%, transparent)' }} /> → Predicted total
+              <span className="inline-block w-4 h-2.5" style={{ background: 'color-mix(in srgb, var(--color-ink2) 30%, transparent)' }} /> → Predicted worldwide total
             </span>
           </div>
         )}
@@ -75,15 +75,7 @@ export default function LeaderboardPage() {
         )}
 
         {/* Error */}
-        {status === 'error' && (
-          <div className="border border-ink/25 bg-panel/50 px-6 py-8 text-center mt-6">
-            <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
-            <p className="text-ink2 text-[0.85rem] m-0">
-              No connection to the box-office desk. Start the Flask server on{' '}
-              <span className="font-mono text-ink">{API_URL}</span>.
-            </p>
-          </div>
-        )}
+        {status === 'error' && <WireDown className="mt-6" />}
 
         {/* Empty */}
         {status === 'ok' && entries.length === 0 && (
@@ -104,10 +96,9 @@ export default function LeaderboardPage() {
           <div className="border-b border-rule">
             {entries.map((entry, i) => {
               const multiplier = entry.predicted_revenue / Math.max(entry.opening_weekend, 1);
-              const multColor =
-                multiplier >= 3.5 ? 'text-ink font-bold' :
-                multiplier >= 2.5 ? 'text-ink' :
-                'text-red';
+              // No colour grading: the old 2.5×/3.5× bands were domestic-legs
+              // rules of thumb, meaningless for a worldwide ÷ domestic ratio.
+              const multColor = 'text-ink2';
               const predPct = (entry.predicted_revenue / maxRevenue) * 100;
               const openPct = (entry.opening_weekend / maxRevenue) * 100;
               const lead = i === 0;
@@ -126,7 +117,7 @@ export default function LeaderboardPage() {
 
                     {/* Poster */}
                     <div className="shrink-0 border border-ink/30">
-                      <Image
+                      <Poster
                         src={entry.poster}
                         alt={entry.title}
                         width={lead ? 44 : 38}
@@ -178,7 +169,7 @@ export default function LeaderboardPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] mt-8 uppercase">
-            Multiplier = predicted total ÷ opening weekend · bars to scale
+            Multiplier = predicted worldwide total ÷ US opening weekend · bars to scale
           </p>
         )}
       </div>

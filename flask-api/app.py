@@ -3,11 +3,14 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_cast, get_movie_credits
+from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, MAX_RELEASE_AGE_DAYS
+from model_lib import FRANCHISE_FEATURES
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
 import json
+import hmac
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -22,10 +25,13 @@ ALLOWED_ORIGINS = [
 ]
 CORS(app, origins=ALLOWED_ORIGINS)
 
-supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_KEY')
-)
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
+if SUPABASE_KEY.startswith('sb_publishable_'):
+    # The publishable key is meant to be public. The API needs the secret key
+    # (sb_secret_…), which bypasses RLS; with RLS enabled (migrations/002)
+    # a publishable key can neither read nor write.
+    print("WARNING: SUPABASE_KEY is a publishable key; use the secret key (sb_secret_…) server-side.")
+supabase = create_client(os.getenv('SUPABASE_URL'), SUPABASE_KEY)
 try:
     test = supabase.table('movies').select('count').execute()
     print("Supabase connected successfully")
@@ -33,7 +39,17 @@ except Exception as e:
     print(f"Supabase connection error: {e}")
 
 model = joblib.load('models/box_office_model_final.pkl')
-feature_columns = joblib.load('models/feature_columns_final.pkl')
+# A feature snapshot keeps every column any model has used (so a later model
+# can be retrained on it); each model reads the subset it was trained on.
+# Models before MultiplierModel don't carry their list and use the original 26.
+BASE_FEATURES = joblib.load('models/feature_columns_final.pkl')
+SNAPSHOT_COLUMNS = BASE_FEATURES + FRANCHISE_FEATURES
+MODEL_FEATURES = getattr(model, 'features', BASE_FEATURES)
+
+
+def score(feature_row):
+    """The current model's predicted total for a feature row, in dollars."""
+    return float(model.predict(feature_row.reindex(columns=MODEL_FEATURES, fill_value=0))[0])
 
 MAJOR_STUDIOS = ['Warner Bros', 'Disney', 'Marvel', 'Universal', 'Paramount', 'Sony', 'Legendary', 'Columbia']
 GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
@@ -45,17 +61,28 @@ GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
 FULL_TTL = timedelta(days=7)
 DECAY_RETRY_TTL = timedelta(hours=6)
 
+# A run must be at least this old before it can be settled as finished. By
+# week 12 nearly all of a typical theatrical gross is in.
+MIN_RUN_DAYS = 84
+
 
 def build_fitted_curve(weeks, gross, decay_rate):
     """Reconstruct the fitted exponential-decay curve from a stored decay rate,
-    anchored to the opening-weekend gross, so cached predictions render the same
-    model curve as freshly-scraped ones."""
+    so cached predictions render the same model curve as freshly-scraped ones.
+
+    Only the rate is stored, not the fitted amplitude, but with the rate fixed
+    the least-squares amplitude has a closed form:
+        A = sum(g_t * e^(-lam t)) / sum(e^(-2 lam t))
+    which is the amplitude the original joint fit landed on. (Anchoring to the
+    first weekend instead drew a visibly different curve on cached loads.)"""
     if not weeks or decay_rate is None:
         return [], []
     max_w = max(weeks)
     if max_w <= 0:
         return [], []
-    amplitude = gross[0]
+    t = np.asarray(weeks, dtype=float)
+    basis = np.exp(-decay_rate * t)
+    amplitude = float(np.dot(gross, basis) / np.dot(basis, basis))
     xs = np.linspace(0, max_w, 200)
     ys = amplitude * np.exp(-decay_rate * xs)
     return xs.tolist(), ys.tolist()
@@ -110,9 +137,10 @@ def build_feature_row(details, opening_weekend):
     
     for genre in GENRES:
         row[f'genre_{genre.lower().replace(" ", "_")}'] = int(genre in genre_names)
+    row.update(get_franchise_features(details))  # may raise ConnectionError
     
     df_row = pd.DataFrame([row])
-    df_row = df_row.reindex(columns=feature_columns, fill_value=0)
+    df_row = df_row.reindex(columns=SNAPSHOT_COLUMNS, fill_value=0)
     return df_row
 
 
@@ -130,6 +158,44 @@ def store_features(tmdb_id, feature_row):
             .eq('tmdb_id', tmdb_id).execute()
     except Exception as e:
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
+
+def complete_snapshot(movie):
+    """Bring a film's feature snapshot up to SNAPSHOT_COLUMNS and store it:
+    add the columns introduced after it was taken (franchise, release year),
+    or build it outright for a row cached before snapshots existed. Runs once
+    per film instead of on every read. Raises if TMDB can't be reached."""
+    details = get_movie_details(movie['tmdb_id'])
+    if not details:
+        raise ConnectionError(f"TMDB details unavailable for {movie['tmdb_id']}")
+    if movie.get('features'):
+        feats = {**movie['features'], **get_franchise_features(details)}
+    else:
+        feats = features_to_json(build_feature_row(details, movie['opening_weekend']))
+    supabase.table('movies').update({'features': feats}).eq('tmdb_id', movie['tmdb_id']).execute()
+    movie['features'] = feats
+    return feats
+
+
+def live_prediction(movie):
+    """The prediction to show for a cached movie row.
+
+    For a film still in theaters, re-run the *current* model on the stored
+    feature snapshot (milliseconds, no scraping), so a promoted model takes
+    effect everywhere at once instead of films drifting over as their 7-day
+    cache expires. A finished run keeps the prediction it was settled with,
+    since that's the claim the Ledger holds the model to."""
+    stored = movie.get('predicted_revenue')
+    feats = movie.get('features') or {}
+    if movie.get('is_in_theaters') is False or not movie.get('opening_weekend'):
+        return stored
+    try:
+        if any(c not in feats for c in MODEL_FEATURES):
+            feats = complete_snapshot(movie)
+        return round(score(pd.DataFrame([feats])))
+    except Exception as e:
+        print(f"[predict] live re-score failed for {movie.get('tmdb_id')}: {e}")
+        return stored
+
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -153,20 +219,16 @@ def now_playing():
     movies = get_now_playing()
     return jsonify(movies)
 
-@app.route('/api/movie/<int:tmdb_id>/cast', methods=['GET'])
-def movie_cast(tmdb_id):
-    cast, director = get_movie_credits(tmdb_id)
-    details = get_movie_details(tmdb_id)
-    vote_avg = details.get('vote_average', 0)
-    vote_count = details.get('vote_count', 0)
-    return jsonify({
-        'cast': cast,
-        'director': director,
-        'budget': details.get('budget', 0),
-        'runtime': details.get('runtime', 0),
-        'vote_average': round(vote_avg, 1) if vote_count > 50 else None,
-        'vote_count': vote_count,
-    })
+@app.route('/api/movie/<int:tmdb_id>', methods=['GET'])
+def movie(tmdb_id):
+    """One film's page data. Works for any TMDB id, not just now-playing, so
+    films linked from the Ledger (whose runs have ended) still resolve."""
+    page, status = get_movie_page(tmdb_id)
+    if status == 404:
+        return jsonify({'error': 'Movie not found.', 'code': 'not_found'}), 404
+    if not page:
+        return jsonify({'error': 'Movie data is temporarily unavailable.', 'code': 'upstream'}), 503
+    return jsonify(page)
 
 def predict_for(tmdb_id):
     """Core prediction pipeline: returns (payload_dict, status_code), honoring the
@@ -191,12 +253,32 @@ def predict_for(tmdb_id):
                 .eq('imdb_id', imdb_id).order('week').execute().data or []
         has_decay = movie.get('decay_rate') is not None and bool(weekly_rows)
 
+        predicted = live_prediction(movie)
+        if predicted != movie.get('predicted_revenue'):
+            # Model changed since this row was written: keep the stored value in
+            # step so Rankings and the eventual Ledger entry agree with the page.
+            try:
+                supabase.table('movies').update({'predicted_revenue': predicted}) \
+                    .eq('tmdb_id', tmdb_id).execute()
+            except Exception as e:
+                print(f"[predict] could not store re-scored prediction for {tmdb_id}: {e}")
+
         base = {
             'title': movie['title'],
-            'predicted_revenue': movie['predicted_revenue'],
+            'predicted_revenue': predicted,
             'opening_weekend': movie['opening_weekend'],
             'cached': True,
         }
+
+        # A finished run is settled: always serve the stored prediction next to
+        # the real total. Re-scraping would also upsert is_in_theaters=True and
+        # pull the film back out of the Ledger.
+        if movie.get('is_in_theaters') is False:
+            return {
+                **base,
+                'actual_revenue': movie.get('actual_revenue'),
+                'decay_curve': decay_curve_from_db(weekly_rows, movie.get('decay_rate'), movie.get('half_life')),
+            }, 200
 
         # Fresh + complete → serve straight from cache.
         if has_decay and age < FULL_TTL:
@@ -234,30 +316,44 @@ def predict_for(tmdb_id):
         # else: stale beyond FULL_TTL → fall through to a full re-scrape below.
 
     # Not cached or stale — full scrape + model prediction.
-    details = get_movie_details(tmdb_id)
+    # Every error payload carries a `code` so the frontend can pick the right
+    # message: 'no_box_office' (nothing reported yet, usually a fresh release)
+    # vs. 'upstream' (a source is down) vs. 'not_found' / 'insufficient_data'.
+    details, tmdb_status = get_movie_details(tmdb_id, with_status=True)
+    if tmdb_status == 404:
+        return {'error': 'Movie not found.', 'code': 'not_found'}, 404
     if not details:
-        # TMDB unreachable or unknown id — transient upstream failure.
-        return {'error': 'Movie data is temporarily unavailable. Please try again.'}, 503
+        return {'error': 'Movie data is temporarily unavailable. Please try again.', 'code': 'upstream'}, 503
     imdb_id = details.get('external_ids', {}).get('imdb_id')
     if not imdb_id:
-        return {'error': 'Could not find IMDB ID'}, 400
+        return {'error': 'No box-office listing for this film yet.', 'code': 'no_box_office'}, 404
 
-    opening_weekend = get_opening_weekend(imdb_id)
+    title_page = get_title_page(imdb_id)
+    opening_weekend = get_opening_weekend(imdb_id, title_page)
     if not opening_weekend:
-        return {'error': 'Could not find opening weekend data'}, 400
+        return {'error': 'No opening-weekend figures reported yet.', 'code': 'no_box_office'}, 404
 
     try:
         feature_row = build_feature_row(details, opening_weekend)
-        predicted_revenue = float(model.predict(feature_row)[0])
+        predicted_revenue = score(feature_row)
+    except ConnectionError as e:
+        print(f"[predict] {e}")
+        return {'error': 'Movie data is temporarily unavailable. Please try again.', 'code': 'upstream'}, 503
     except (KeyError, ValueError) as e:
         # Malformed/incomplete TMDB details (e.g. missing release_date).
         print(f"[predict] feature build failed for {tmdb_id}: {e}")
-        return {'error': 'Not enough data to predict for this film yet.'}, 400
+        return {'error': 'Not enough data to predict for this film yet.', 'code': 'insufficient_data'}, 422
 
-    weekly_data = get_weekly_grossing(imdb_id)
+    weekly_data = get_weekly_grossing(imdb_id, title_page)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
 
-    # Store in Supabase
+    # Store in Supabase. Only a current release is tracked as a run
+    # (is_in_theaters True, so the weekly capture will settle it). Opening an
+    # older film's page still caches its numbers, with is_in_theaters NULL,
+    # so it never reaches the Ledger with a prediction made after its run.
+    # A row that is already tracked stays tracked.
+    was_tracked = bool(cached.data) and cached.data[0].get('is_in_theaters') is True
+    tracked = was_tracked or 0 <= run_age_days(details) <= MAX_RELEASE_AGE_DAYS
     movie_record = {
         'imdb_id': imdb_id,
         'tmdb_id': tmdb_id,
@@ -266,7 +362,7 @@ def predict_for(tmdb_id):
         'predicted_revenue': round(predicted_revenue),
         'decay_rate': decay_data['decay_rate'] if decay_data else None,
         'half_life': decay_data['half_life'] if decay_data else None,
-        'is_in_theaters': True,
+        'is_in_theaters': True if tracked else None,
         'last_scraped': now.isoformat(),
     }
     supabase.table('movies').upsert(movie_record).execute()
@@ -304,7 +400,7 @@ def predict():
     except Exception as e:
         # Last-resort guard: never leak a stack trace to the client.
         print(f"[predict] unexpected error for {tmdb_id}: {e}")
-        return jsonify({'error': 'Something went wrong generating the prediction.'}), 500
+        return jsonify({'error': 'Something went wrong generating the prediction.', 'code': 'internal'}), 500
     return jsonify(payload), status
 
 @app.route('/api/leaderboard', methods=['GET'])
@@ -321,7 +417,12 @@ def leaderboard():
 
     results = []
     for movie in cached.data:
-        if not movie.get('predicted_revenue'):
+        # TMDB can keep listing a film after its run is settled; it belongs on
+        # the Ledger then, not in the rankings of open runs.
+        if movie.get('is_in_theaters') is False:
+            continue
+        predicted = live_prediction(movie)
+        if not predicted:
             continue
         tid = movie['tmdb_id']
         results.append({
@@ -330,12 +431,45 @@ def leaderboard():
             'poster':            poster_map.get(tid, ''),
             'genres':            genre_map.get(tid, []),
             'opening_weekend':   movie['opening_weekend'],
-            'predicted_revenue': movie['predicted_revenue'],
+            'predicted_revenue': predicted,
             'decay_rate':        movie.get('decay_rate'),
         })
 
     results.sort(key=lambda x: x['predicted_revenue'], reverse=True)
     return jsonify(results)
+
+
+# Poster + genres for finished films, which aren't in now-playing so they
+# need a TMDB lookup each. They never change once a run is settled, so keep them
+# in-process for a day instead of refetching the whole Ledger on every request.
+ART_TTL = timedelta(hours=24)
+_art_cache = {}  # tmdb_id -> (fetched_at, (poster, genres))
+
+
+def _fetch_art(tid):
+    details = get_movie_details(tid)
+    path = details.get('poster_path')
+    poster = f"https://image.tmdb.org/t/p/w500{path}" if path else ''
+    return poster, [g['name'] for g in details.get('genres', [])], bool(details)
+
+
+def finished_art(tmdb_ids):
+    """{tmdb_id: (poster, genres)}, from cache or fetched in parallel."""
+    now = datetime.now(timezone.utc)
+    out, missing = {}, []
+    for tid in tmdb_ids:
+        hit = _art_cache.get(tid)
+        if hit and now - hit[0] < ART_TTL:
+            out[tid] = hit[1]
+        else:
+            missing.append(tid)
+    if missing:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            for tid, (poster, genres, ok) in zip(missing, pool.map(_fetch_art, missing)):
+                out[tid] = (poster, genres)
+                if ok:  # don't cache a TMDB failure for a day
+                    _art_cache[tid] = (now, (poster, genres))
+    return out
 
 
 @app.route('/api/finished', methods=['GET'])
@@ -345,34 +479,25 @@ def finished():
     prediction error is measured in the same unit the model was trained on.
     Sorted by largest absolute miss first."""
     try:
-        cached = supabase.table('movies').select('*').eq('is_in_theaters', False).execute()
+        cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue') \
+            .eq('is_in_theaters', False).execute()
     except Exception:
         return jsonify([])
 
+    rows = [m for m in (cached.data or []) if m.get('actual_revenue') and m.get('predicted_revenue')]
+    art = finished_art([m['tmdb_id'] for m in rows if m.get('tmdb_id')])
+
     results = []
-    for movie in (cached.data or []):
-        actual = movie.get('actual_revenue')
-        predicted = movie.get('predicted_revenue')
-        if not actual or not predicted:
-            continue
+    for movie in rows:
         tid = movie.get('tmdb_id')
-
-        poster, genres = '', []
-        if tid:
-            try:
-                details = get_movie_details(tid)
-                poster = f"https://image.tmdb.org/t/p/w500{details.get('poster_path')}" if details.get('poster_path') else ''
-                genres = [g['name'] for g in details.get('genres', [])]
-            except Exception:
-                pass
-
+        poster, genres = art.get(tid, ('', []))
         results.append({
             'tmdb_id': tid,
             'title': movie.get('title'),
             'poster': poster,
             'genres': genres,
-            'predicted_revenue': predicted,
-            'actual_revenue': int(actual),
+            'predicted_revenue': movie['predicted_revenue'],
+            'actual_revenue': int(movie['actual_revenue']),
         })
 
     results.sort(key=lambda x: abs(x['predicted_revenue'] - x['actual_revenue']), reverse=True)
@@ -392,7 +517,11 @@ def capture_finished_runs():
     used by both the HTTP endpoint and the scheduled capture_finished.py job."""
     now = datetime.now(timezone.utc)
     try:
-        now_playing_ids = {m['tmdb_id'] for m in get_now_playing()}
+        now_playing = get_now_playing()
+        if not now_playing:
+            # An outage would otherwise look like every film leaving theaters.
+            return {'error': 'TMDB now-playing list unavailable; nothing captured.'}
+        now_playing_ids = {m['tmdb_id'] for m in now_playing}
         tracked = supabase.table('movies').select('*').eq('is_in_theaters', True).execute().data or []
     except Exception as e:
         return {'error': str(e)}
@@ -409,14 +538,22 @@ def capture_finished_runs():
             continue
         revenue = details.get('revenue') or 0
 
-        if revenue <= 0:
-            pending += 1  # left theaters but TMDB revenue not in yet — retry later
+        # Leaving the now-playing pages isn't proof the run is over (a film can
+        # slide off page 2 mid-run), and TMDB's `revenue` fills in *during* the
+        # run, so an early capture records a partial total. Require a minimum
+        # run length before settling.
+        if run_age_days(details) < MIN_RUN_DAYS or revenue <= 0:
+            pending += 1  # retry on a later run
             continue
 
+        # Settle against the prediction the site was showing (current model),
+        # which may be newer than the stored value if a model was promoted.
+        predicted = live_prediction(movie)
         update = {
             'is_in_theaters': False,
             'actual_revenue': int(revenue),
             'finished_at': now.isoformat(),
+            'predicted_revenue': predicted,
         }
         # Backfill a feature snapshot if the prediction predates feature capture.
         if not movie.get('features') and movie.get('opening_weekend'):
@@ -430,7 +567,6 @@ def capture_finished_runs():
         except Exception as e:
             return {'error': f'update failed (did you run the migration?): {e}'}
 
-        predicted = movie.get('predicted_revenue')
         finished.append({
             'tmdb_id': tid,
             'title': movie.get('title'),
@@ -444,11 +580,63 @@ def capture_finished_runs():
         'newly_finished': len(finished),
         'pending_revenue': pending,
         'finished': finished,
+        'revenue_updated': refresh_settled_revenue(),
     }
+
+
+def run_age_days(details):
+    try:
+        released = datetime.strptime(details.get('release_date', ''), '%Y-%m-%d').replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        return -1
+    return (datetime.now(timezone.utc) - released).days
+
+
+def refresh_settled_revenue():
+    """TMDB keeps revising `revenue` after a run ends (late territories,
+    corrections). Pull settled films' ground truth up to TMDB's latest figure
+    so the Ledger and retraining labels don't freeze a partial total. Only ever
+    raises a figure, and only within a year of release. Returns titles updated."""
+    try:
+        rows = supabase.table('movies').select('tmdb_id,title,actual_revenue') \
+            .eq('is_in_theaters', False).execute().data or []
+    except Exception as e:
+        print(f"[capture] revenue refresh skipped: {e}")
+        return []
+    updated = []
+    for movie in rows:
+        details = get_movie_details(movie['tmdb_id'])
+        latest = details.get('revenue') or 0
+        if not details or run_age_days(details) > 365 or latest <= (movie.get('actual_revenue') or 0):
+            continue
+        try:
+            supabase.table('movies').update({'actual_revenue': int(latest)}) \
+                .eq('tmdb_id', movie['tmdb_id']).execute()
+            updated.append(movie['title'])
+        except Exception as e:
+            print(f"[capture] revenue refresh failed for {movie['title']}: {e}")
+    return updated
+
+
+# Shared secret for the admin-only endpoints. Unset means those endpoints are
+# disabled entirely, so a deploy that forgets it fails closed, not open.
+ADMIN_TOKEN = os.getenv('ADMIN_TOKEN', '')
+
+
+def is_admin(req):
+    if not ADMIN_TOKEN:
+        return False
+    supplied = req.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+    return hmac.compare_digest(supplied, ADMIN_TOKEN)
 
 
 @app.route('/api/refresh-finished', methods=['POST'])
 def refresh_finished():
+    # Each call fans out to TMDB for every tracked film and writes to Supabase,
+    # so it is not open to the public. The scheduled job calls
+    # capture_finished_runs() directly and doesn't need this endpoint at all.
+    if not is_admin(request):
+        return jsonify({'error': 'Unauthorized.'}), 401
     result = capture_finished_runs()
     return jsonify(result), (500 if 'error' in result else 200)
 

@@ -1,18 +1,12 @@
 'use client';
 import { useState } from "react";
-import Image from "next/image";
+import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 
 const fmt = (n: number) =>
   "$" + (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : (n / 1e6).toFixed(1) + "M");
-
-const fmtProfit = (n: number) => {
-  const sign = n >= 0 ? "+" : "−";
-  const abs = Math.abs(n);
-  return sign + "$" + (abs >= 1e9 ? (abs / 1e9).toFixed(2) + "B" : (abs / 1e6).toFixed(1) + "M");
-};
 
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
@@ -26,6 +20,26 @@ const fmtDate = (d: string) => {
     ? d
     : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
+
+// Reader-facing copy for each failure the API reports. Only a genuine
+// "nothing reported yet" gets the just-opened / no-figures wording.
+function errorCopy(code: Prediction["code"], justOpened: boolean) {
+  switch (code) {
+    case "no_box_office":
+      return justOpened
+        ? "This film just opened — the box office usually reports within a few days. Check back soon."
+        : "No box-office figures are on the books for this film yet.";
+    case "insufficient_data":
+      return "There isn’t enough reported data on this film to price it yet.";
+    case "not_found":
+      return "We couldn’t find this film on file.";
+    case "upstream":
+    case "network":
+      return "Couldn’t reach the box-office desk just now. Please try again in a moment.";
+    default:
+      return "Something went wrong running the numbers. Please try again.";
+  }
+}
 
 interface MovieDetailProps {
   selected: Movie;
@@ -55,7 +69,7 @@ export function MovieDetail({
   onBack,
   onPredict,
 }: MovieDetailProps) {
-  const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "copied" | "failed">("idle");
   // Capture "now" once at mount. Reading the clock during render is impure
   // (react-hooks/purity) and can drift between the server render and hydration;
   // these release-timing flags only need a single stable reading.
@@ -68,10 +82,16 @@ export function MovieDetail({
     : (now - releaseTime) / 86_400_000;
   const justOpened = daysSinceRelease >= 0 && daysSinceRelease < 10;
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // navigator.clipboard is missing on insecure origins and writeText rejects
+  // when permission is denied, so report failure instead of claiming success.
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareState("copied");
+    } catch {
+      setShareState("failed");
+    }
+    setTimeout(() => setShareState("idle"), 2000);
   };
 
   return (
@@ -90,7 +110,7 @@ export function MovieDetail({
           className="font-sans text-[0.68rem] tracking-[0.14em] font-semibold text-ink2
                      hover:text-red transition-colors bg-transparent border-0 p-0"
         >
-          {copied ? "LINK COPIED" : "COPY LINK"}
+          {shareState === "copied" ? "LINK COPIED" : shareState === "failed" ? "COPY FAILED" : "COPY LINK"}
         </button>
       </div>
 
@@ -98,7 +118,7 @@ export function MovieDetail({
         {/* Poster plate */}
         <div className="shrink-0 mx-auto sm:mx-0">
           <div className="relative w-52 sm:w-60 md:w-72 aspect-[2/3] plate overflow-hidden bg-panel">
-            <Image
+            <Poster
               src={selected.poster}
               alt={selected.title}
               fill
@@ -199,16 +219,19 @@ export function MovieDetail({
 
           <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-l border-ink/20 mb-11">
             {[
-              <StatCard key="ow" label="Opening Weekend" value={fmt(prediction.opening_weekend)}
+              <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)}
                 countTo={prediction.opening_weekend} format={fmt} />,
-              <StatCard key="pt" label="Predicted Total" value={fmt(prediction.predicted_revenue)} highlight
+              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} highlight
                 countTo={prediction.predicted_revenue} format={fmt} />,
               <StatCard key="dr" label="Decay Rate λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />,
               (selected.budget ?? 0) > 0
                 ? (() => {
-                    const profit = prediction.predicted_revenue - selected.budget!;
+                    // Gross ÷ budget, not "profit": theaters keep roughly half the
+                    // gross and marketing isn't in the reported budget, so a
+                    // subtraction would overstate what the studio clears.
+                    const ratio = prediction.predicted_revenue / selected.budget!;
                     return (
-                      <StatCard key="pf" label="Est. Profit" value={fmtProfit(profit)} accent={profit < 0} />
+                      <StatCard key="gb" label="Gross ÷ Budget" value={`${ratio.toFixed(1)}×`} accent={ratio < 1} />
                     );
                   })()
                 : <StatCard key="mult" label="Multiplier"
@@ -220,10 +243,32 @@ export function MovieDetail({
             ))}
           </div>
 
+          {(prediction.actual_revenue ?? 0) > 0 && (() => {
+            const actual = prediction.actual_revenue!;
+            const diff = prediction.predicted_revenue - actual;
+            const over = diff > 0;
+            return (
+              <div className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
+                <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase m-0 mb-1.5">
+                  Run settled
+                </p>
+                <p className="text-ink text-[0.9rem] leading-[1.55] m-0">
+                  Final worldwide gross{" "}
+                  <span className="font-mono tabular-nums font-bold">{fmt(actual)}</span>
+                  {" · "}
+                  <span className={`font-mono tabular-nums font-bold ${over ? "text-red" : "text-ink"}`}>
+                    {over ? "Over" : "Under"} {fmt(Math.abs(diff))}
+                  </span>
+                  <span className="text-ink3"> ({((Math.abs(diff) / actual) * 100).toFixed(1)}%)</span>
+                </p>
+              </div>
+            );
+          })()}
+
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div>
               <div className="flex items-end justify-between mb-5">
-                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">Weekend Gross Decay</h3>
+                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
                 <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>
               </div>
               <DecayCurve data={prediction.decay_curve} />
@@ -240,9 +285,7 @@ export function MovieDetail({
 
       {prediction?.error && (
         <p className="text-red text-[0.85rem] mt-6 border-l-2 border-red pl-4 py-1">
-          {justOpened
-            ? "This film just opened — the box office usually reports within a few days. Check back soon."
-            : "No box-office figures are on the books for this film yet."}
+          {errorCopy(prediction.code, justOpened)}
         </p>
       )}
     </section>

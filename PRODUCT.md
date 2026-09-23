@@ -16,7 +16,7 @@ Primary: film-curious visitors who want to see what a movie now in theaters will
 
 ## Product Purpose
 
-MOVIEGROSS predicts the **total theatrical box-office run** of any film currently playing, from a machine-learning model trained on 5,000+ theatrical releases. A visitor browses now-playing films, opens one, and runs a prediction that returns the opening weekend, the predicted lifetime total, a decay rate (λ), and a weekend-gross decay curve. Success = the visitor trusts the number, because the model's track record is shown openly.
+MOVIEGROSS predicts the **worldwide theatrical box-office run** of any film currently playing, from a machine-learning model trained on 5,000+ theatrical releases. A visitor browses now-playing films, opens one, and runs a prediction that returns the opening weekend, the predicted lifetime total, a decay rate (λ), and a weekend-gross decay curve. Success = the visitor trusts the number, because the model's track record is shown openly.
 
 ## Positioning
 
@@ -24,8 +24,8 @@ Not a studio and not a box-office news site: a **model-driven predictor with a t
 
 ## Terminology & Constraints
 
-- **Box-office vocabulary that must stay precise:** opening weekend, predicted total, decay rate λ, multiplier (predicted total ÷ opening weekend), error / over / under (Finished page uses standard MAPE against actual).
-- **Money formatting:** `$X.XM` and `$X.XXB`; profit/error shown signed (`+`/`−`, "Over"/"Under").
+- **Box-office vocabulary that must stay precise:** US opening weekend, predicted worldwide total, decay rate λ, multiplier (predicted worldwide total ÷ US opening weekend), gross ÷ budget, error / over / under (Finished page headlines the median absolute percentage error against actual worldwide revenue). Always say which figures are worldwide and which are US domestic.
+- **Money formatting:** `$X.XM` and `$X.XXB`; error shown as "Over"/"Under". No "profit" figure: gross minus budget ignores the theaters' share and marketing.
 - **Semantics of any accent color:** positive/hit/money vs. loss/over-budget/miss must remain visually distinguishable; do not use the negative hue for neutral data (e.g. decay rate is neutral).
 - **Legal:** the disclaimer "PREDICTIONS FROM A MODEL TRAINED ON 5,000+ THEATRICAL RUNS · NOT AFFILIATED WITH ANY STUDIO" must remain.
 - **Accessibility:** reduced-motion support is expected (already honored in CSS); keep it.

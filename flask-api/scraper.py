@@ -6,10 +6,13 @@ from scipy.optimize import curve_fit
 from io import StringIO
 import re
 import time
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintatis; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
+from model_lib import franchise_row
+
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'}
 load_dotenv()
 
 TMDB_GENRE_MAP = {
@@ -22,79 +25,162 @@ TMDB_GENRE_MAP = {
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 
-def _tmdb_get(url):
-    """GET a TMDB endpoint and return parsed JSON, or None on any failure
-    (network error, non-200, or unparseable body). Callers handle None so a
-    TMDB outage or rate-limit becomes a graceful empty state, not a 500."""
+def _tmdb_fetch(url):
+    """GET a TMDB endpoint. Returns (parsed JSON or None, HTTP status or None).
+    Never raises: a TMDB outage or rate-limit becomes a graceful empty state,
+    and the status lets callers tell "no such film" (404) from "TMDB is down"."""
     try:
         response = requests.get(url, timeout=10)
     except requests.RequestException as e:
         print(f"[tmdb] request failed: {e}")
-        return None
+        return None, None
     if response.status_code != 200:
         print(f"[tmdb] {response.status_code} for {url.split('?')[0]}")
-        return None
+        return None, response.status_code
     try:
-        return response.json()
+        return response.json(), 200
     except ValueError:
         print(f"[tmdb] non-JSON response for {url.split('?')[0]}")
-        return None
+        return None, 200
+
+def _tmdb_get(url):
+    """Like _tmdb_fetch, but just the JSON (None on any failure)."""
+    return _tmdb_fetch(url)[0]
+
+# TMDB orders now-playing by popularity; the top NOW_PLAYING_PAGES pages
+# (20 films each) are what the site shows. No region filter: TMDB's US list only
+# covers films whose US release was in the last ~5 weeks, which drops the big
+# holdovers still in theaters.
+NOW_PLAYING_PAGES = 2
+NOW_PLAYING_TTL = 15 * 60  # seconds; every page load asks for this list
+# TMDB lists re-releases (e.g. an anniversary run) under the film's original
+# release date. Their Box Office Mojo page describes the original run, so
+# they can't be predicted meaningfully and are left out.
+MAX_RELEASE_AGE_DAYS = 180
+_now_playing_cache = {'at': 0.0, 'movies': None}
+
+
+def _now_playing_page(page):
+    url = (f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}"
+           f"&language=en-US&page={page}")
+    return _tmdb_get(url)
+
+
+def _is_current_release(release_date):
+    try:
+        released = datetime.strptime(release_date, '%Y-%m-%d')
+    except (TypeError, ValueError):
+        return False
+    return datetime.now() - released <= timedelta(days=MAX_RELEASE_AGE_DAYS)
+
 
 def get_now_playing():
-    """Fetch movies currently in theaters from TMDB. Returns [] on failure."""
-    url = f"https://api.themoviedb.org/3/movie/now_playing?api_key={TMDB_API_KEY}&language=en-US&page=1"
-    data = _tmdb_get(url)
-    if not data or 'results' not in data:
-        return []
+    """Films now playing (top NOW_PLAYING_PAGES pages from TMDB, re-releases
+    removed), cached in-process for NOW_PLAYING_TTL. Returns [] on failure."""
+    if _now_playing_cache['movies'] is not None and time.time() - _now_playing_cache['at'] < NOW_PLAYING_TTL:
+        return _now_playing_cache['movies']
 
-    movies = []
-    for movie in data['results']:
-        poster_path = movie.get('poster_path')
-        movies.append({
-            'tmdb_id': movie['id'],
-            'title': movie['title'],
-            'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
-            'release_date': movie.get('release_date', ''),
-            'overview': movie.get('overview', ''),
-            'genres': [TMDB_GENRE_MAP[gid] for gid in movie.get('genre_ids', []) if gid in TMDB_GENRE_MAP],
-        })
+    movies, seen = [], set()
+    for page in range(1, NOW_PLAYING_PAGES + 1):
+        data = _now_playing_page(page)
+        if not data or 'results' not in data:
+            break
+        for movie in data['results']:
+            if movie['id'] in seen:
+                continue  # TMDB can repeat a film across page boundaries
+            seen.add(movie['id'])
+            if not _is_current_release(movie.get('release_date', '')):
+                continue
+            poster_path = movie.get('poster_path')
+            movies.append({
+                'tmdb_id': movie['id'],
+                'title': movie['title'],
+                'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
+                'release_date': movie.get('release_date', ''),
+                'overview': movie.get('overview', ''),
+                'genres': [TMDB_GENRE_MAP[gid] for gid in movie.get('genre_ids', []) if gid in TMDB_GENRE_MAP],
+            })
+        if page >= data.get('total_pages', 1):
+            break
+
+    if movies:  # don't cache an outage
+        _now_playing_cache.update(at=time.time(), movies=movies)
     return movies
 
-def get_movie_details(tmdb_id):
-    """Get full movie details from TMDB by ID. Returns {} on failure."""
+
+def get_movie_details(tmdb_id, with_status=False):
+    """Get full movie details from TMDB by ID. Returns {} on failure, or
+    ({} / details, HTTP status) with with_status=True."""
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
-    return _tmdb_get(url) or {}
+    data, status = _tmdb_fetch(url)
+    return (data or {}, status) if with_status else (data or {})
 
-def get_movie_cast(tmdb_id, limit=6):
-    """Get top cast names for a movie from TMDB. Returns [] on failure."""
-    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-    data = _tmdb_get(url) or {}
-    return [actor['name'] for actor in data.get('cast', [])[:limit]]
+COLLECTION_TTL = 24 * 60 * 60  # seconds; a collection gains a part a few times a decade
+_collection_cache = {}  # collection id -> (fetched_at, parts)
 
-def get_movie_credits(tmdb_id, cast_limit=6):
-    """Get cast and director from a single TMDB credits call.
-    Returns ([], None) on failure."""
-    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-    data = _tmdb_get(url) or {}
-    cast = [actor['name'] for actor in data.get('cast', [])[:cast_limit]]
-    director = next(
-        (m['name'] for m in data.get('crew', []) if m['job'] == 'Director'),
-        None
-    )
-    return cast, director
 
-def get_opening_weekend(imdb_id):
-    """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""
+def get_collection_parts(collection_id):
+    """[(tmdb_id, release_date), ...] for every film in a TMDB collection, or
+    None if TMDB couldn't be reached (so callers don't mistake an outage for
+    "no earlier parts")."""
+    hit = _collection_cache.get(collection_id)
+    if hit and time.time() - hit[0] < COLLECTION_TTL:
+        return hit[1]
+    data, status = _tmdb_fetch(f"https://api.themoviedb.org/3/collection/{collection_id}?api_key={TMDB_API_KEY}")
+    if status == 404:
+        parts = []  # collection deleted on TMDB: treat as a standalone film
+    elif not data:
+        return None
+    else:
+        parts = [(p.get('id'), p.get('release_date')) for p in data.get('parts', [])]
+    _collection_cache[collection_id] = (time.time(), parts)
+    return parts
+
+def get_movie_page(tmdb_id, cast_limit=6):
+    """Everything the movie page shows, from one TMDB call (details + credits).
+    Returns (page or None, HTTP status or None)."""
+    url = (f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}"
+           f"&append_to_response=credits")
+    data, status = _tmdb_fetch(url)
+    if not data:
+        return None, status
+    credits = data.get('credits') or {}
+    poster_path = data.get('poster_path')
+    vote_count = data.get('vote_count', 0)
+    return {
+        'tmdb_id': data['id'],
+        'title': data.get('title', ''),
+        'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
+        'release_date': data.get('release_date', ''),
+        'overview': data.get('overview', ''),
+        'genres': [g['name'] for g in data.get('genres', [])],
+        'cast': [a['name'] for a in credits.get('cast', [])[:cast_limit]],
+        'director': next((m['name'] for m in credits.get('crew', []) if m.get('job') == 'Director'), None),
+        'budget': data.get('budget', 0),
+        'runtime': data.get('runtime', 0),
+        # A handful of votes is noise; only surface the rating once it means something.
+        'vote_average': round(data.get('vote_average', 0), 1) if vote_count > 50 else None,
+    }, 200
+
+def get_title_page(imdb_id):
+    """Fetch and parse a film's Box Office Mojo title page. Returns None on any
+    failure. Pass the result to get_opening_weekend / get_weekly_grossing so a
+    prediction downloads the page once instead of once per helper."""
     url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
     except requests.RequestException as e:
-        print(f"[mojo] opening-weekend request failed for {imdb_id}: {e}")
+        print(f"[mojo] title-page request failed for {imdb_id}: {e}")
         return None
     if response.status_code != 200:
         return None
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
+    return BeautifulSoup(response.text, 'html.parser')
+
+def get_opening_weekend(imdb_id, title_page=None):
+    """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""
+    soup = title_page if title_page is not None else get_title_page(imdb_id)
+    if soup is None:
+        return None
     all_spans = soup.find_all('span')
     for i, span in enumerate(all_spans):
         if span.get_text(strip=True) == 'Domestic Opening':
@@ -103,19 +189,16 @@ def get_opening_weekend(imdb_id):
                     value = all_spans[j].get_text().strip().replace('$','').replace(',','')
                     try:
                         return int(value)
-                    except:
+                    except ValueError:
                         return None
     return None
 
-def get_weekly_grossing(imdb_id):
+def get_weekly_grossing(imdb_id, title_page=None):
     """Scrape weekly grossing data from Box Office Mojo. Returns None on any failure."""
-    main_url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
+    soup = title_page if title_page is not None else get_title_page(imdb_id)
+    if soup is None:
+        return None
     try:
-        response = requests.get(main_url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
         release_links = [a['href'] for a in soup.find_all('a', href=True)
                          if '/release/' in a['href'] and 'weekend' in a['href']]
         if not release_links:
@@ -142,32 +225,58 @@ def get_weekly_grossing(imdb_id):
         return None
 
 def parse_and_fit_decay(df_weekly):
-    """Parse weekly data and fit exponential decay curve"""
-    df = df_weekly[df_weekly['Weekend.1'].apply(lambda x: str(x).isdigit())].copy()
-    df['gross'] = df['Weekend'].str.replace('[$,]', '', regex=True).astype(float)
-    df['week'] = df['Weekend.1'].astype(int) - 1
+    """Parse Box Office Mojo's weekend table and fit an exponential decay curve.
+
+    Returns None (rather than raising) when the table can't be parsed or the fit
+    isn't meaningful, so a Mojo layout change or a thin run costs the chart, not
+    the whole prediction. Mojo's table has two "Weekend" headers: pandas names
+    the gross column 'Weekend' and the weekend-number column 'Weekend.1'.
+    """
+    try:
+        df = df_weekly[df_weekly['Weekend.1'].apply(lambda x: str(x).isdigit())].copy()
+        df['gross'] = df['Weekend'].astype(str).str.replace('[$,]', '', regex=True).astype(float)
+        df['week'] = df['Weekend.1'].astype(int) - 1
+    except (KeyError, ValueError, TypeError, AttributeError) as e:
+        print(f"[mojo] weekend table not in the expected format: {e}")
+        return None
 
     weeks = df['week'].values
     gross = df['gross'].values
+    if len(weeks) < 2 or gross[0] <= 0:
+        return None  # need at least two weekends to fit a decay
 
     def decay_func(t, opening, lam):
         return opening * np.exp(-lam * t)
 
     try:
         params, _ = curve_fit(decay_func, weeks, gross, p0=[gross[0], 0.3], maxfev=5000)
-        opening, lam = params
-        
-        weeks_smooth = np.linspace(0, max(weeks), 200).tolist()
-        fitted = (opening * np.exp(-lam * np.linspace(0, max(weeks), 200))).tolist()
-        
-        return {
-            'weeks': df['week'].tolist(),
-            'actual_gross': gross.tolist(),
-            'fitted_weeks': weeks_smooth,
-            'fitted_gross': fitted,
-            'decay_rate': round(float(lam), 3),
-            'half_life': round(float(np.log(2) / lam), 1),
-            'opening_weekend': round(float(opening))
-        }
-    except:
+    except (RuntimeError, ValueError) as e:
+        print(f"[mojo] decay fit failed: {e}")
         return None
+    opening, lam = params
+    # A non-decaying fit (flat or growing run) has no meaningful half-life.
+    if not np.isfinite(lam) or lam <= 0:
+        return None
+
+    weeks_smooth = np.linspace(0, max(weeks), 200)
+    return {
+        'weeks': df['week'].tolist(),
+        'actual_gross': gross.tolist(),
+        'fitted_weeks': weeks_smooth.tolist(),
+        'fitted_gross': (opening * np.exp(-lam * weeks_smooth)).tolist(),
+        'decay_rate': round(float(lam), 3),
+        'half_life': round(float(np.log(2) / lam), 1),
+        'opening_weekend': round(float(opening))
+    }
+
+
+def get_franchise_features(details):
+    """model_lib.FRANCHISE_FEATURES for a film, from its TMDB details. Raises
+    ConnectionError if the collection lookup fails, since guessing "not a
+    sequel" would quietly skew the prediction."""
+    collection = details.get('belongs_to_collection') or {}
+    cid = collection.get('id')
+    parts = get_collection_parts(cid) if cid else []
+    if parts is None:
+        raise ConnectionError(f"TMDB collection {cid} unavailable")
+    return franchise_row(details.get('release_date'), cid, parts, details.get('id'))

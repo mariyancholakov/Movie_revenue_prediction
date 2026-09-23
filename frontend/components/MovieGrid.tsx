@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from './Poster';
 import type { Movie } from './types';
 import { SearchBar } from './SearchBar';
+import { WireDown } from './WireDown';
 
 interface MovieGridProps {
   filteredMovies: Movie[];
@@ -61,15 +62,7 @@ export function MovieGrid({
       </div>
       <div className="rule-double mb-8" />
 
-      {status === 'error' && (
-        <div className="border border-ink/25 bg-panel/50 px-6 py-8 max-w-lg mx-auto text-center">
-          <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
-          <p className="text-ink2 text-[0.85rem] leading-relaxed m-0">
-            We couldn&rsquo;t reach the box-office desk just now. Please check
-            your connection and reload in a moment.
-          </p>
-        </div>
-      )}
+      {status === 'error' && <WireDown className="max-w-lg mx-auto" />}
 
       <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-8">
         {loading &&
@@ -88,7 +81,7 @@ export function MovieGrid({
             style={{ animationDelay: `${Math.min(index, 16) * 0.035}s` }}
           >
             <div className="relative aspect-[2/3] w-full plate overflow-hidden bg-panel">
-              <Image
+              <Poster
                 src={movie.poster}
                 alt={movie.title}
                 fill
