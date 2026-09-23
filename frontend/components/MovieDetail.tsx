@@ -343,10 +343,11 @@ export function MovieDetail({
                     countTo={profit} format={fmt} />
                 : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
               settled != null && (() => {
-                // + when the model called it high (in the red), − when low.
-                const diff = prediction.predicted_revenue - settled;
+                // Actual minus predicted, as on The Ledger: red when the film
+                // fell short of the call.
+                const diff = settled - prediction.predicted_revenue;
                 return (
-                  <StatCard key="df" label="Prediction Off By" accent={diff > 0}
+                  <StatCard key="df" label="Actual − Predicted" accent={diff < 0}
                     value={(diff > 0 ? "+" : "") + fmt(diff)} />
                 );
               })(),

@@ -9,7 +9,8 @@ import { API_URL } from '@/lib/api';
 
 const fmt = (n: number) =>
   '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
-// Signed: + when the model called it high, \u2212 when it called it low.
+// Signed, actual minus predicted: \u2212 (in the red) when the film fell short
+// of the call, + when it beat it. Red only ever marks a negative, site-wide.
 const fmtDiff = (n: number) => (n > 0 ? '+' : n < 0 ? '\u2212' : '') + fmt(Math.abs(n));
 
 // Shared by the column heads and every row, so the two can never drift apart.
@@ -19,7 +20,7 @@ const COL = {
   title: 'min-w-0 flex-1 sm:flex-none sm:w-52',
   bar: 'hidden sm:flex flex-1 min-w-0',
   num: 'hidden sm:block w-24 shrink-0',
-  diff: 'w-[5.5rem] sm:w-24 shrink-0',
+  diff: 'w-32 sm:w-36 shrink-0 whitespace-nowrap',
 };
 const HEAD = 'font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase';
 const NUM = 'font-mono tabular-nums text-[0.82rem] sm:text-[0.9rem]';
@@ -153,11 +154,11 @@ export default function FinishedPage() {
               </span>
               <span className={`${COL.num} text-right`}>Predicted</span>
               <span className={`${COL.num} text-right`}>Actual</span>
-              <span className={`${COL.diff} text-right`}>Difference</span>
+              <span className={`${COL.diff} text-right`}>Actual &minus; Predicted</span>
             </div>
 
             {entries.map((entry) => {
-              const diff = entry.predicted_revenue - entry.actual_revenue;
+              const diff = entry.actual_revenue - entry.predicted_revenue;
               const actualPct = (entry.actual_revenue / maxVal) * 100;
               const predPct = (entry.predicted_revenue / maxVal) * 100;
 
@@ -186,7 +187,7 @@ export default function FinishedPage() {
 
                     <p className={`${COL.num} ${NUM} text-right text-ink m-0`}>{fmt(entry.predicted_revenue)}</p>
                     <p className={`${COL.num} ${NUM} text-right text-ink m-0`}>{fmt(entry.actual_revenue)}</p>
-                    <p className={`${COL.diff} ${NUM} text-right m-0 ${diff > 0 ? 'text-red' : 'text-ink'}`}>
+                    <p className={`${COL.diff} ${NUM} text-right m-0 ${diff < 0 ? 'text-red' : 'text-ink'}`}>
                       {fmtDiff(diff)}
                     </p>
                   </div>
