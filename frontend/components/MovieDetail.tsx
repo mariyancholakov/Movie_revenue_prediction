@@ -5,8 +5,15 @@ import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 
-const fmt = (n: number) =>
-  "$" + (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : (n / 1e6).toFixed(1) + "M");
+const fmt = (n: number) => {
+  const a = Math.abs(n);
+  return (n < 0 ? "\u2212$" : "$") + (a >= 1e9 ? (a / 1e9).toFixed(2) + "B" : (a / 1e6).toFixed(1) + "M");
+};
+
+// Rough share of the worldwide gross that reaches the studio. Theaters keep
+// about half (more abroad, less in the US), so "profit" is the studio's cut
+// minus the production budget. Marketing isn't in the reported budget.
+const STUDIO_SHARE = 0.5;
 
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
@@ -266,19 +273,27 @@ export function MovieDetail({
                 countTo={prediction.opening_weekend} format={fmt} />,
               <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} highlight
                 countTo={prediction.predicted_revenue} format={fmt} />,
-              <StatCard key="dr" label="Decay Rate λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />,
+              (() => {
+                // decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
+                // weekend keeps e^(−λ) of the one before.
+                const lam = prediction.decay_curve?.decay_rate;
+                return lam != null ? (
+                  <StatCard key="wd" label="Weekend Drop" value={`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}
+                    note="Typical fall from one weekend to the next" />
+                ) : (
+                  <StatCard key="wd" label="Weekend Drop" value="—" note="Needs two weekends of figures" />
+                );
+              })(),
               (selected.budget ?? 0) > 0
                 ? (() => {
-                    // Gross ÷ budget, not "profit": theaters keep roughly half the
-                    // gross and marketing isn't in the reported budget, so a
-                    // subtraction would overstate what the studio clears.
-                    const ratio = prediction.predicted_revenue / selected.budget!;
+                    const profit = prediction.predicted_revenue * STUDIO_SHARE - selected.budget!;
                     return (
-                      <StatCard key="gb" label="Gross ÷ Budget" value={`${ratio.toFixed(1)}×`} accent={ratio < 1} />
+                      <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0}
+                        countTo={profit} format={fmt}
+                        note={`Studio\u2019s ~half of the gross, minus the ${fmt(selected.budget!)} budget`} />
                     );
                   })()
-                : <StatCard key="mult" label="Multiplier"
-                    value={`${(prediction.predicted_revenue / Math.max(prediction.opening_weekend, 1)).toFixed(1)}×`} />,
+                : <StatCard key="pf" label="Est. Profit" value="—" note="Budget not reported" />,
             ].map((cell, i) => (
               <div key={i} className="border-r border-b border-ink/20">
                 {cell}
