@@ -347,7 +347,7 @@ export function MovieDetail({
                 // fell short of the call.
                 const diff = settled - prediction.predicted_revenue;
                 return (
-                  <StatCard key="df" label="Actual − Predicted" accent={diff < 0}
+                  <StatCard key="df" label="Difference" accent={diff < 0}
                     value={(diff > 0 ? "+" : "") + fmt(diff)} />
                 );
               })(),

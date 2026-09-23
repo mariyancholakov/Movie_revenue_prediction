@@ -20,7 +20,7 @@ const COL = {
   title: 'min-w-0 flex-1 sm:flex-none sm:w-60',
   bar: 'hidden sm:flex flex-1 min-w-0',
   num: 'hidden sm:block w-28 shrink-0',
-  diff: 'w-36 sm:w-40 shrink-0 whitespace-nowrap',
+  diff: 'w-[6.5rem] sm:w-32 shrink-0',
 };
 const HEAD = 'font-mono text-[0.62rem] tracking-[0.14em] text-ink3 uppercase';
 const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
@@ -74,10 +74,6 @@ export default function FinishedPage() {
     return median * 100;
   }, [entries]);
 
-  // Films the model called to within 20% of the final gross, either way.
-  const withinTwenty = entries.filter(e => e.actual_revenue > 0 &&
-    Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue <= 0.2).length;
-
   const maxVal = useMemo(
     () => Math.max(1, ...entries.map(e => Math.max(e.predicted_revenue, e.actual_revenue))),
     [entries]
@@ -106,7 +102,6 @@ export default function FinishedPage() {
               {[
                 ['Films settled', String(entries.length)],
                 ['Median miss', `${medianError.toFixed(1)}%`],
-                ['Within 20% of actual', `${withinTwenty} of ${entries.length}`],
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-2">{label}</dt>
@@ -154,7 +149,7 @@ export default function FinishedPage() {
               </span>
               <span className={`${COL.num} text-right`}>Predicted</span>
               <span className={`${COL.num} text-right`}>Actual</span>
-              <span className={`${COL.diff} text-right`}>Actual &minus; Predicted</span>
+              <span className={`${COL.diff} text-right`}>Difference</span>
             </div>
 
             {entries.map((entry) => {
