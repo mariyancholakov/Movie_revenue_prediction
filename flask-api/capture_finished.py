@@ -8,6 +8,8 @@ hand any time:  ./venv/bin/python capture_finished.py
 Behaviour is tunable with env vars:
   CAPTURE_RETRAIN_THRESHOLD  new trainable rows since last retrain that trigger
                              a retrain (default 10)
+  CAPTURE_SKIP_RETRAIN       "1" to only capture, never retrain (used in CI,
+                             where retraining is a separate manual workflow)
   CAPTURE_AUTO_PROMOTE       "1" to let an auto-retrain swap production if it
                              wins the holdout (default off — build a candidate
                              and report only; you promote deliberately)
@@ -28,6 +30,7 @@ STATE_FILE = 'models/pipeline_state.json'
 LOG_FILE = 'logs/pipeline.log'
 THRESHOLD = int(os.getenv('CAPTURE_RETRAIN_THRESHOLD', '10'))
 AUTO_PROMOTE = os.getenv('CAPTURE_AUTO_PROMOTE', '') == '1'
+SKIP_RETRAIN = os.getenv('CAPTURE_SKIP_RETRAIN', '') == '1'
 
 
 def log(msg):
@@ -68,6 +71,10 @@ def main():
 
     # 2. Decide whether enough new labelled data has accumulated to retrain.
     trainable = len(load_captured())
+    if SKIP_RETRAIN:
+        log(f"trainable rows: {trainable} | retrain skipped (CAPTURE_SKIP_RETRAIN=1)")
+        log("=== pipeline run end ===")
+        return
     state = read_state()
     since = trainable - state.get('trainable_at_last_retrain', 0)
     log(f"trainable rows: {trainable} | new since last retrain: {since} | threshold: {THRESHOLD}")

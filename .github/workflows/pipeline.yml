@@ -1,0 +1,89 @@
+# Scheduled data jobs for the MOVIEGROSS API, independent of where the API is
+# hosted: they only need Supabase + TMDB, and write to the same Supabase the
+# deployed API reads, so a warmed prediction is instantly served in production.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   TMDB_API_KEY, SUPABASE_URL, SUPABASE_KEY (the sb_secret_… key)
+#
+# Retraining is deliberately manual: run the "retrain" job from the Actions
+# tab, download the candidate model artifact, and if its holdout numbers win,
+# commit it as flask-api/models/box_office_model_final.pkl and redeploy.
+name: data-pipeline
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # daily 06:00 UTC — warm the prediction cache
+    - cron: "0 3 * * 0"   # Sundays 03:00 UTC — capture finished runs
+  workflow_dispatch:
+    inputs:
+      job:
+        description: Which job to run
+        type: choice
+        options: [warm-cache, capture, retrain]
+        default: warm-cache
+
+concurrency:
+  group: data-pipeline
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: flask-api
+
+env:
+  TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+
+jobs:
+  warm-cache:
+    if: github.event.schedule == '0 6 * * *' || inputs.job == 'warm-cache'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: flask-api/.python-version
+          cache: pip
+          cache-dependency-path: flask-api/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python warm_cache.py
+
+  capture:
+    if: github.event.schedule == '0 3 * * 0' || inputs.job == 'capture'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: flask-api/.python-version
+          cache: pip
+          cache-dependency-path: flask-api/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python capture_finished.py
+        env:
+          CAPTURE_SKIP_RETRAIN: "1"
+
+  retrain:
+    if: inputs.job == 'retrain'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: flask-api/.python-version
+          cache: pip
+          cache-dependency-path: flask-api/requirements.txt
+      - run: pip install -r requirements.txt
+      # Read-only: prints the holdout comparison and saves a candidate model.
+      - run: python retrain.py | tee retrain-report.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: candidate-model
+          path: |
+            flask-api/models/candidate_*.pkl
+            flask-api/retrain-report.txt
+          if-no-files-found: warn
