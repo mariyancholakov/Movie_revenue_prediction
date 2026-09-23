@@ -9,7 +9,7 @@ import time
 from dotenv import load_dotenv
 import os
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintatis; Intel Mac OS X 10_15_7) AppleWebKit/537.36'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'}
 load_dotenv()
 
 TMDB_GENRE_MAP = {
