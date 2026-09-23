@@ -9,6 +9,7 @@ from supabase import create_client
 import os
 import json
 import hmac
+from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -359,6 +360,39 @@ def leaderboard():
     return jsonify(results)
 
 
+# Poster + genres for finished films, which aren't in now-playing so they
+# need a TMDB lookup each. They never change once a run is settled, so keep them
+# in-process for a day instead of refetching the whole Ledger on every request.
+ART_TTL = timedelta(hours=24)
+_art_cache = {}  # tmdb_id -> (fetched_at, (poster, genres))
+
+
+def _fetch_art(tid):
+    details = get_movie_details(tid)
+    path = details.get('poster_path')
+    poster = f"https://image.tmdb.org/t/p/w500{path}" if path else ''
+    return poster, [g['name'] for g in details.get('genres', [])], bool(details)
+
+
+def finished_art(tmdb_ids):
+    """{tmdb_id: (poster, genres)}, from cache or fetched in parallel."""
+    now = datetime.now(timezone.utc)
+    out, missing = {}, []
+    for tid in tmdb_ids:
+        hit = _art_cache.get(tid)
+        if hit and now - hit[0] < ART_TTL:
+            out[tid] = hit[1]
+        else:
+            missing.append(tid)
+    if missing:
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            for tid, (poster, genres, ok) in zip(missing, pool.map(_fetch_art, missing)):
+                out[tid] = (poster, genres)
+                if ok:  # don't cache a TMDB failure for a day
+                    _art_cache[tid] = (now, (poster, genres))
+    return out
+
+
 @app.route('/api/finished', methods=['GET'])
 def finished():
     """Movies whose theatrical run has ended and we predicted for, with the real
@@ -366,34 +400,25 @@ def finished():
     prediction error is measured in the same unit the model was trained on.
     Sorted by largest absolute miss first."""
     try:
-        cached = supabase.table('movies').select('*').eq('is_in_theaters', False).execute()
+        cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue') \
+            .eq('is_in_theaters', False).execute()
     except Exception:
         return jsonify([])
 
+    rows = [m for m in (cached.data or []) if m.get('actual_revenue') and m.get('predicted_revenue')]
+    art = finished_art([m['tmdb_id'] for m in rows if m.get('tmdb_id')])
+
     results = []
-    for movie in (cached.data or []):
-        actual = movie.get('actual_revenue')
-        predicted = movie.get('predicted_revenue')
-        if not actual or not predicted:
-            continue
+    for movie in rows:
         tid = movie.get('tmdb_id')
-
-        poster, genres = '', []
-        if tid:
-            try:
-                details = get_movie_details(tid)
-                poster = f"https://image.tmdb.org/t/p/w500{details.get('poster_path')}" if details.get('poster_path') else ''
-                genres = [g['name'] for g in details.get('genres', [])]
-            except Exception:
-                pass
-
+        poster, genres = art.get(tid, ('', []))
         results.append({
             'tmdb_id': tid,
             'title': movie.get('title'),
             'poster': poster,
             'genres': genres,
-            'predicted_revenue': predicted,
-            'actual_revenue': int(actual),
+            'predicted_revenue': movie['predicted_revenue'],
+            'actual_revenue': int(movie['actual_revenue']),
         })
 
     results.sort(key=lambda x: abs(x['predicted_revenue'] - x['actual_revenue']), reverse=True)
