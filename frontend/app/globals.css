@@ -118,6 +118,21 @@ body {
   100% { transform: translateX(100%); }
 }
 
+/* TEMPORARY: loading states for the candidate prediction reveals. */
+@keyframes reelSpin { to { transform: translateY(-50%); } }
+@keyframes typeOn { from { width: 0; } }
+@keyframes caretBlink { 50% { opacity: 0; } }
+@keyframes inkRise { from { transform: scaleY(0); } to { transform: scaleY(0.92); } }
+
+/* Adding-machine tape: a lighter paper strip with a torn, zig-zag foot. */
+.tape {
+  background: color-mix(in srgb, var(--color-paper) 55%, white);
+  border-inline: 1px solid var(--color-rule);
+  --tooth: 10px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+          mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / var(--tooth) 100%;
+}
+
 /* Newsprint placeholder shimmer (loading). */
 @keyframes paperShimmer {
   0%   { background-position: -600px 0; }
