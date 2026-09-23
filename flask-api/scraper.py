@@ -156,32 +156,46 @@ def get_weekly_grossing(imdb_id):
         return None
 
 def parse_and_fit_decay(df_weekly):
-    """Parse weekly data and fit exponential decay curve"""
-    df = df_weekly[df_weekly['Weekend.1'].apply(lambda x: str(x).isdigit())].copy()
-    df['gross'] = df['Weekend'].str.replace('[$,]', '', regex=True).astype(float)
-    df['week'] = df['Weekend.1'].astype(int) - 1
+    """Parse Box Office Mojo's weekend table and fit an exponential decay curve.
+
+    Returns None (rather than raising) when the table can't be parsed or the fit
+    isn't meaningful, so a Mojo layout change or a thin run costs the chart, not
+    the whole prediction. Mojo's table has two "Weekend" headers: pandas names
+    the gross column 'Weekend' and the weekend-number column 'Weekend.1'.
+    """
+    try:
+        df = df_weekly[df_weekly['Weekend.1'].apply(lambda x: str(x).isdigit())].copy()
+        df['gross'] = df['Weekend'].astype(str).str.replace('[$,]', '', regex=True).astype(float)
+        df['week'] = df['Weekend.1'].astype(int) - 1
+    except (KeyError, ValueError, TypeError, AttributeError) as e:
+        print(f"[mojo] weekend table not in the expected format: {e}")
+        return None
 
     weeks = df['week'].values
     gross = df['gross'].values
+    if len(weeks) < 2 or gross[0] <= 0:
+        return None  # need at least two weekends to fit a decay
 
     def decay_func(t, opening, lam):
         return opening * np.exp(-lam * t)
 
     try:
         params, _ = curve_fit(decay_func, weeks, gross, p0=[gross[0], 0.3], maxfev=5000)
-        opening, lam = params
-        
-        weeks_smooth = np.linspace(0, max(weeks), 200).tolist()
-        fitted = (opening * np.exp(-lam * np.linspace(0, max(weeks), 200))).tolist()
-        
-        return {
-            'weeks': df['week'].tolist(),
-            'actual_gross': gross.tolist(),
-            'fitted_weeks': weeks_smooth,
-            'fitted_gross': fitted,
-            'decay_rate': round(float(lam), 3),
-            'half_life': round(float(np.log(2) / lam), 1),
-            'opening_weekend': round(float(opening))
-        }
-    except:
+    except (RuntimeError, ValueError) as e:
+        print(f"[mojo] decay fit failed: {e}")
         return None
+    opening, lam = params
+    # A non-decaying fit (flat or growing run) has no meaningful half-life.
+    if not np.isfinite(lam) or lam <= 0:
+        return None
+
+    weeks_smooth = np.linspace(0, max(weeks), 200)
+    return {
+        'weeks': df['week'].tolist(),
+        'actual_gross': gross.tolist(),
+        'fitted_weeks': weeks_smooth.tolist(),
+        'fitted_gross': (opening * np.exp(-lam * weeks_smooth)).tolist(),
+        'decay_rate': round(float(lam), 3),
+        'half_life': round(float(np.log(2) / lam), 1),
+        'opening_weekend': round(float(opening))
+    }
