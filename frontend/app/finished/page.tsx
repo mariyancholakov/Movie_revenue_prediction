@@ -74,6 +74,17 @@ export default function FinishedPage() {
     return median * 100;
   }, [entries]);
 
+  // The model's most accurate settled call, as a miss relative to the gross.
+  const closest = useMemo(() => {
+    let best: { title: string; miss: number } | null = null;
+    for (const e of entries) {
+      if (e.actual_revenue <= 0) continue;
+      const miss = (Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue) * 100;
+      if (!best || miss < best.miss) best = { title: e.title, miss };
+    }
+    return best;
+  }, [entries]);
+
   const maxVal = useMemo(
     () => Math.max(1, ...entries.map(e => Math.max(e.predicted_revenue, e.actual_revenue))),
     [entries]
@@ -100,10 +111,11 @@ export default function FinishedPage() {
           {status === 'ok' && entries.length > 0 && medianError != null && (
             <dl className="flex gap-x-10 m-0 shrink-0">
               {[
-                ['Films settled', String(entries.length)],
-                ['Median miss', `${medianError.toFixed(1)}%`],
-              ].map(([label, value]) => (
-                <div key={label}>
+                ['Films settled', String(entries.length), undefined],
+                ['Median miss', `${medianError.toFixed(1)}%`, undefined],
+                ['Closest call', closest ? `${closest.miss.toFixed(1)}%` : '\u2014', closest?.title],
+              ].map(([label, value, hint]) => (
+                <div key={label} className="text-center" title={hint}>
                   <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-2">{label}</dt>
                   <dd className="font-mono text-ink text-[1.4rem] tabular-nums leading-none m-0">{value}</dd>
                 </div>
