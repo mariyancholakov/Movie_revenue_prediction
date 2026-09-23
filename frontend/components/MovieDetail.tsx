@@ -10,7 +10,7 @@ import { useSearchParam, useVariant } from "./reveal/variant";
 import { AnimPicker } from "./reveal/AnimPicker";
 import { Tape } from "./reveal/Tape";
 import { Reel, ReelSpinner, REEL_TRAVEL } from "./reveal/Reel";
-import { Typed, TypedLoader } from "./reveal/Typed";
+import { Typed, TypedLoader, typeOut } from "./reveal/Typed";
 
 const fmt = (n: number) => {
   const a = Math.abs(n);
@@ -147,7 +147,7 @@ export function MovieDetail({
       }
       const tl = gsap.timeline({ defaults: { ease: EASE } })
         .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' })
-        .from('[data-ledger-label]', { opacity: 0, duration: 0.3 }, '-=0.3');
+        .from('[data-ledger-label]', { opacity: variant === "type" ? 1 : 0, duration: 0.3 }, '-=0.3');
 
       const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
       const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
@@ -182,16 +182,12 @@ export function MovieDetail({
           if (last) tl.fromTo('[data-grid]', { y: 3 }, { y: 0, duration: 0.3, ease: 'back.out(6)' }, '<');
         });
       } else if (variant === "type") {
-        // Figures are typed one after another, a caret leading each.
-        tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '-=0.2');
-        figures.forEach((fig, i) => {
-          const chars = fig.querySelectorAll('[data-char]');
-          const caret = fig.querySelector('[data-caret]');
-          tl.set(caret, { opacity: 1 }, '+=0.12')
-            .from(chars, { display: 'none', duration: 0.01, stagger: 0.065 });
-          if (i < figures.length - 1) tl.set(caret, { opacity: 0 }, '+=0.1');
-          else tl.to(caret, { opacity: 0, duration: 0.01, repeat: 5, yoyo: true, repeatDelay: 0.35 });
-        });
+        // The dispatch is filed: the label types its dateline quickly, the
+        // carriage returns to the grid, and each figure is struck in turn.
+        const label = root.current!.querySelector('[data-ledger-label]')!;
+        typeOut(tl, label, { pace: 0.25 });
+        tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '+=0.1');
+        figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
       } else {
         tl.from(cells, { y: 16, opacity: 0, duration: 0.5, stagger: 0.08 }, '-=0.15');
       }
@@ -424,7 +420,9 @@ export function MovieDetail({
         <div className="mt-11">
           <div data-ledger-rule className="rule-double mb-1" />
           <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
-            The Prediction
+            {variant === "type"
+              ? <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
+              : "The Prediction"}
           </p>
 
           {/* A settled run adds its final gross and the miss, making two rows
