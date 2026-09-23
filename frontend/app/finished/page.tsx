@@ -29,14 +29,18 @@ export default function FinishedPage() {
       .catch(() => setStatus('error'));
   }, []);
 
-  const meanError = useMemo(() => {
-    const valid = entries.filter(e => e.actual_revenue > 0);
-    if (!valid.length) return null;
-    const sum = valid.reduce(
-      (a, e) => a + Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue,
-      0
-    );
-    return (sum / valid.length) * 100;
+  // Median, not mean: a handful of small releases the model overshoots by
+  // thousands of percent would otherwise swamp the headline figure. Every miss
+  // still appears in the table below.
+  const medianError = useMemo(() => {
+    const errs = entries
+      .filter(e => e.actual_revenue > 0)
+      .map(e => Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue)
+      .sort((a, b) => a - b);
+    if (!errs.length) return null;
+    const mid = Math.floor(errs.length / 2);
+    const median = errs.length % 2 ? errs[mid] : (errs[mid - 1] + errs[mid]) / 2;
+    return median * 100;
   }, [entries]);
 
   const maxVal = useMemo(
@@ -58,15 +62,15 @@ export default function FinishedPage() {
         </p>
 
         {/* Aggregate proof */}
-        {status === 'ok' && entries.length > 0 && meanError != null && (
+        {status === 'ok' && entries.length > 0 && medianError != null && (
           <div className="flex flex-wrap gap-x-10 gap-y-3 border-y border-ink/25 py-5 mb-6">
             <div>
               <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Settled</p>
               <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{entries.length}</p>
             </div>
             <div>
-              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Mean Error</p>
-              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{meanError.toFixed(1)}%</p>
+              <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Median Error</p>
+              <p className="font-mono text-ink text-[1.4rem] font-bold tabular-nums m-0">{medianError.toFixed(1)}%</p>
             </div>
             <div>
               <p className="font-mono text-[0.56rem] tracking-[0.16em] text-ink3 uppercase mb-1.5">Within 20%</p>
