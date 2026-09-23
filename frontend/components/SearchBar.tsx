@@ -30,11 +30,9 @@ export function SearchBar({
           placeholder="Look up a title…"
           value={query}
           onChange={e => onQueryChange(e.target.value)}
-          className="w-full bg-transparent border-0 border-b border-ink/40 text-ink font-sans
+          className="w-[calc(100%+0.5rem)] -ml-2 pl-2 bg-transparent border-0 border-b border-ink/40 text-ink font-sans
                      text-[0.95rem] py-2 pr-8 transition-colors duration-200
-                     placeholder:text-ink3 placeholder:italic focus:outline-none
-                     focus:border-b-ink focus:ring-0"
-          style={{ paddingLeft: 0 }}
+                     placeholder:text-ink3 placeholder:italic search-field"
         />
         {query && (
           <button

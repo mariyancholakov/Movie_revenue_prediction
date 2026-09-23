@@ -1,13 +1,17 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
 import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
+import { estProfit } from '@/lib/profit';
 
-const fmt = (n: number) =>
-  '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
+const fmt = (n: number) => {
+  const a = Math.abs(n);
+  return (n < 0 ? '\u2212$' : '$') + (a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : (a / 1e6).toFixed(1) + 'M');
+};
 
 interface LeaderboardEntry {
   tmdb_id: number;
@@ -17,11 +21,26 @@ interface LeaderboardEntry {
   opening_weekend: number;
   predicted_revenue: number;
   decay_rate: number | null;
+  budget: number | null;
 }
 
 export default function LeaderboardPage() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const chart = useRef<HTMLDivElement>(null);
+
+  // The chart fills in like a printer's proof: rows post top-down and each
+  // bar runs out from the left, opening weekend first, then the total.
+  useGSAP(() => {
+    if (status !== 'ok') return;
+    motion(() => {
+      gsap.timeline({ defaults: { ease: EASE } })
+        .from('[data-row]', { opacity: 0, y: 8, duration: 0.4, stagger: 0.05 })
+        .from('[data-bar-total]', { scaleX: 0, transformOrigin: 'left center', duration: 0.9, stagger: 0.05, ease: 'power2.out' }, 0.15)
+        .from('[data-bar-open]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, stagger: 0.05, ease: 'power2.out' }, 0.1)
+        .from('[data-tick]', { opacity: 0, duration: 0.3, stagger: 0.05 }, 0.5);
+    });
+  }, { scope: chart, dependencies: [status] });
 
   useEffect(() => {
     fetch(`${API_URL}/api/leaderboard`)
@@ -93,12 +112,9 @@ export default function LeaderboardPage() {
 
         {/* Chart */}
         {status === 'ok' && entries.length > 0 && (
-          <div className="border-b border-rule">
+          <div ref={chart} className="border-b border-rule">
             {entries.map((entry, i) => {
-              const multiplier = entry.predicted_revenue / Math.max(entry.opening_weekend, 1);
-              // No colour grading: the old 2.5×/3.5× bands were domestic-legs
-              // rules of thumb, meaningless for a worldwide ÷ domestic ratio.
-              const multColor = 'text-ink2';
+              const profit = entry.budget ? estProfit(entry.predicted_revenue, entry.budget) : null;
               const predPct = (entry.predicted_revenue / maxRevenue) * 100;
               const openPct = (entry.opening_weekend / maxRevenue) * 100;
               const lead = i === 0;
@@ -107,6 +123,7 @@ export default function LeaderboardPage() {
                 <Link
                   key={entry.tmdb_id}
                   href={`/movie/${entry.tmdb_id}`}
+                  data-row
                   className="no-underline text-inherit block group ledger-row border-t border-rule"
                 >
                   <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
@@ -142,12 +159,13 @@ export default function LeaderboardPage() {
                     <div className="hidden sm:block flex-1 min-w-0">
                       <div className="relative h-6 w-full">
                         <div
+                          data-bar-total
                           className="absolute inset-y-0 left-0"
                           style={{ width: `${predPct}%`, background: 'color-mix(in srgb, var(--color-ink2) 28%, transparent)' }}
                         />
-                        <div className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${openPct}%` }} />
+                        <div data-bar-open className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${openPct}%` }} />
                         {/* opening/total boundary tick */}
-                        <div className="absolute inset-y-0 w-px bg-paper" style={{ left: `${openPct}%` }} />
+                        <div data-tick className="absolute inset-y-0 w-px bg-paper" style={{ left: `${openPct}%` }} />
                       </div>
                     </div>
 
@@ -156,9 +174,12 @@ export default function LeaderboardPage() {
                       {fmt(entry.predicted_revenue)}
                     </p>
 
-                    {/* Multiplier */}
-                    <p className={`text-right font-mono text-[0.82rem] sm:text-[0.9rem] tabular-nums m-0 w-11 sm:w-12 shrink-0 ${multColor}`}>
-                      {multiplier.toFixed(1)}×
+                    {/* Estimated profit: red when the film is predicted to lose money */}
+                    <p
+                      className={`text-right font-mono text-[0.78rem] sm:text-[0.9rem] tabular-nums m-0 w-[4.5rem] sm:w-24 shrink-0 ${profit != null && profit < 0 ? 'text-red' : 'text-ink2'}`}
+                      title={profit == null ? 'No budget reported' : undefined}
+                    >
+                      {profit == null ? '\u2014' : fmt(profit)}
                     </p>
                   </div>
                 </Link>
@@ -169,7 +190,7 @@ export default function LeaderboardPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] mt-8 uppercase">
-            Multiplier = predicted worldwide total ÷ US opening weekend · bars to scale
+            Right column = est. profit: the studio&rsquo;s ~half of the predicted gross, minus the budget · bars to scale
           </p>
         )}
       </div>

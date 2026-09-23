@@ -1,4 +1,7 @@
+'use client';
 import Link from 'next/link';
+import { useEffect, useRef } from 'react';
+import { EASE, gsap, motion, ScrollTrigger, useGSAP } from '@/lib/motion';
 import { Poster } from './Poster';
 import type { Movie } from './types';
 import { SearchBar } from './SearchBar';
@@ -35,6 +38,26 @@ export function MovieGrid({
   const loading = status === 'loading';
   const isFiltering = query.trim() !== '' || activeGenres.length > 0;
   const hasNoResults = !loading && status !== 'error' && filteredMovies.length === 0;
+  const grid = useRef<HTMLDivElement>(null);
+
+  // Posters rise into place in small batches as they scroll into view, once.
+  // Only the first render of the list is choreographed; cards that reappear
+  // after filtering just show.
+  useGSAP(() => {
+    if (status !== 'ok') return;
+    motion(() => {
+      const cards = gsap.utils.toArray<HTMLElement>('[data-card]');
+      gsap.set(cards, { opacity: 0, y: 24 });
+      ScrollTrigger.batch(cards, {
+        start: 'top 95%',
+        once: true,
+        onEnter: batch => gsap.to(batch, { opacity: 1, y: 0, duration: 0.6, ease: EASE, stagger: 0.06, overwrite: true }),
+      });
+    });
+  }, { scope: grid, dependencies: [status] });
+
+  // Filtering moves cards up the page; re-measure so waiting cards trigger.
+  useEffect(() => { ScrollTrigger.refresh(); }, [filteredMovies]);
 
   return (
     <section className="w-full px-4 sm:px-8 lg:px-14 pt-9 sm:pt-12 pb-4">
@@ -64,7 +87,7 @@ export function MovieGrid({
 
       {status === 'error' && <WireDown className="max-w-lg mx-auto" />}
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-8">
+      <div ref={grid} className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-8">
         {loading &&
           Array.from({ length: 12 }).map((_, i) => (
             <div key={`sk-${i}`}>
@@ -73,12 +96,12 @@ export function MovieGrid({
             </div>
           ))}
 
-        {filteredMovies.map((movie, index) => (
+        {filteredMovies.map(movie => (
           <Link
             key={movie.tmdb_id}
             href={`/movie/${movie.tmdb_id}`}
-            className="block no-underline text-inherit group row-in"
-            style={{ animationDelay: `${Math.min(index, 16) * 0.035}s` }}
+            data-card
+            className="block no-underline text-inherit group"
           >
             <div className="relative aspect-[2/3] w-full plate overflow-hidden bg-panel">
               <Poster

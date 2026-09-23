@@ -71,10 +71,11 @@ export function DecayCurve({ data }: DecayCurveProps) {
         <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
 
         {/* Hatched area under the actual run */}
-        <path d={areaPath} fill="url(#ink-hatch)" />
+        <path data-area d={areaPath} fill="url(#ink-hatch)" />
 
         {/* Model fit — dashed red */}
         <path
+          data-fit
           d={fittedPath}
           fill="none"
           stroke={RED}
@@ -86,6 +87,7 @@ export function DecayCurve({ data }: DecayCurveProps) {
 
         {/* Actual gross — solid ink */}
         <path
+          data-line
           d={actualLinePath}
           fill="none"
           stroke={INK}
@@ -97,6 +99,7 @@ export function DecayCurve({ data }: DecayCurveProps) {
         {/* Data points */}
         {weeks.map((w, i) => (
           <circle
+            data-dot
             key={`dot-${i}`}
             cx={xScale(w)}
             cy={yScale(actual_gross[i])}

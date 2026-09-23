@@ -1,12 +1,17 @@
 'use client';
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
+import { estProfit } from "@/lib/profit";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 
-const fmt = (n: number) =>
-  "$" + (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : (n / 1e6).toFixed(1) + "M");
+const fmt = (n: number) => {
+  const a = Math.abs(n);
+  return (n < 0 ? "\u2212$" : "$") + (a >= 1e9 ? (a / 1e9).toFixed(2) + "B" : (a / 1e6).toFixed(1) + "M");
+};
+
 
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
@@ -21,23 +26,67 @@ const fmtDate = (d: string) => {
     : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
-// Reader-facing copy for each failure the API reports. Only a genuine
-// "nothing reported yet" gets the just-opened / no-figures wording.
-function errorCopy(code: Prediction["code"], justOpened: boolean) {
+// Reader-facing copy for each failure the API reports: a short headline and
+// one or two sentences saying why, and what happens next.
+const RETRYABLE = new Set<Prediction["code"]>(["tmdb_unavailable", "box_office_unavailable", "network", "internal"]);
+
+function errorCopy(code: Prediction["code"], daysSinceRelease: number): { title: string; body: string } {
+  const days = Math.floor(daysSinceRelease);
   switch (code) {
-    case "no_box_office":
-      return justOpened
-        ? "This film just opened — the box office usually reports within a few days. Check back soon."
-        : "No box-office figures are on the books for this film yet.";
+    case "not_released":
+      return {
+        title: "Not released yet",
+        body: "Predictions start from a film\u2019s US opening weekend, so this one opens up after its first weekend in theaters.",
+      };
+    case "no_opening_weekend":
+      if (days < 4)
+        return {
+          title: "Opening weekend in progress",
+          body: `It opened ${days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`}. We predict from the first weekend\u2019s US gross, which is published the Monday after. Check back then.`,
+        };
+      if (days < 14)
+        return {
+          title: "Opening figures not in yet",
+          body: "The first weekend\u2019s US gross hasn\u2019t been published yet. It usually appears within a few days of the weekend.",
+        };
+      return {
+        title: "No US opening weekend",
+        body: "No US opening weekend was ever reported for this film, most likely because it had a limited or non-US release. Without it there\u2019s nothing to predict from.",
+      };
+    case "no_us_release":
+      return {
+        title: "No US box office",
+        body: "Box Office Mojo has no US listing for this film, so there\u2019s no opening weekend to predict from.",
+      };
+    case "no_listing":
+      return {
+        title: "No box-office listing",
+        body: "This film isn\u2019t linked to a box-office record yet, so there are no figures to predict from.",
+      };
     case "insufficient_data":
-      return "There isn’t enough reported data on this film to price it yet.";
+      return {
+        title: "Missing film details",
+        body: "TMDB is missing details the model needs, such as the release date or runtime.",
+      };
     case "not_found":
-      return "We couldn’t find this film on file.";
-    case "upstream":
+      return { title: "Film not found", body: "There\u2019s no film with this id on TMDB." };
+    case "tmdb_unavailable":
+      return {
+        title: "Film database unavailable",
+        body: "TMDB, where our film details come from, isn\u2019t responding. Try again in a minute.",
+      };
+    case "box_office_unavailable":
+      return {
+        title: "Box office source unavailable",
+        body: "Box Office Mojo, where the weekend grosses come from, isn\u2019t responding. Try again in a minute.",
+      };
     case "network":
-      return "Couldn’t reach the box-office desk just now. Please try again in a moment.";
+      return {
+        title: "Can\u2019t reach MOVIEGROSS",
+        body: "The prediction service didn\u2019t answer. Check your connection and try again.",
+      };
     default:
-      return "Something went wrong running the numbers. Please try again.";
+      return { title: "Something went wrong", body: "The prediction failed on our side. Please try again." };
   }
 }
 
@@ -74,13 +123,41 @@ export function MovieDetail({
   // (react-hooks/purity) and can drift between the server render and hydration;
   // these release-timing flags only need a single stable reading.
   const [now] = useState(() => Date.now());
+  const root = useRef<HTMLElement>(null);
+
+  // When the numbers land: the rule draws, the four figures post one after
+  // another, then the decay chart inks its line and plots each weekend.
+  // A failed prediction just slides its notice in.
+  useGSAP(() => {
+    if (!prediction) return;
+    motion(() => {
+      if (prediction.error) {
+        gsap.from('[role=alert]', { x: -12, opacity: 0, duration: 0.45, ease: EASE });
+        return;
+      }
+      const tl = gsap.timeline({ defaults: { ease: EASE } })
+        .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' })
+        .from('[data-ledger-label]', { opacity: 0, duration: 0.3 }, '-=0.3')
+        .from('[data-cell]', { y: 16, opacity: 0, duration: 0.5, stagger: 0.08 }, '-=0.15')
+        .from('[data-ledger-follow]', { y: 12, opacity: 0, duration: 0.5, stagger: 0.1 }, '-=0.2');
+
+      const line = root.current?.querySelector<SVGPathElement>('[data-line]');
+      if (line) {
+        const len = line.getTotalLength();
+        tl.fromTo(line, { strokeDasharray: len, strokeDashoffset: len },
+          { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut', clearProps: 'strokeDasharray,strokeDashoffset' }, '-=0.25')
+          .from('[data-area]', { opacity: 0, duration: 0.6 }, '<0.3')
+          .from('[data-dot]', { scale: 0, transformOrigin: '50% 50%', duration: 0.3, stagger: 0.06, ease: 'back.out(2)' }, '<')
+          .from('[data-fit]', { opacity: 0, duration: 0.5 }, '-=0.3');
+      }
+    });
+  }, { scope: root, dependencies: [prediction] });
 
   const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
   const notReleased = !Number.isNaN(releaseTime) && releaseTime > now;
   const daysSinceRelease = Number.isNaN(releaseTime)
     ? Infinity
     : (now - releaseTime) / 86_400_000;
-  const justOpened = daysSinceRelease >= 0 && daysSinceRelease < 10;
 
   // navigator.clipboard is missing on insecure origins and writeText rejects
   // when permission is denied, so report failure instead of claiming success.
@@ -95,7 +172,7 @@ export function MovieDetail({
   };
 
   return (
-    <section className="px-4 sm:px-8 lg:px-14 py-7 sm:py-10">
+    <section ref={root} className="px-4 sm:px-8 lg:px-14 py-7 sm:py-10">
       {/* Controls */}
       <div className="flex items-center justify-between gap-3 mb-7">
         <button
@@ -211,9 +288,9 @@ export function MovieDetail({
 
       {/* Prediction ledger */}
       {prediction && !prediction.error && (
-        <div className="ledger-in mt-11">
-          <div className="rule-double mb-1" />
-          <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
+        <div className="mt-11">
+          <div data-ledger-rule className="rule-double mb-1" />
+          <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
             The Prediction
           </p>
 
@@ -223,21 +300,29 @@ export function MovieDetail({
                 countTo={prediction.opening_weekend} format={fmt} />,
               <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} highlight
                 countTo={prediction.predicted_revenue} format={fmt} />,
-              <StatCard key="dr" label="Decay Rate λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />,
+              (() => {
+                // decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
+                // weekend keeps e^(−λ) of the one before.
+                const lam = prediction.decay_curve?.decay_rate;
+                return lam != null ? (
+                  <StatCard key="wd" label="Weekend Drop" value={`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}
+                    note="Typical fall from one weekend to the next" />
+                ) : (
+                  <StatCard key="wd" label="Weekend Drop" value="—" note="Needs two weekends of figures" />
+                );
+              })(),
               (selected.budget ?? 0) > 0
                 ? (() => {
-                    // Gross ÷ budget, not "profit": theaters keep roughly half the
-                    // gross and marketing isn't in the reported budget, so a
-                    // subtraction would overstate what the studio clears.
-                    const ratio = prediction.predicted_revenue / selected.budget!;
+                    const profit = estProfit(prediction.predicted_revenue, selected.budget!);
                     return (
-                      <StatCard key="gb" label="Gross ÷ Budget" value={`${ratio.toFixed(1)}×`} accent={ratio < 1} />
+                      <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0}
+                        countTo={profit} format={fmt}
+                        note={`Studio\u2019s ~half of the gross, minus the ${fmt(selected.budget!)} budget`} />
                     );
                   })()
-                : <StatCard key="mult" label="Multiplier"
-                    value={`${(prediction.predicted_revenue / Math.max(prediction.opening_weekend, 1)).toFixed(1)}×`} />,
+                : <StatCard key="pf" label="Est. Profit" value="—" note="Budget not reported" />,
             ].map((cell, i) => (
-              <div key={i} className="border-r border-b border-ink/20">
+              <div key={i} data-cell className="border-r border-b border-ink/20">
                 {cell}
               </div>
             ))}
@@ -248,7 +333,7 @@ export function MovieDetail({
             const diff = prediction.predicted_revenue - actual;
             const over = diff > 0;
             return (
-              <div className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
+              <div data-ledger-follow className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
                 <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase m-0 mb-1.5">
                   Run settled
                 </p>
@@ -266,7 +351,7 @@ export function MovieDetail({
           })()}
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
-            <div>
+            <div data-ledger-follow>
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
                 <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>
@@ -283,11 +368,30 @@ export function MovieDetail({
         </div>
       )}
 
-      {prediction?.error && (
-        <p className="text-red text-[0.85rem] mt-6 border-l-2 border-red pl-4 py-1">
-          {errorCopy(prediction.code, justOpened)}
-        </p>
-      )}
+      {prediction?.error && (() => {
+        const { title, body } = errorCopy(prediction.code, daysSinceRelease);
+        return (
+          <div role="alert" className="mt-8 border-l-2 border-red pl-4 py-1 max-w-prose">
+            <p className="font-display text-ink text-[1.05rem] font-bold m-0 mb-1">{title}</p>
+            <p className="text-ink2 text-[0.85rem] leading-[1.55] m-0">{body}</p>
+            <div className="flex items-center gap-5 mt-3">
+              <span className="font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase">
+                Error · {prediction.code ?? "unknown"}
+              </span>
+              {RETRYABLE.has(prediction.code) && (
+                <button
+                  onClick={onPredict}
+                  disabled={predicting}
+                  className="font-sans text-[0.66rem] tracking-[0.14em] font-semibold text-red
+                             bg-transparent border-0 p-0 hover:text-ink transition-colors disabled:opacity-50"
+                >
+                  {predicting ? "TRYING…" : "TRY AGAIN"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }

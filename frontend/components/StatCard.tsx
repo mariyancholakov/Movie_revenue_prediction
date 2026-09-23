@@ -10,6 +10,8 @@ interface StatCardProps {
   /** optional numeric value + formatter to animate the figure totting up */
   countTo?: number;
   format?: (n: number) => string;
+  /** one short line under the figure explaining it */
+  note?: string;
 }
 
 export function StatCard({
@@ -19,6 +21,7 @@ export function StatCard({
   accent = false,
   countTo,
   format,
+  note,
 }: StatCardProps) {
   const color = accent ? 'text-red' : 'text-ink';
   const size = highlight
@@ -39,6 +42,9 @@ export function StatCard({
           value
         )}
       </p>
+      {note && (
+        <p className="font-sans text-[0.68rem] leading-snug text-ink3 mt-2 mb-0">{note}</p>
+      )}
     </div>
   );
 }

@@ -55,6 +55,17 @@ body {
   outline-offset: 2px;
 }
 
+/* The search field shows focus on its own underline, which turns red, over
+   a faint red wash, instead of the global outline box. It sits 0.5rem left
+   of the column with matching padding, so the text stays aligned. */
+.search-field { transition: border-color 0.2s ease, background-color 0.2s ease; }
+.search-field:focus,
+.search-field:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-red);
+  background-color: color-mix(in srgb, var(--color-red) 7%, transparent);
+}
+
 /* ─── Newspaper rules ─────────────────────────────────────────────────────── */
 
 /* Classic thick-over-thin double rule for section breaks / the nameplate. */
@@ -93,26 +104,13 @@ body {
 
 /* ─── Motion — three authored moments, all reduced-motion safe ────────────── */
 
-/* Nameplate + rules settle onto the page like drying ink. Default = visible. */
-@keyframes inkSettle {
-  from { opacity: 0; filter: blur(6px); transform: translateY(6px); }
-  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+/* GSAP choreographs the entrances (lib/motion.ts). The masthead is in the
+   server HTML, so it starts hidden to avoid a flash before the intro runs;
+   the delayed animation reveals it anyway if the script never does. */
+@keyframes introFallback { to { visibility: visible; } }
+@media (prefers-reduced-motion: no-preference) {
+  [data-intro] { visibility: hidden; animation: introFallback 0s 2.5s forwards; }
 }
-.ink-settle { animation: inkSettle 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* Ledger rows / poster captions enter in reading order. */
-@keyframes rowIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.row-in { animation: rowIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* The prediction ledger unfurls when the numbers land. */
-@keyframes ledgerIn {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.ledger-in { animation: ledgerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 /* Analyzing indicator: a thin adding-machine tape scanning. */
 @keyframes tapeScan {
