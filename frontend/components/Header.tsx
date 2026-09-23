@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRef, useSyncExternalStore } from 'react';
 import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
+import { Seal } from './Seal';
 
 const NAMEPLATE = 'MOVIEGROSS';
 
@@ -28,7 +29,8 @@ const getEditionSnapshot = () =>
     .toUpperCase();
 const getServerEditionSnapshot = () => '';
 
-export function Header() {
+/** `filmCount`: films now playing, for the edition ear (0 while loading). */
+export function Header({ filmCount = 0 }: { filmCount?: number }) {
   const edition = useSyncExternalStore(
     subscribeToNothing,
     getEditionSnapshot,
@@ -58,21 +60,37 @@ export function Header() {
           <span className="tabular-nums text-right">{edition}</span>
         </div>
 
-        {/* Nameplate */}
-        <h1
-          className="font-display text-ink font-black leading-[0.9] m-0 select-none
-                     text-[3.1rem] xs:text-[3.8rem] sm:text-[6rem] lg:text-[8rem]
-                     tracking-[-0.02em]"
-          aria-label={NAMEPLATE}
-        >
-          {NAMEPLATE.split('').map((ch, i) => (
-            <span key={i} data-letter aria-hidden className="inline-block">
-              {ch}
-            </span>
-          ))}
-        </h1>
+        {/* Below xl there's no room for ears: the seal sits over the nameplate */}
+        <div data-follow className="xl:hidden flex justify-center mb-3 sm:mb-4">
+          <Seal size={64} className="w-12 h-12 sm:w-16 sm:h-16" />
+        </div>
 
-        <div data-rule className="rule-double mt-4 sm:mt-6" />
+        {/* Nameplate, flanked on wide screens by its ears: the paper's seal at
+            left, the edition box at right */}
+        <div className="xl:grid xl:grid-cols-[1fr_auto_1fr] xl:items-center xl:gap-10">
+          <div data-follow className="hidden xl:flex justify-start">
+            <Seal size={108} />
+          </div>
+          <h1
+            className="font-display text-ink font-black leading-[0.9] m-0 select-none
+                       text-[3.1rem] xs:text-[3.8rem] sm:text-[6rem] lg:text-[7rem] 2xl:text-[8rem]
+                       tracking-[-0.02em]"
+            aria-label={NAMEPLATE}
+          >
+            {NAMEPLATE.split('').map((ch, i) => (
+              <span key={i} data-letter aria-hidden className="inline-block">
+                {ch}
+              </span>
+            ))}
+          </h1>
+          <div data-follow className="hidden xl:flex justify-end">
+            <div className="border-y border-ink/60 py-2.5 px-1 font-mono text-ink2 text-[0.58rem] tracking-[0.16em] uppercase leading-[1.9] text-center whitespace-nowrap">
+              <p className="m-0 text-ink font-bold">Late edition</p>
+              <p className="m-0 tabular-nums">{filmCount ? `${filmCount} films playing` : 'Every film playing'}</p>
+              <p className="m-0">Priced worldwide</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Dek */}

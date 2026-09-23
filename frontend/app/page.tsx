@@ -40,7 +40,7 @@ export default function Home() {
 
   return (
     <main className="flex-1 flex flex-col text-ink font-sans w-full min-w-0 overflow-x-clip">
-      <Header />
+      <Header filmCount={movies.length} />
       <MovieGrid
         filteredMovies={filteredMovies}
         totalCount={movies.length}
