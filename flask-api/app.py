@@ -8,6 +8,7 @@ from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
 import json
+import hmac
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -447,8 +448,25 @@ def capture_finished_runs():
     }
 
 
+# Shared secret for the admin-only endpoints. Unset means those endpoints are
+# disabled entirely, so a deploy that forgets it fails closed, not open.
+ADMIN_TOKEN = os.getenv('ADMIN_TOKEN', '')
+
+
+def is_admin(req):
+    if not ADMIN_TOKEN:
+        return False
+    supplied = req.headers.get('Authorization', '').removeprefix('Bearer ').strip()
+    return hmac.compare_digest(supplied, ADMIN_TOKEN)
+
+
 @app.route('/api/refresh-finished', methods=['POST'])
 def refresh_finished():
+    # Each call fans out to TMDB for every tracked film and writes to Supabase,
+    # so it is not open to the public. The scheduled job calls
+    # capture_finished_runs() directly and doesn't need this endpoint at all.
+    if not is_admin(request):
+        return jsonify({'error': 'Unauthorized.'}), 401
     result = capture_finished_runs()
     return jsonify(result), (500 if 'error' in result else 200)
 
