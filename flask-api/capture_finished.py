@@ -87,8 +87,9 @@ def main():
     # 3. Retrain. Auto-promotion is opt-in; otherwise we only build+report a candidate.
     log(f"threshold reached — retraining (auto_promote={AUTO_PROMOTE})")
     r = run_retrain(promote=AUTO_PROMOTE)
-    log(f"retrain: baseline MAE ${r['baseline']['mae']/1e6:.2f}M -> "
-        f"augmented MAE ${r['augmented']['mae']/1e6:.2f}M | wins={r['wins']} | promoted={r['promoted']}")
+    log(f"retrain: reference MAE ${r['reference']['mae']/1e6:.2f}M / median APE {r['reference']['median_ape']:.1f}% -> "
+        f"candidate MAE ${r['candidate']['mae']/1e6:.2f}M / median APE {r['candidate']['median_ape']:.1f}% "
+        f"| wins={r['wins']} | promoted={r['promoted']}")
     if r['candidate_path']:
         log(f"candidate saved: {r['candidate_path']}")
     if r['promoted']:
