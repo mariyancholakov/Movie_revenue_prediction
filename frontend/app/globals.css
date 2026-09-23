@@ -24,7 +24,7 @@
 html, body {
   background: var(--color-paper);
   color: var(--color-ink);
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {

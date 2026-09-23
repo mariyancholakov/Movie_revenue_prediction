@@ -11,6 +11,8 @@ is public.
   weekend-gross decay curve.
 - **Rankings** (`/leaderboard`): priced films ranked by predicted total.
 - **The Ledger** (`/finished`): settled runs, predicted vs. actual.
+- **How It Works** (`/how-it-works`): the pipeline worked through for one film
+  now playing, including what raised or lowered its multiplier.
 
 ## How it works
 
@@ -65,6 +67,7 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | POST | `/api/predict` | `{"tmdb_id": 123}` → prediction; errors carry a `code` |
 | GET | `/api/leaderboard` | Priced now-playing films |
 | GET | `/api/finished` | Settled runs with actual revenue |
+| GET | `/api/explain/<tmdb_id>` | A priced film's feature snapshot and its multiplier split into factors (SHAP) |
 | POST | `/api/refresh-finished` | Admin only: `Authorization: Bearer $ADMIN_TOKEN` |
 
 ## Local development

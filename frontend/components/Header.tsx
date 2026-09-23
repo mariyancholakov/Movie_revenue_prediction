@@ -9,6 +9,7 @@ const TABS = [
   { href: '/', label: 'NOW PLAYING', active: true },
   { href: '/leaderboard', label: 'RANKINGS', active: false },
   { href: '/finished', label: 'THE LEDGER', active: false },
+  { href: '/how-it-works', label: 'HOW IT WORKS', active: false },
 ];
 
 // The masthead edition date is client-only on purpose: rendering it during SSR
@@ -81,13 +82,13 @@ export function Header() {
       </p>
 
       {/* Ledger tabs */}
-      <nav data-follow className="flex items-center justify-center gap-6 sm:gap-9 mt-6">
+      <nav data-follow className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 mt-6">
         {TABS.map(({ href, label, active }) => (
           <Link
             key={href}
             href={href}
             data-active={active}
-            className="tab font-sans text-[0.64rem] sm:text-[0.7rem] tracking-[0.18em] font-semibold text-ink2 no-underline pb-1"
+            className="tab whitespace-nowrap font-sans text-[0.6rem] sm:text-[0.7rem] tracking-[0.12em] sm:tracking-[0.18em] font-semibold text-ink2 no-underline pb-1"
           >
             {label}
           </Link>

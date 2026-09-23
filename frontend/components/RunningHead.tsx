@@ -1,11 +1,12 @@
 import Link from 'next/link';
 
-type Section = 'now-playing' | 'rankings' | 'finished' | 'none';
+type Section = 'now-playing' | 'rankings' | 'finished' | 'how' | 'none';
 
 const TABS: { href: string; label: string; key: Section }[] = [
   { href: '/', label: 'NOW PLAYING', key: 'now-playing' },
   { href: '/leaderboard', label: 'RANKINGS', key: 'rankings' },
   { href: '/finished', label: 'THE LEDGER', key: 'finished' },
+  { href: '/how-it-works', label: 'HOW IT WORKS', key: 'how' },
 ];
 
 // The running head that sits atop every interior page — a newspaper folio:
@@ -20,13 +21,13 @@ export function RunningHead({ active = 'none' }: { active?: Section }) {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-5 sm:gap-7">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-7">
           {TABS.map(({ href, label, key }) => (
             <Link
               key={href}
               href={href}
               data-active={active === key}
-              className="tab font-sans text-[0.62rem] sm:text-[0.66rem] tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
+              className="tab whitespace-nowrap font-sans text-[0.6rem] sm:text-[0.66rem] tracking-[0.12em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
             >
               {label}
             </Link>
