@@ -29,6 +29,9 @@ html, body {
 
 body {
   font-family: var(--font-sans);
+  /* its own stacking context, so a fixed ghost reel (z -10) prints on the
+     paper: behind the page, but above the body's own background */
+  isolation: isolate;
   /* barely-there newsprint tooth — material, not decoration */
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)' opacity='0.5'/%3E%3C/svg%3E");
@@ -144,6 +147,14 @@ body {
   box-shadow: 5px 8px 0 -1px color-mix(in srgb, var(--color-ink) 20%, transparent);
 }
 
+/* The ghost reel (GhostReel.tsx) feeds sideways one copy's width, then
+   repeats seamlessly. */
+@keyframes reelCrawl { to { transform: translateX(-50%); } }
+.reel-track { animation: reelCrawl 380s linear infinite; }
+/* It arrives with its posters, so it develops in rather than popping up. */
+@keyframes reelIn { from { opacity: 0; } }
+.reel-in { animation: reelCrawl 380s linear infinite, reelIn 1.6s ease-out; }
+
 /* Ledger row hover wash. */
 .ledger-row { transition: background 0.14s ease; }
 .ledger-row:hover { background: color-mix(in srgb, var(--color-ink) 5%, transparent); }
@@ -155,4 +166,5 @@ body {
     transition-duration: 0.001ms !important;
   }
   .plate:hover { transform: none; }
+  .reel-track { animation: none; }
 }
