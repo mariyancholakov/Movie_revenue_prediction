@@ -6,9 +6,12 @@ import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
+import { estProfit } from '@/lib/profit';
 
-const fmt = (n: number) =>
-  '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
+const fmt = (n: number) => {
+  const a = Math.abs(n);
+  return (n < 0 ? '\u2212$' : '$') + (a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : (a / 1e6).toFixed(1) + 'M');
+};
 
 interface LeaderboardEntry {
   tmdb_id: number;
@@ -18,6 +21,7 @@ interface LeaderboardEntry {
   opening_weekend: number;
   predicted_revenue: number;
   decay_rate: number | null;
+  budget: number | null;
 }
 
 export default function LeaderboardPage() {
@@ -110,10 +114,7 @@ export default function LeaderboardPage() {
         {status === 'ok' && entries.length > 0 && (
           <div ref={chart} className="border-b border-rule">
             {entries.map((entry, i) => {
-              const multiplier = entry.predicted_revenue / Math.max(entry.opening_weekend, 1);
-              // No colour grading: the old 2.5×/3.5× bands were domestic-legs
-              // rules of thumb, meaningless for a worldwide ÷ domestic ratio.
-              const multColor = 'text-ink2';
+              const profit = entry.budget ? estProfit(entry.predicted_revenue, entry.budget) : null;
               const predPct = (entry.predicted_revenue / maxRevenue) * 100;
               const openPct = (entry.opening_weekend / maxRevenue) * 100;
               const lead = i === 0;
@@ -173,9 +174,12 @@ export default function LeaderboardPage() {
                       {fmt(entry.predicted_revenue)}
                     </p>
 
-                    {/* Multiplier */}
-                    <p className={`text-right font-mono text-[0.82rem] sm:text-[0.9rem] tabular-nums m-0 w-11 sm:w-12 shrink-0 ${multColor}`}>
-                      {multiplier.toFixed(1)}×
+                    {/* Estimated profit: red when the film is predicted to lose money */}
+                    <p
+                      className={`text-right font-mono text-[0.78rem] sm:text-[0.9rem] tabular-nums m-0 w-[4.5rem] sm:w-24 shrink-0 ${profit != null && profit < 0 ? 'text-red' : 'text-ink2'}`}
+                      title={profit == null ? 'No budget reported' : undefined}
+                    >
+                      {profit == null ? '\u2014' : fmt(profit)}
                     </p>
                   </div>
                 </Link>
@@ -186,7 +190,7 @@ export default function LeaderboardPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] mt-8 uppercase">
-            Multiplier = predicted worldwide total ÷ US opening weekend · bars to scale
+            Right column = est. profit: the studio&rsquo;s ~half of the predicted gross, minus the budget · bars to scale
           </p>
         )}
       </div>

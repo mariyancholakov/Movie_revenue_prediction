@@ -453,6 +453,8 @@ def leaderboard():
             'opening_weekend':   movie['opening_weekend'],
             'predicted_revenue': predicted,
             'decay_rate':        movie.get('decay_rate'),
+            # From the feature snapshot; 0 means TMDB has no budget on file.
+            'budget':            (movie.get('features') or {}).get('budget') or None,
         })
 
     results.sort(key=lambda x: x['predicted_revenue'], reverse=True)

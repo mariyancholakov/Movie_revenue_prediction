@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from "react";
 import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
+import { estProfit } from "@/lib/profit";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
@@ -11,10 +12,6 @@ const fmt = (n: number) => {
   return (n < 0 ? "\u2212$" : "$") + (a >= 1e9 ? (a / 1e9).toFixed(2) + "B" : (a / 1e6).toFixed(1) + "M");
 };
 
-// Rough share of the worldwide gross that reaches the studio. Theaters keep
-// about half (more abroad, less in the US), so "profit" is the studio's cut
-// minus the production budget. Marketing isn't in the reported budget.
-const STUDIO_SHARE = 0.5;
 
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
@@ -316,7 +313,7 @@ export function MovieDetail({
               })(),
               (selected.budget ?? 0) > 0
                 ? (() => {
-                    const profit = prediction.predicted_revenue * STUDIO_SHARE - selected.budget!;
+                    const profit = estProfit(prediction.predicted_revenue, selected.budget!);
                     return (
                       <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0}
                         countTo={profit} format={fmt}
