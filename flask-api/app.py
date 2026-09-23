@@ -52,14 +52,21 @@ DECAY_RETRY_TTL = timedelta(hours=6)
 
 def build_fitted_curve(weeks, gross, decay_rate):
     """Reconstruct the fitted exponential-decay curve from a stored decay rate,
-    anchored to the opening-weekend gross, so cached predictions render the same
-    model curve as freshly-scraped ones."""
+    so cached predictions render the same model curve as freshly-scraped ones.
+
+    Only the rate is stored, not the fitted amplitude, but with the rate fixed
+    the least-squares amplitude has a closed form:
+        A = sum(g_t * e^(-lam t)) / sum(e^(-2 lam t))
+    which is the amplitude the original joint fit landed on. (Anchoring to the
+    first weekend instead drew a visibly different curve on cached loads.)"""
     if not weeks or decay_rate is None:
         return [], []
     max_w = max(weeks)
     if max_w <= 0:
         return [], []
-    amplitude = gross[0]
+    t = np.asarray(weeks, dtype=float)
+    basis = np.exp(-decay_rate * t)
+    amplitude = float(np.dot(gross, basis) / np.dot(basis, basis))
     xs = np.linspace(0, max_w, 200)
     ys = amplitude * np.exp(-decay_rate * xs)
     return xs.tolist(), ys.tolist()
