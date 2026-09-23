@@ -29,6 +29,9 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   TMDB `revenue` (worldwide), while the opening weekend and decay curve are
   US domestic. Results are cached in Supabase for 7 days, and films in
   theaters are re-scored with the current model on every read.
+- **Tracking:** only a current release (at most 180 days old) is tracked as
+  a run. Opening an older film's page caches its numbers but never puts it
+  on the Ledger.
 - **Settling:** a weekly job marks a film finished once it has left the
   now-playing list, is at least 12 weeks past release, and has a TMDB revenue
   figure. It stores that as the ground truth and keeps raising it as TMDB

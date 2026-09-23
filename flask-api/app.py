@@ -3,7 +3,7 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features
+from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, MAX_RELEASE_AGE_DAYS
 from model_lib import FRANCHISE_FEATURES
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
@@ -347,7 +347,13 @@ def predict_for(tmdb_id):
     weekly_data = get_weekly_grossing(imdb_id, title_page)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
 
-    # Store in Supabase
+    # Store in Supabase. Only a current release is tracked as a run
+    # (is_in_theaters True, so the weekly capture will settle it). Opening an
+    # older film's page still caches its numbers, with is_in_theaters NULL,
+    # so it never reaches the Ledger with a prediction made after its run.
+    # A row that is already tracked stays tracked.
+    was_tracked = bool(cached.data) and cached.data[0].get('is_in_theaters') is True
+    tracked = was_tracked or 0 <= run_age_days(details) <= MAX_RELEASE_AGE_DAYS
     movie_record = {
         'imdb_id': imdb_id,
         'tmdb_id': tmdb_id,
@@ -356,7 +362,7 @@ def predict_for(tmdb_id):
         'predicted_revenue': round(predicted_revenue),
         'decay_rate': decay_data['decay_rate'] if decay_data else None,
         'half_life': decay_data['half_life'] if decay_data else None,
-        'is_in_theaters': True,
+        'is_in_theaters': True if tracked else None,
         'last_scraped': now.isoformat(),
     }
     supabase.table('movies').upsert(movie_record).execute()
