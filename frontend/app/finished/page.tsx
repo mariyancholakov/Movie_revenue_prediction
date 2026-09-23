@@ -9,6 +9,22 @@ import { API_URL } from '@/lib/api';
 
 const fmt = (n: number) =>
   '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 'B' : (n / 1e6).toFixed(1) + 'M');
+// Signed: + when the model called it high, \u2212 when it called it low.
+const fmtDiff = (n: number) => (n > 0 ? '+' : n < 0 ? '\u2212' : '') + fmt(Math.abs(n));
+
+// Shared by the column heads and every row, so the two can never drift apart.
+const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
+const COL = {
+  poster: 'w-[38px] shrink-0',
+  title: 'min-w-0 flex-1 sm:flex-none sm:w-52',
+  bar: 'hidden sm:flex flex-1 min-w-0',
+  num: 'hidden sm:block w-24 shrink-0',
+  diff: 'w-[5.5rem] sm:w-24 shrink-0',
+};
+const HEAD = 'font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase';
+const NUM = 'font-mono tabular-nums text-[0.82rem] sm:text-[0.9rem]';
+// The same two tones as Rankings: solid for real grosses, tint for the model.
+const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
 
 interface FinishedEntry {
   tmdb_id: number;
@@ -24,17 +40,15 @@ export default function FinishedPage() {
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
   const chart = useRef<HTMLDivElement>(null);
 
-  // Settling the books: rows post top-down, each actual gross runs out from
-  // the left, then the red overshoot extends past it and the predicted caret
-  // drops onto its mark.
+  // Settling the books: rows post top-down, the model's call runs out from
+  // the left, then the actual gross runs out beneath it.
   useGSAP(() => {
     if (status !== 'ok') return;
     motion(() => {
       gsap.timeline({ defaults: { ease: EASE } })
         .from('[data-row]', { opacity: 0, y: 8, duration: 0.4, stagger: 0.05 })
-        .from('[data-bar-actual]', { scaleX: 0, transformOrigin: 'left center', duration: 0.8, stagger: 0.05, ease: 'power2.out' }, 0.1)
-        .from('[data-bar-over]', { scaleX: 0, transformOrigin: 'left center', duration: 0.5, stagger: 0.05, ease: 'power2.out' }, 0.7)
-        .from('[data-caret]', { y: -8, opacity: 0, duration: 0.35, stagger: 0.05, ease: 'back.out(2)' }, 0.8);
+        .from('[data-bar-pred]', { scaleX: 0, transformOrigin: 'left center', duration: 0.8, stagger: 0.05, ease: 'power2.out' }, 0.1)
+        .from('[data-bar-actual]', { scaleX: 0, transformOrigin: 'left center', duration: 0.8, stagger: 0.05, ease: 'power2.out' }, 0.3);
     });
   }, { scope: chart, dependencies: [status] });
 
@@ -73,8 +87,9 @@ export default function FinishedPage() {
           The Ledger
         </h1>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-5">
-          Films whose theatrical runs have closed — the model&rsquo;s call, settled against the
-          final worldwide gross. Overshoots post <span className="text-red font-semibold">in&nbsp;the&nbsp;red</span>.
+          Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
+          to the final gross. When the model called it too high, the difference posts{' '}
+          <span className="text-red">in&nbsp;the&nbsp;red</span>.
         </p>
 
         {/* Aggregate proof */}
@@ -101,16 +116,6 @@ export default function FinishedPage() {
           </div>
         )}
 
-        {/* Legend */}
-        {status === 'ok' && entries.length > 0 && (
-          <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-2.5 bg-ink2" /> Actual worldwide gross</span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block" style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }} /> Predicted
-            </span>
-            <span className="flex items-center gap-1.5"><span className="text-red font-semibold not-italic">Over</span> = model overshot</span>
-          </div>
-        )}
         <div className="rule-double mb-2" />
 
         {status === 'loading' && (
@@ -134,23 +139,35 @@ export default function FinishedPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <div ref={chart} className="border-b border-rule">
+            {/* Column heads: each figure is labelled where it sits */}
+            <div className={`${ROW} pt-1 pb-2 ${HEAD}`}>
+              <span className={COL.poster} />
+              <span className={COL.title}>Film</span>
+              <span className={`${COL.bar} items-center gap-4`}>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-2" style={{ background: TINT }} /> Predicted
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-2 bg-ink2" /> Actual
+                </span>
+              </span>
+              <span className={`${COL.num} text-right`}>Predicted</span>
+              <span className={`${COL.num} text-right`}>Actual</span>
+              <span className={`${COL.diff} text-right`}>Difference</span>
+            </div>
+
             {entries.map((entry) => {
               const diff = entry.predicted_revenue - entry.actual_revenue;
-              const abs = Math.abs(diff);
-              const pct = entry.actual_revenue > 0 ? (abs / entry.actual_revenue) * 100 : 0;
-              const over = diff > 0;
-              const color = over ? 'text-red' : 'text-ink';
               const actualPct = (entry.actual_revenue / maxVal) * 100;
               const predPct = (entry.predicted_revenue / maxVal) * 100;
 
               return (
                 <Link key={entry.tmdb_id} href={`/movie/${entry.tmdb_id}`} data-row className="no-underline text-inherit block group ledger-row border-t border-rule">
-                  <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
-                    {/* Film */}
-                    <div className="shrink-0 border border-ink/30">
+                  <div className={`${ROW} py-3.5`}>
+                    <div className={`${COL.poster} border border-ink/30`}>
                       <Poster src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
                     </div>
-                    <div className="min-w-0 w-[9rem] sm:w-52 shrink-0">
+                    <div className={COL.title}>
                       <p className="text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
@@ -161,58 +178,22 @@ export default function FinishedPage() {
                       )}
                     </div>
 
-                    {/* Bar (desktop): actual gross in ink, overshoot in red, predicted tick */}
-                    <div className="hidden sm:block flex-1 min-w-0">
-                      <div className="relative h-6 w-full">
-                        {/* actual gross — the truth */}
-                        <div data-bar-actual className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${actualPct}%` }} />
-                        {/* faint trace of the overshoot, past the actual bar (over only) */}
-                        {over && (
-                          <div
-                            data-bar-over
-                            className="absolute inset-y-0"
-                            style={{ left: `${actualPct}%`, width: `${predPct - actualPct}%`, background: 'color-mix(in srgb, var(--color-red) 50%, transparent)' }}
-                          />
-                        )}
-                        {/* predicted — an ink caret above the bar (always legible) */}
-                        <div
-                          data-caret
-                          className="absolute"
-                          style={{ left: `calc(${predPct}% - 4px)`, top: '-7px', width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }}
-                        />
-                      </div>
+                    {/* Two bars to one scale: the model's call over the actual gross */}
+                    <div className={`${COL.bar} flex-col gap-1`}>
+                      <div data-bar-pred className="h-2.5" style={{ width: `${predPct}%`, background: TINT }} />
+                      <div data-bar-actual className="h-2.5 bg-ink2" style={{ width: `${actualPct}%` }} />
                     </div>
 
-                    {/* Mobile: error only */}
-                    <div className="sm:hidden text-right shrink-0 ml-auto">
-                      <p className={`font-mono text-[0.85rem] font-bold tabular-nums m-0 ${color}`}>
-                        {over ? 'Over' : 'Under'} {fmt(abs)}
-                      </p>
-                      <p className="font-mono text-ink3 text-[0.66rem] tabular-nums m-0">{pct.toFixed(1)}%</p>
-                    </div>
-
-                    {/* Actual */}
-                    <p className="hidden sm:block text-right font-mono text-ink text-[0.9rem] font-bold tabular-nums m-0 w-24 shrink-0">
-                      {fmt(entry.actual_revenue)}
+                    <p className={`${COL.num} ${NUM} text-right text-ink m-0`}>{fmt(entry.predicted_revenue)}</p>
+                    <p className={`${COL.num} ${NUM} text-right text-ink m-0`}>{fmt(entry.actual_revenue)}</p>
+                    <p className={`${COL.diff} ${NUM} text-right m-0 ${diff > 0 ? 'text-red' : 'text-ink'}`}>
+                      {fmtDiff(diff)}
                     </p>
-                    {/* Error */}
-                    <div className="hidden sm:block text-right w-28 shrink-0">
-                      <p className={`font-mono text-[0.85rem] font-bold tabular-nums m-0 ${color}`}>
-                        {over ? 'Over' : 'Under'} {fmt(abs)}
-                      </p>
-                      <p className="font-mono text-ink3 text-[0.66rem] tabular-nums m-0">{pct.toFixed(1)}%</p>
-                    </div>
                   </div>
                 </Link>
               );
             })}
           </div>
-        )}
-
-        {status === 'ok' && entries.length > 0 && (
-          <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] uppercase mt-4">
-            Bars to scale · error relative to final worldwide gross
-          </p>
         )}
       </div>
     </main>
