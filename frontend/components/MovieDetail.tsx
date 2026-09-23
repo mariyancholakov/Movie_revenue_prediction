@@ -339,7 +339,7 @@ export function MovieDetail({
               <StatCard key="wd" label="Drop per Weekend"
                 value={lam != null ? `\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%` : "\u2014"} />,
               profit != null
-                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0}
+                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)}
                     countTo={profit} format={fmt} />
                 : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
               settled != null && (() => {
