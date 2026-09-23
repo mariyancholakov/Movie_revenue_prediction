@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
 import { RunningHead } from '@/components/RunningHead';
 import { DecayCurve } from '@/components/DecayCurve';
+import { GhostReel } from '@/components/GhostReel';
 import { WireDown } from '@/components/WireDown';
 import { Typed, typeOut } from '@/components/Typed';
 import type { DecayCurveData } from '@/components/types';
@@ -27,7 +28,7 @@ interface Explain {
   decay_curve: (DecayCurveData & { half_life?: number | null }) | null;
 }
 
-interface Film { tmdb_id: number; title: string; budget: number | null; decay_rate: number | null }
+interface Film { tmdb_id: number; title: string; poster: string; budget: number | null; decay_rate: number | null }
 
 const STEPS = [
   { id: 'opening', label: 'The opening' },
@@ -88,6 +89,17 @@ const LABELS: Record<Group, string> = {
   origin: 'Studio, country, language',
   era: 'Release year',
 };
+
+// The step index glides to its step instead of jumping (a plain jump under
+// reduced motion), and keeps the address pointing at the step.
+function goToStep(e: React.MouseEvent<HTMLAnchorElement>, id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  e.preventDefault();
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ behavior: still ? 'auto' : 'smooth', block: 'start' });
+  history.replaceState(null, '', `#${id}`);
+}
 
 export default function HowItWorksPage() {
   const [films, setFilms] = useState<Film[]>([]);
@@ -196,23 +208,28 @@ export default function HowItWorksPage() {
 
   return (
     <main className="min-h-screen text-ink font-sans">
-      <RunningHead active="how" />
+      <RunningHead active="how" stamp={false} />
 
       <div ref={root} className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
-        <p className={`${HEAD} mb-3`}>How it works</p>
-        <h1 className="font-display text-ink text-[2.2rem] sm:text-[3.2rem] font-bold leading-[1.02] m-0 mb-4 max-w-3xl">
-          How a number gets made
-        </h1>
-        <p className={`${PROSE} mb-8`}>
-          MOVIEGROSS takes one hard fact, what a film made in its US opening weekend,
-          and asks how many times over it will earn that back around the world. Below
-          is the whole process, step by step, worked through with the real figures for
-          a film in theaters now.
-        </p>
+        {/* This week's films run faintly behind the page, on a ghost reel
+            pinned low on the screen that the steps scroll over */}
+        <GhostReel posters={films.map(f => f.poster).filter(Boolean)} fixed top="64%" tilt={-8} size={1.6} ink={0.045} />
+        <div>
+          <p className={`${HEAD} mb-3`}>How it works</p>
+          <h1 className="font-display text-ink text-[2.2rem] sm:text-[3.2rem] font-bold leading-[1.02] m-0 mb-4 max-w-3xl">
+            How a number gets made
+          </h1>
+          <p className={`${PROSE} pb-8`}>
+            MOVIEGROSS takes one hard fact, what a film made in its US opening weekend,
+            and asks how many times over it will earn that back around the world. Below
+            is the whole process, step by step, worked through with the real figures for
+            a film in theaters now.
+          </p>
+        </div>
 
         {/* The worked example: every figure on the page below is this film's. */}
         <div className="rule-double" />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3 border-b border-rule">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
           <label htmlFor="film" className={HEAD}>Worked example</label>
           {films.length > 0 ? (
             <select
@@ -237,12 +254,13 @@ export default function HowItWorksPage() {
         <div className="lg:grid lg:grid-cols-[11rem_1fr] lg:gap-14 mt-10">
           {/* Step index: the flow at a glance, and where the reader is in it */}
           <nav aria-label="Steps" className="hidden lg:block">
-            <ol className="sticky top-8 list-none m-0 p-0 border-t border-ink">
+            <ol className="sticky top-8 list-none m-0 p-0">
               {STEPS.map((s, i) => (
-                <li key={s.id} className="border-b border-rule">
+                <li key={s.id}>
                   <a
                     href={`#${s.id}`}
-                    className={`flex items-baseline gap-3 py-2 no-underline text-[0.8rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
+                    onClick={e => goToStep(e, s.id)}
+                    className={`flex items-baseline gap-3 py-1.5 no-underline text-[0.8rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
                   >
                     <span className="font-mono text-[0.7rem] w-4 text-right">{i < 7 ? i + 1 : '·'}</span>
                     <span className={`border-b-2 ${active === s.id ? 'border-red' : 'border-transparent'}`}>{s.label}</span>
@@ -263,7 +281,7 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && (
-                  <div className="border-y border-ink py-4 flex flex-wrap items-baseline justify-between gap-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <p className={`${HEAD} m-0`}>Box Office Mojo · US opening weekend · {data.title}</p>
                     <p data-figure className={`${NUM} text-ink m-0`}><Typed text={fmtMoney(data.opening_weekend)} /></p>
                   </div>
@@ -280,7 +298,7 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!file}>
                 {file && (
-                  <dl className="m-0 border-t-2 border-ink">
+                  <dl className="m-0 border-t border-ink">
                     {(['budget', 'runtime', 'genre', 'timing', 'franchise', 'origin', 'era'] as Group[]).map(g => (
                       <div key={g} data-row className="grid grid-cols-[8.5rem_1fr] sm:grid-cols-[13rem_1fr] gap-4 py-2.5 border-b border-rule">
                         <dt className={`${HEAD} pt-[0.2rem]`}>{LABELS[g]}</dt>
@@ -316,7 +334,7 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && file && (
-                  <div className="border-t-2 border-ink">
+                  <div className="border-t border-ink">
                     <div className={`grid grid-cols-[1fr_auto] sm:grid-cols-[14rem_1fr_5.5rem] gap-x-5 items-center pt-2 pb-2 ${HEAD}`}>
                       <span>Part of the file</span>
                       <span className="hidden sm:flex justify-between">
@@ -366,7 +384,7 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && (
-                  <div className="border-y border-ink grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[1fr_auto_1fr_auto_1.3fr] items-end gap-x-3 sm:gap-x-5 gap-y-4 py-5">
+                  <div className="grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[1fr_auto_1fr_auto_1.3fr] items-end gap-x-3 sm:gap-x-5 gap-y-4">
                     <Figure label="US opening weekend" value={fmtMoney(data.opening_weekend)} />
                     <span className={`${NUM} text-ink3 pb-[0.1rem]`}>×</span>
                     <Figure label="Multiplier" value={`${x2(data.multiplier)}×`} />
@@ -392,9 +410,9 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && (curve && curve.weeks.length > 1 ? (
-                  <div className="border-t-2 border-ink pt-5"><DecayCurve data={curve} /></div>
+                  <DecayCurve data={curve} />
                 ) : (
-                  <p className="border-y border-rule py-4 text-ink2 text-[0.88rem] m-0">
+                  <p className="text-ink2 text-[0.88rem] m-0">
                     Not enough weekends are in yet to fit a curve for {data.title}.
                   </p>
                 ))}
@@ -412,7 +430,7 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={record !== null || status === 'error'}>
                 {record && (
-                  <div className="border-y border-ink grid grid-cols-2 gap-5 py-5">
+                  <div className="grid grid-cols-2 gap-5">
                     <Figure label="Runs settled so far" value={String(record.runs)} />
                     <Figure label="Median miss" value={`${record.median.toFixed(1)}%`} />
                   </div>
@@ -430,7 +448,7 @@ export default function HowItWorksPage() {
                 only if it wins, and a person makes that call.
               </p>
               <Exhibit ready>
-                <div className="border-t-2 border-ink">
+                <div className="border-t border-ink">
                   <div className={`grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 py-2 ${HEAD}`}>
                     <span>Approach</span>
                     <span className="text-right">Avg. miss</span>
@@ -446,7 +464,6 @@ export default function HowItWorksPage() {
                       <span className={`${NUM} text-ink text-right`}>{med}</span>
                     </div>
                   ))}
-                  <div className="border-t border-rule" />
                 </div>
                 <p className={`${HEAD} normal-case tracking-[0.04em] mt-2 mb-0`}>
                   Scored on films released 2017 and later, unseen in training.
@@ -457,7 +474,7 @@ export default function HowItWorksPage() {
 
             {/* The limits */}
             <Step id="limits" title="What the model can’t know">
-              <ul className="list-none m-0 p-0 border-t-2 border-ink max-w-[44rem]">
+              <ul className="list-none m-0 p-0 flex flex-col gap-5 max-w-[44rem]">
                 {[
                   ['Whether the film is any good.', 'Nothing in the file measures word of mouth. A crowd-pleaser and a dud with the same opening and profile get the same number.'],
                   ['Anything before opening day.', 'No opening weekend, no prediction. Films that skip US theaters, or open abroad first, aren’t priced at all.'],
@@ -465,7 +482,7 @@ export default function HowItWorksPage() {
                   ['A film’s life abroad.', 'The total is worldwide, but the only box office the model sees is American. A film far bigger overseas than at home will be undercalled.'],
                   ['Better data than TMDB has.', 'Budgets are often missing or estimates, and the final grosses the Ledger settles against are revised over time.'],
                 ].map(([head, body]) => (
-                  <li key={head} className="py-4 border-b border-rule">
+                  <li key={head}>
                     <p className="text-ink font-semibold text-[0.95rem] m-0 mb-1">{head}</p>
                     <p className="text-ink2 text-[0.9rem] leading-relaxed m-0">{body}</p>
                   </li>
@@ -474,7 +491,7 @@ export default function HowItWorksPage() {
             </Step>
 
             {/* Open source */}
-            <section className="border-t-2 border-ink pt-6 max-w-[44rem]">
+            <section className="max-w-[44rem]">
               <h2 className="font-display text-ink text-[1.6rem] sm:text-[2rem] font-bold leading-tight m-0 mb-3">
                 Check the working
               </h2>
