@@ -23,16 +23,19 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 ```
 
 - **Prediction:** TMDB details plus the Box Office Mojo opening weekend are
-  turned into 26 features and fed to the model. The label is TMDB `revenue`
-  (worldwide), while the opening weekend and decay curve are US domestic.
-  Results are cached in Supabase for 7 days.
+  turned into features (budget, runtime, genres, studio, release timing,
+  franchise and release year). The model predicts the multiplier, total ÷
+  opening weekend, and multiplies it back out (`model_lib.py`). The label is
+  TMDB `revenue` (worldwide), while the opening weekend and decay curve are
+  US domestic. Results are cached in Supabase for 7 days, and films in
+  theaters are re-scored with the current model on every read.
 - **Settling:** a weekly job marks a film finished once it has left the
   now-playing list, is at least 12 weeks past release, and has a TMDB revenue
   figure. It stores that as the ground truth and keeps raising it as TMDB
   revises it.
 - **Retraining** (`retrain.py`) trains on the seed set plus settled runs and
-  compares it to a seed-only baseline on a shared holdout. Promotion is always
-  deliberate.
+  compares the candidate to the previous approach on seed films from 2017 on,
+  trained only on earlier ones. Promotion is always deliberate.
 
 ## Repository
 
@@ -42,7 +45,9 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | `flask-api/scraper.py` | TMDB client and Box Office Mojo scraping + decay fit |
 | `flask-api/warm_cache.py` | Pre-computes predictions for every now-playing film |
 | `flask-api/capture_finished.py` | Settles finished runs (optionally retrains) |
+| `flask-api/model_lib.py` | The model class and the franchise features shared by training and serving |
 | `flask-api/retrain.py` | Holdout-validated retraining; `--promote` to swap the model |
+| `flask-api/scripts/enrich_seed.py` | Adds TMDB release date and franchise columns to the seed CSV |
 | `flask-api/migrations/` | SQL to run in the Supabase SQL editor, in order |
 | `frontend/` | Next.js 16 app (App Router, Tailwind v4) |
 | `.github/workflows/pipeline.yml` | Scheduled cache warming, capture, manual retrain |
