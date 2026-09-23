@@ -112,11 +112,8 @@ body {
   [data-intro] { visibility: hidden; animation: introFallback 0s 2.5s forwards; }
 }
 
-/* Analyzing indicator: a thin adding-machine tape scanning. */
-@keyframes tapeScan {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
+/* Typewriter caret. */
+@keyframes caretBlink { 50% { opacity: 0; } }
 
 /* Newsprint placeholder shimmer (loading). */
 @keyframes paperShimmer {

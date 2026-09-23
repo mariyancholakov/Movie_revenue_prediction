@@ -6,6 +6,7 @@ import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
+import { Typed, TypedLoader, typeOut } from "./Typed";
 
 const fmt = (n: number) => {
   const a = Math.abs(n);
@@ -124,9 +125,10 @@ export function MovieDetail({
   const [now] = useState(() => Date.now());
   const root = useRef<HTMLElement>(null);
 
-  // When the numbers land: the rule draws, the four figures post one after
-  // another, then the decay chart inks its line and plots each weekend.
-  // A failed prediction just slides its notice in.
+  // When the numbers land they are typed up like a filed dispatch: the rule
+  // draws, the label types its dateline, the carriage returns to the grid and
+  // each figure is struck in turn, then the decay chart inks its line and
+  // plots each weekend. A failed prediction just slides its notice in.
   useGSAP(() => {
     if (!prediction) return;
     motion(() => {
@@ -135,10 +137,15 @@ export function MovieDetail({
         return;
       }
       const tl = gsap.timeline({ defaults: { ease: EASE } })
-        .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' })
-        .from('[data-ledger-label]', { opacity: 0, duration: 0.3 }, '-=0.3')
-        .from('[data-cell]', { y: 16, opacity: 0, duration: 0.5, stagger: 0.08 }, '-=0.15')
-        .from('[data-ledger-follow]', { y: 12, opacity: 0, duration: 0.5, stagger: 0.1 }, '-=0.2');
+        .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' });
+
+      const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
+      const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
+      typeOut(tl, root.current!.querySelector('[data-ledger-label]')!, { pace: 0.25 });
+      tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '+=0.1');
+      figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
+
+      tl.from('[data-ledger-follow]', { y: 12, opacity: 0, duration: 0.5, stagger: 0.1 }, '-=0.2');
 
       const line = root.current?.querySelector<SVGPathElement>('[data-line]');
       if (line) {
@@ -295,16 +302,7 @@ export function MovieDetail({
 
             {!notReleased && predicting && !prediction && (
               <div className="border border-ink/25 px-5 py-4">
-                <p className="font-mono text-[0.68rem] tracking-[0.2em] text-ink mb-3">TOTTING UP…</p>
-                <div className="relative h-1 bg-panel overflow-hidden">
-                  <div
-                    className="absolute inset-y-0 w-1/3 bg-red"
-                    style={{ animation: "tapeScan 1.1s ease-in-out infinite" }}
-                  />
-                </div>
-                <p className="font-sans text-[0.72rem] text-ink3 mt-3 m-0">
-                  Modeling the weekend-by-weekend trajectory
-                </p>
+                <TypedLoader />
               </div>
             )}
           </div>
@@ -320,27 +318,26 @@ export function MovieDetail({
         <div className="mt-11">
           <div data-ledger-rule className="rule-double mb-1" />
           <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
-            The Prediction
+            <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
           </p>
 
           {/* A settled run adds its final gross and the miss, making two rows
               of three; otherwise the four figures share one row. */}
           <div className={`grid grid-cols-2 ${settled != null ? "sm:grid-cols-3" : "sm:grid-cols-4"} border-t border-l border-ink/20`}>
             {[
-              <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)}
-                countTo={prediction.opening_weekend} format={fmt} />,
-              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} headline
-                countTo={prediction.predicted_revenue} format={fmt} />,
+              <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)} />,
+              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} headline />,
               settled != null && (
-                <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} countTo={settled} format={fmt} />
+                <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
               ),
               // decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
               // weekend keeps e^(−λ) of the one before.
-              <StatCard key="wd" label="Drop per Weekend"
-                value={lam != null ? `\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%` : "\u2014"} />,
+              (() => {
+                const drop = lam != null ? `\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%` : "\u2014";
+                return <StatCard key="wd" label="Drop per Weekend" value={drop} />;
+              })(),
               profit != null
-                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)}
-                    countTo={profit} format={fmt} />
+                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} />
                 : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
               settled != null && (() => {
                 // Actual minus predicted, as on The Ledger: red when the film
