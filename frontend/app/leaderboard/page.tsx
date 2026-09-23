@@ -50,17 +50,17 @@ export default function LeaderboardPage() {
           )}
         </div>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-3">
-          Every film now playing, ranked by the model&rsquo;s predicted total run.
+          Every film now playing, ranked by the model&rsquo;s predicted worldwide run.
         </p>
 
         {/* Legend */}
         {status === 'ok' && entries.length > 0 && (
           <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-4 h-2.5 bg-ink2" /> Opening weekend
+              <span className="inline-block w-4 h-2.5 bg-ink2" /> US opening weekend
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-4 h-2.5" style={{ background: 'color-mix(in srgb, var(--color-ink2) 30%, transparent)' }} /> → Predicted total
+              <span className="inline-block w-4 h-2.5" style={{ background: 'color-mix(in srgb, var(--color-ink2) 30%, transparent)' }} /> → Predicted worldwide total
             </span>
           </div>
         )}
@@ -97,10 +97,9 @@ export default function LeaderboardPage() {
           <div className="border-b border-rule">
             {entries.map((entry, i) => {
               const multiplier = entry.predicted_revenue / Math.max(entry.opening_weekend, 1);
-              const multColor =
-                multiplier >= 3.5 ? 'text-ink font-bold' :
-                multiplier >= 2.5 ? 'text-ink' :
-                'text-red';
+              // No colour grading: the old 2.5×/3.5× bands were domestic-legs
+              // rules of thumb, meaningless for a worldwide ÷ domestic ratio.
+              const multColor = 'text-ink2';
               const predPct = (entry.predicted_revenue / maxRevenue) * 100;
               const openPct = (entry.opening_weekend / maxRevenue) * 100;
               const lead = i === 0;
@@ -171,7 +170,7 @@ export default function LeaderboardPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] mt-8 uppercase">
-            Multiplier = predicted total ÷ opening weekend · bars to scale
+            Multiplier = predicted worldwide total ÷ US opening weekend · bars to scale
           </p>
         )}
       </div>

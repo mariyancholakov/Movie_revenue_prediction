@@ -59,7 +59,7 @@ export default function FinishedPage() {
         </h1>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-5">
           Films whose theatrical runs have closed — the model&rsquo;s call, settled against the
-          final gross. Overshoots post <span className="text-red font-semibold">in&nbsp;the&nbsp;red</span>.
+          final worldwide gross. Overshoots post <span className="text-red font-semibold">in&nbsp;the&nbsp;red</span>.
         </p>
 
         {/* Aggregate proof */}
@@ -89,7 +89,7 @@ export default function FinishedPage() {
         {/* Legend */}
         {status === 'ok' && entries.length > 0 && (
           <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
-            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-2.5 bg-ink2" /> Actual gross</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-4 h-2.5 bg-ink2" /> Actual worldwide gross</span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block" style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '6px solid var(--color-ink)' }} /> Predicted
             </span>
@@ -194,7 +194,7 @@ export default function FinishedPage() {
 
         {status === 'ok' && entries.length > 0 && (
           <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] uppercase mt-4">
-            Bars to scale · error relative to final gross
+            Bars to scale · error relative to final worldwide gross
           </p>
         )}
       </div>

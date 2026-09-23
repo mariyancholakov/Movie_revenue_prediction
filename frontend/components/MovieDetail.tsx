@@ -219,9 +219,9 @@ export function MovieDetail({
 
           <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-l border-ink/20 mb-11">
             {[
-              <StatCard key="ow" label="Opening Weekend" value={fmt(prediction.opening_weekend)}
+              <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)}
                 countTo={prediction.opening_weekend} format={fmt} />,
-              <StatCard key="pt" label="Predicted Total" value={fmt(prediction.predicted_revenue)} highlight
+              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} highlight
                 countTo={prediction.predicted_revenue} format={fmt} />,
               <StatCard key="dr" label="Decay Rate λ" value={prediction.decay_curve?.decay_rate ?? "N/A"} />,
               (selected.budget ?? 0) > 0
@@ -250,7 +250,7 @@ export function MovieDetail({
                   Run settled
                 </p>
                 <p className="text-ink text-[0.9rem] leading-[1.55] m-0">
-                  Final gross{" "}
+                  Final worldwide gross{" "}
                   <span className="font-mono tabular-nums font-bold">{fmt(actual)}</span>
                   {" · "}
                   <span className={`font-mono tabular-nums font-bold ${over ? "text-red" : "text-ink"}`}>
@@ -265,7 +265,7 @@ export function MovieDetail({
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div>
               <div className="flex items-end justify-between mb-5">
-                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">Weekend Gross Decay</h3>
+                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
                 <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>
               </div>
               <DecayCurve data={prediction.decay_curve} />

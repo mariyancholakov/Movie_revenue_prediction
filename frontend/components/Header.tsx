@@ -56,7 +56,7 @@ export function Header() {
 
       {/* Dek */}
       <p className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[38rem] mx-auto mt-5 mb-0">
-        Every film now playing, priced to its finish — the total theatrical run,
+        Every film now playing, priced to its finish — the worldwide theatrical run,
         predicted by a model read on 5,000&nbsp;past releases.
       </p>
 
