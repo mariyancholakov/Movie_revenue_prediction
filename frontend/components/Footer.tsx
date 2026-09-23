@@ -1,3 +1,5 @@
+import { Seal } from './Seal';
+
 // Site-wide footer. Carries the two lines that must appear on every page:
 // the model disclaimer (product requirement) and TMDB attribution (TMDB API ToS
 // requires it wherever their data is shown).
@@ -6,8 +8,11 @@ export function Footer() {
     <footer className="mt-auto px-4 sm:px-8 lg:px-14 pt-8 pb-12">
       <div className="rule-double mb-4" />
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
-        <span className="font-display text-lg font-black tracking-[0.01em] text-ink">
-          MOVIEGROSS
+        <span className="flex items-center gap-3">
+          <Seal size={52} />
+          <span className="font-display text-lg font-black tracking-[0.01em] text-ink">
+            MOVIEGROSS
+          </span>
         </span>
         <div className="flex flex-col gap-1 sm:items-end">
           <p className="font-mono text-[0.58rem] tracking-[0.13em] text-ink3 m-0 uppercase">
