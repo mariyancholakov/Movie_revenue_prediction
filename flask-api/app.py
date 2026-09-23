@@ -160,14 +160,17 @@ def store_features(tmdb_id, feature_row):
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
 
 def complete_snapshot(movie):
-    """Add columns introduced after a film's snapshot was taken (the
-    franchise and release-year features) and store the result, so an older
-    snapshot is upgraded once instead of looked up on every read. Raises if
-    TMDB can't be reached."""
+    """Bring a film's feature snapshot up to SNAPSHOT_COLUMNS and store it:
+    add the columns introduced after it was taken (franchise, release year),
+    or build it outright for a row cached before snapshots existed. Runs once
+    per film instead of on every read. Raises if TMDB can't be reached."""
     details = get_movie_details(movie['tmdb_id'])
     if not details:
         raise ConnectionError(f"TMDB details unavailable for {movie['tmdb_id']}")
-    feats = {**movie['features'], **get_franchise_features(details)}
+    if movie.get('features'):
+        feats = {**movie['features'], **get_franchise_features(details)}
+    else:
+        feats = features_to_json(build_feature_row(details, movie['opening_weekend']))
     supabase.table('movies').update({'features': feats}).eq('tmdb_id', movie['tmdb_id']).execute()
     movie['features'] = feats
     return feats
@@ -182,8 +185,8 @@ def live_prediction(movie):
     cache expires. A finished run keeps the prediction it was settled with,
     since that's the claim the Ledger holds the model to."""
     stored = movie.get('predicted_revenue')
-    feats = movie.get('features')
-    if movie.get('is_in_theaters') is False or not feats:
+    feats = movie.get('features') or {}
+    if movie.get('is_in_theaters') is False or not movie.get('opening_weekend'):
         return stored
     try:
         if any(c not in feats for c in MODEL_FEATURES):
