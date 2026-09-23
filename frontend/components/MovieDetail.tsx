@@ -158,16 +158,25 @@ export function MovieDetail({
     ? Infinity
     : (now - releaseTime) / 86_400_000;
 
-  // navigator.clipboard is missing on insecure origins and writeText rejects
-  // when permission is denied, so report failure instead of claiming success.
+  // Shares this film's page. Phones get the native share sheet; elsewhere the
+  // link is copied. navigator.clipboard is missing on insecure origins and
+  // writeText rejects when permission is denied, so report failure instead of
+  // claiming success. Dismissing the share sheet is not a failure.
   const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+      try {
+        await navigator.share({ title: `${selected.title} \u2014 MOVIEGROSS`, url });
+      } catch {}
+      return;
+    }
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      await navigator.clipboard.writeText(url);
       setShareState("copied");
     } catch {
       setShareState("failed");
     }
-    setTimeout(() => setShareState("idle"), 2000);
+    setTimeout(() => setShareState("idle"), 2500);
   };
 
   return (
@@ -183,10 +192,27 @@ export function MovieDetail({
         </button>
         <button
           onClick={handleShare}
-          className="font-sans text-[0.68rem] tracking-[0.14em] font-semibold text-ink2
-                     hover:text-red transition-colors bg-transparent border-0 p-0"
+          title="Copy a link to this film\u2019s page"
+          aria-live="polite"
+          className="inline-flex items-center gap-1.5 font-sans text-[0.68rem] tracking-[0.14em] font-semibold
+                     text-ink2 hover:text-red transition-colors bg-transparent border-0 p-0"
         >
-          {shareState === "copied" ? "LINK COPIED" : shareState === "failed" ? "COPY FAILED" : "COPY LINK"}
+          <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+            {shareState === "copied" ? (
+              <path d="M5 12.5l4.5 4.5L19 7.5" />
+            ) : (
+              <>
+                <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
+                <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" />
+              </>
+            )}
+          </svg>
+          {shareState === "copied"
+            ? "LINK COPIED"
+            : shareState === "failed"
+              ? "COULDN\u2019T COPY"
+              : "SHARE THIS FILM"}
         </button>
       </div>
 
