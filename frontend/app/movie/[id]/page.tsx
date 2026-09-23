@@ -21,29 +21,19 @@ export default function MoviePage() {
   const [predicting, setPredicting] = useState(false);
 
   useEffect(() => {
+    // The film itself comes from its own endpoint, so any TMDB id resolves —
+    // including finished runs linked from the Ledger, which are no longer in
+    // the now-playing list.
+    fetch(`${API_URL}/api/movie/${tmdbId}`)
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((data: Movie) => setMovie(data))
+      .catch(() => setNotFound(true));
+
+    // "See Also" is a nice-to-have; a failure here just hides the strip.
     fetch(`${API_URL}/api/now-playing`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-      .then((movies: Movie[]) => {
-        setAllMovies(movies);
-        const found = movies.find(m => m.tmdb_id === tmdbId) ?? null;
-        if (!found) { setNotFound(true); return; }
-        setMovie(found);
-        fetch(`${API_URL}/api/movie/${tmdbId}/cast`)
-          .then(r => r.json())
-          .then(data => setMovie(prev => prev
-            ? {
-                ...prev,
-                cast: data.cast,
-                director: data.director ?? undefined,
-                budget: data.budget ?? 0,
-                runtime: data.runtime ?? undefined,
-                vote_average: data.vote_average ?? undefined,
-              }
-            : prev
-          ))
-          .catch(() => {});
-      })
-      .catch(() => setNotFound(true));
+      .then((movies: Movie[]) => setAllMovies(movies))
+      .catch(() => {});
   }, [tmdbId]);
 
   const handlePredict = async () => {

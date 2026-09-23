@@ -220,6 +220,28 @@ export function MovieDetail({
             ))}
           </div>
 
+          {(prediction.actual_revenue ?? 0) > 0 && (() => {
+            const actual = prediction.actual_revenue!;
+            const diff = prediction.predicted_revenue - actual;
+            const over = diff > 0;
+            return (
+              <div className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
+                <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase m-0 mb-1.5">
+                  Run settled
+                </p>
+                <p className="text-ink text-[0.9rem] leading-[1.55] m-0">
+                  Final gross{" "}
+                  <span className="font-mono tabular-nums font-bold">{fmt(actual)}</span>
+                  {" · "}
+                  <span className={`font-mono tabular-nums font-bold ${over ? "text-red" : "text-ink"}`}>
+                    {over ? "Over" : "Under"} {fmt(Math.abs(diff))}
+                  </span>
+                  <span className="text-ink3"> ({((Math.abs(diff) / actual) * 100).toFixed(1)}%)</span>
+                </p>
+              </div>
+            );
+          })()}
+
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div>
               <div className="flex items-end justify-between mb-5">

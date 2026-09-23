@@ -3,7 +3,7 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_cast, get_movie_credits
+from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
@@ -157,20 +157,14 @@ def now_playing():
     movies = get_now_playing()
     return jsonify(movies)
 
-@app.route('/api/movie/<int:tmdb_id>/cast', methods=['GET'])
-def movie_cast(tmdb_id):
-    cast, director = get_movie_credits(tmdb_id)
-    details = get_movie_details(tmdb_id)
-    vote_avg = details.get('vote_average', 0)
-    vote_count = details.get('vote_count', 0)
-    return jsonify({
-        'cast': cast,
-        'director': director,
-        'budget': details.get('budget', 0),
-        'runtime': details.get('runtime', 0),
-        'vote_average': round(vote_avg, 1) if vote_count > 50 else None,
-        'vote_count': vote_count,
-    })
+@app.route('/api/movie/<int:tmdb_id>', methods=['GET'])
+def movie(tmdb_id):
+    """One film's page data. Works for any TMDB id, not just now-playing, so
+    films linked from the Ledger (whose runs have ended) still resolve."""
+    page = get_movie_page(tmdb_id)
+    if not page:
+        return jsonify({'error': 'Movie not found.'}), 404
+    return jsonify(page)
 
 def predict_for(tmdb_id):
     """Core prediction pipeline: returns (payload_dict, status_code), honoring the
@@ -201,6 +195,16 @@ def predict_for(tmdb_id):
             'opening_weekend': movie['opening_weekend'],
             'cached': True,
         }
+
+        # A finished run is settled: always serve the stored prediction next to
+        # the real total. Re-scraping would also upsert is_in_theaters=True and
+        # pull the film back out of the Ledger.
+        if movie.get('is_in_theaters') is False:
+            return {
+                **base,
+                'actual_revenue': movie.get('actual_revenue'),
+                'decay_curve': decay_curve_from_db(weekly_rows, movie.get('decay_rate'), movie.get('half_life')),
+            }, 200
 
         # Fresh + complete → serve straight from cache.
         if has_decay and age < FULL_TTL:

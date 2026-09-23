@@ -65,23 +65,31 @@ def get_movie_details(tmdb_id):
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
     return _tmdb_get(url) or {}
 
-def get_movie_cast(tmdb_id, limit=6):
-    """Get top cast names for a movie from TMDB. Returns [] on failure."""
-    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-    data = _tmdb_get(url) or {}
-    return [actor['name'] for actor in data.get('cast', [])[:limit]]
-
-def get_movie_credits(tmdb_id, cast_limit=6):
-    """Get cast and director from a single TMDB credits call.
-    Returns ([], None) on failure."""
-    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}"
-    data = _tmdb_get(url) or {}
-    cast = [actor['name'] for actor in data.get('cast', [])[:cast_limit]]
-    director = next(
-        (m['name'] for m in data.get('crew', []) if m['job'] == 'Director'),
-        None
-    )
-    return cast, director
+def get_movie_page(tmdb_id, cast_limit=6):
+    """Everything the movie page shows, from one TMDB call (details + credits).
+    Returns None on failure."""
+    url = (f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}"
+           f"&append_to_response=credits")
+    data = _tmdb_get(url)
+    if not data:
+        return None
+    credits = data.get('credits') or {}
+    poster_path = data.get('poster_path')
+    vote_count = data.get('vote_count', 0)
+    return {
+        'tmdb_id': data['id'],
+        'title': data.get('title', ''),
+        'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
+        'release_date': data.get('release_date', ''),
+        'overview': data.get('overview', ''),
+        'genres': [g['name'] for g in data.get('genres', [])],
+        'cast': [a['name'] for a in credits.get('cast', [])[:cast_limit]],
+        'director': next((m['name'] for m in credits.get('crew', []) if m.get('job') == 'Director'), None),
+        'budget': data.get('budget', 0),
+        'runtime': data.get('runtime', 0),
+        # A handful of votes is noise; only surface the rating once it means something.
+        'vote_average': round(data.get('vote_average', 0), 1) if vote_count > 50 else None,
+    }
 
 def get_opening_weekend(imdb_id):
     """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""

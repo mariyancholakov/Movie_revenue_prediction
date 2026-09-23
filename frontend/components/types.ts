@@ -23,6 +23,8 @@ export interface DecayCurveData {
 export interface Prediction {
   opening_weekend: number;
   predicted_revenue: number;
+  // Set only once the run has finished: the real total it's settled against.
+  actual_revenue?: number | null;
   decay_curve?: DecayCurveData;
   error?: string;
 }
