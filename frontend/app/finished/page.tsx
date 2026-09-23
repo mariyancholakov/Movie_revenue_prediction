@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { RunningHead } from '@/components/RunningHead';
+import { WireDown } from '@/components/WireDown';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:5000';
 
@@ -105,15 +106,7 @@ export default function FinishedPage() {
           </div>
         )}
 
-        {status === 'error' && (
-          <div className="border border-ink/25 bg-panel/50 px-6 py-8 text-center mt-6">
-            <p className="font-display text-ink text-lg font-bold mb-1.5">The wire is down</p>
-            <p className="text-ink2 text-[0.85rem] m-0">
-              No connection to the box-office desk. Start the Flask server on{' '}
-              <span className="font-mono text-ink">{API_URL}</span>.
-            </p>
-          </div>
-        )}
+        {status === 'error' && <WireDown className="mt-6" />}
 
         {status === 'ok' && entries.length === 0 && (
           <div className="py-16 text-center max-w-md mx-auto">
