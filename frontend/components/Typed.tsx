@@ -56,60 +56,58 @@ export function typeOut(tl: gsap.core.Timeline, el: Element, { pace = 1, keepCar
   else tl.set(caret, { opacity: 0 }, t);
 }
 
-// Loading state: a running log. The typist types what the server is doing,
-// one step per line, each finished line dimming as the next begins; the last
-// keeps a blinking caret until the answer lands. Reduced motion (and SSR)
-// shows a single static line instead.
-const STEPS = ['PULLING THE FILM DETAILS', 'CHECKING THE WEEKEND GROSSES', 'RUNNING THE MODEL'];
+// Loading state: one line typed quickly behind a caret, then dots struck one
+// at a time and cleared, on a loop until the answer lands. Answers are often back in
+// a moment, so this has to read at a glance. Reduced motion (and SSR) shows
+// the line with its dots, still.
+const LINE = 'FILING THE NUMBERS';
 
 export function TypedLoader() {
-  const root = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLParagraphElement>(null);
 
   useGSAP(() => {
     motion(() => {
-      const q = gsap.utils.selector(root);
-      const lines = q('[data-step]');
-      gsap.set(q('[data-static]'), { display: 'none' });
-      const tl = gsap.timeline();
-      lines.forEach((line, i) => {
-        const text = line.querySelector<HTMLElement>('[data-text]')!;
-        const caret = line.querySelector('[data-caret]');
-        const step = STEPS[i];
-        const n = { i: 0 };
-        tl.set(line, { display: 'flex' }, i ? '+=0.35' : 0)
-          .to(n, {
-            i: step.length,
-            duration: step.length * 0.032,
-            ease: `steps(${step.length})`,
-            onUpdate: () => { text.textContent = step.slice(0, Math.round(n.i)); },
-          });
-        if (i < lines.length - 1) {
-          tl.set(caret, { display: 'none' }, '+=0.35').to(line, { color: 'var(--color-ink3)', duration: 0.3 }, '<');
-        }
-      });
+      const text = root.current!.querySelector<HTMLElement>('[data-text]')!;
+      const dots = root.current!.querySelector<HTMLElement>('[data-dots]')!;
+      const caret = root.current!.querySelector('[data-caret]');
+      const n = { i: 0 };
+      const d = { i: 0 };
+      text.textContent = '';
+      dots.textContent = '';
+      gsap.timeline()
+        .to(n, {
+          i: LINE.length,
+          duration: LINE.length * 0.028,
+          ease: `steps(${LINE.length})`,
+          onUpdate: () => { text.textContent = LINE.slice(0, Math.round(n.i)); },
+        })
+        // the caret steps aside once the line is typed; the dots carry on
+        .set(caret, { display: 'none' }, '+=0.15')
+        .add(
+          gsap.timeline({ repeat: -1, repeatDelay: 0.25 }).to(d, {
+            i: 3,
+            duration: 0.9,
+            ease: 'steps(3)',
+            onUpdate: () => { dots.textContent = '.'.repeat(Math.round(d.i)); },
+          })
+        );
     });
   }, { scope: root });
 
-  const caret = (
-    <span
-      data-caret
-      aria-hidden
-      className="inline-block w-[0.6em] h-[1.1em] bg-current ml-1"
-      style={{ animation: 'caretBlink 0.9s steps(1) infinite' }}
-    />
-  );
-  const line = 'flex items-center min-h-[1.5em]';
-
   return (
-    <div ref={root} className="font-mono text-[0.78rem] sm:text-[0.85rem] tracking-[0.14em] text-ink">
+    <p
+      ref={root}
+      className="font-mono text-[0.78rem] sm:text-[0.85rem] tracking-[0.14em] text-ink m-0 flex items-center min-h-[1.5em]"
+    >
       <span className="sr-only">Filing the numbers</span>
-      <p data-static aria-hidden className={`${line} m-0`}>FILING THE NUMBERS{caret}</p>
-      {STEPS.map(step => (
-        <p key={step} data-step aria-hidden className={`${line} m-0 hidden`}>
-          <span data-text className="whitespace-pre" />
-          {caret}
-        </p>
-      ))}
-    </div>
+      <span data-text aria-hidden className="whitespace-pre">{LINE}</span>
+      <span data-dots aria-hidden className="whitespace-pre">...</span>
+      <span
+        data-caret
+        aria-hidden
+        className="inline-block w-[0.6em] h-[1.1em] bg-current"
+        style={{ animation: 'caretBlink 0.9s steps(1) infinite' }}
+      />
+    </p>
   );
 }
