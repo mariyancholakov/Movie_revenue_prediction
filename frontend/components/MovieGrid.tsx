@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { EASE, gsap, motion, ScrollTrigger, useGSAP } from '@/lib/motion';
 import { Poster } from './Poster';
 import type { Movie } from './types';
 import { SearchBar } from './SearchBar';
 import { WireDown } from './WireDown';
+import { awaitingOpening } from '@/lib/release';
 
 interface MovieGridProps {
   filteredMovies: Movie[];
@@ -39,6 +40,8 @@ export function MovieGrid({
   const isFiltering = query.trim() !== '' || activeGenres.length > 0;
   const hasNoResults = !loading && status !== 'error' && filteredMovies.length === 0;
   const grid = useRef<HTMLDivElement>(null);
+  // One reading of the clock for the opening-weekend tags (render stays pure).
+  const [now] = useState(() => Date.now());
 
   // Posters rise into place in small batches as they scroll into view, once.
   // Only the first render of the list is choreographed; cards that reappear
@@ -111,6 +114,12 @@ export function MovieGrid({
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
                 className="object-cover"
               />
+              {/* No opening-weekend figure yet, so nothing to predict until Monday */}
+              {awaitingOpening(movie.us_release_date, now) && (
+                <span className="absolute left-0 bottom-0 bg-ink text-paper font-mono text-[0.56rem] tracking-[0.14em] px-2 py-1">
+                  FIGURES MONDAY
+                </span>
+              )}
             </div>
             {/* Printed caption */}
             <div className="mt-3 pl-0.5">

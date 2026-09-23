@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
 import { estProfit } from "@/lib/profit";
+import { parseDay } from "@/lib/release";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
@@ -161,9 +162,12 @@ export function MovieDetail({
 
   const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
   const notReleased = !Number.isNaN(releaseTime) && releaseTime > now;
-  const daysSinceRelease = Number.isNaN(releaseTime)
+  // Opening-weekend timing counts from the US release, which can trail the
+  // film's first release elsewhere.
+  const usRelease = parseDay(selected.us_release_date)?.getTime() ?? releaseTime;
+  const daysSinceRelease = Number.isNaN(usRelease)
     ? Infinity
-    : (now - releaseTime) / 86_400_000;
+    : (now - usRelease) / 86_400_000;
 
   // Shares this film's page. Phones get the native share sheet; elsewhere the
   // link is copied. navigator.clipboard is missing on insecure origins and

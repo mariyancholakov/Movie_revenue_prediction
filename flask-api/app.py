@@ -257,6 +257,8 @@ def movie(tmdb_id):
         return jsonify({'error': 'Movie not found.', 'code': 'not_found'}), 404
     if not page:
         return jsonify({'error': 'TMDB is not responding.', 'code': 'tmdb_unavailable'}), 503
+    # When it opened in US theaters, which is when a prediction becomes possible.
+    page['us_release_date'] = get_us_theatrical_date(tmdb_id) or ''
     return jsonify(page)
 
 def predict_for(tmdb_id):
