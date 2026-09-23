@@ -10,10 +10,17 @@ import os
 import json
 from dotenv import load_dotenv
 
-app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"])
-
 load_dotenv()
+
+app = Flask(__name__)
+
+# Allowed browser origins come from the environment so the deployed frontend
+# (e.g. the Vercel URL) can be whitelisted without a code change. Comma-separated;
+# defaults to local dev.
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if o.strip()
+]
+CORS(app, origins=ALLOWED_ORIGINS)
 
 supabase = create_client(
     os.getenv('SUPABASE_URL'),
@@ -123,6 +130,23 @@ def store_features(tmdb_id, feature_row):
             .eq('tmdb_id', tmdb_id).execute()
     except Exception as e:
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
+
+@app.route('/health', methods=['GET'])
+def health():
+    """Lightweight liveness probe for the host's health check. Reports whether
+    the model loaded and whether Supabase is reachable, but always returns 200 so
+    a transient DB blip doesn't get the whole service restarted."""
+    db_ok = True
+    try:
+        supabase.table('movies').select('count').limit(1).execute()
+    except Exception:
+        db_ok = False
+    return jsonify({
+        'status': 'ok',
+        'model_loaded': model is not None,
+        'db': 'ok' if db_ok else 'unreachable',
+    })
+
 
 @app.route('/api/now-playing', methods=['GET'])
 def now_playing():
@@ -400,4 +424,9 @@ def refresh_finished():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Local dev entrypoint only. In production the app is served by gunicorn
+    # (see Procfile), which imports the module-level `app` and never runs this.
+    # debug defaults OFF; opt in locally with FLASK_DEBUG=1.
+    debug = os.getenv('FLASK_DEBUG', '').lower() in ('1', 'true', 'yes')
+    port = int(os.getenv('PORT', '5000'))
+    app.run(debug=debug, host='0.0.0.0', port=port)
