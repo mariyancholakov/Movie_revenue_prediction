@@ -18,9 +18,6 @@ export function RunningHead({ active = 'none' }: { active?: Section }) {
           <span className="font-display text-ink text-[1.15rem] sm:text-[1.35rem] font-black tracking-[0.02em] leading-none">
             MOVIEGROSS
           </span>
-          <span className="hidden sm:inline font-mono text-ink3 text-[0.6rem] tracking-[0.14em] ml-3 align-middle">
-            THE BOX-OFFICE ORACLE
-          </span>
         </Link>
 
         <nav className="flex items-center gap-5 sm:gap-7">

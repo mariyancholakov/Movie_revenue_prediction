@@ -55,6 +55,14 @@ body {
   outline-offset: 2px;
 }
 
+/* The search field shows focus on its own underline, which turns red,
+   instead of the global outline box. */
+.search-field:focus,
+.search-field:focus-visible {
+  outline: none;
+  border-bottom-color: var(--color-red);
+}
+
 /* ─── Newspaper rules ─────────────────────────────────────────────────────── */
 
 /* Classic thick-over-thin double rule for section breaks / the nameplate. */
