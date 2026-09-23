@@ -378,6 +378,10 @@ def leaderboard():
 
     results = []
     for movie in cached.data:
+        # TMDB can keep listing a film after its run is settled; it belongs on
+        # the Ledger then, not in the rankings of open runs.
+        if movie.get('is_in_theaters') is False:
+            continue
         predicted = live_prediction(movie)
         if not predicted:
             continue
