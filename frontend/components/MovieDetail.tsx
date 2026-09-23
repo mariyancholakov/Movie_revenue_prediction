@@ -12,7 +12,6 @@ const fmt = (n: number) => {
   return (n < 0 ? "\u2212$" : "$") + (a >= 1e9 ? (a / 1e9).toFixed(2) + "B" : (a / 1e6).toFixed(1) + "M");
 };
 
-
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
@@ -287,68 +286,57 @@ export function MovieDetail({
       </div>
 
       {/* Prediction ledger */}
-      {prediction && !prediction.error && (
+      {prediction && !prediction.error && (() => {
+        const lam = prediction.decay_curve?.decay_rate ?? null;
+        const profit = (selected.budget ?? 0) > 0 ? estProfit(prediction.predicted_revenue, selected.budget!) : null;
+        const settled = (prediction.actual_revenue ?? 0) > 0 ? prediction.actual_revenue! : null;
+        return (
         <div className="mt-11">
           <div data-ledger-rule className="rule-double mb-1" />
           <p data-ledger-label className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
             The Prediction
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-l border-ink/20 mb-11">
+          {/* A settled run adds its final gross and the miss, making two rows
+              of three; otherwise the four figures share one row. */}
+          <div className={`grid grid-cols-2 ${settled != null ? "sm:grid-cols-3" : "sm:grid-cols-4"} border-t border-l border-ink/20`}>
             {[
               <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)}
                 countTo={prediction.opening_weekend} format={fmt} />,
-              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} highlight
+              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)}
                 countTo={prediction.predicted_revenue} format={fmt} />,
-              (() => {
-                // decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
-                // weekend keeps e^(−λ) of the one before.
-                const lam = prediction.decay_curve?.decay_rate;
-                return lam != null ? (
-                  <StatCard key="wd" label="Weekend Drop" value={`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}
-                    note="Typical fall from one weekend to the next" />
-                ) : (
-                  <StatCard key="wd" label="Weekend Drop" value="—" note="Needs two weekends of figures" />
+              settled != null && (
+                <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} countTo={settled} format={fmt} />
+              ),
+              // decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
+              // weekend keeps e^(−λ) of the one before.
+              <StatCard key="wd" label="Drop per Weekend"
+                value={lam != null ? `\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%` : "\u2014"} />,
+              profit != null
+                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0}
+                    countTo={profit} format={fmt} />
+                : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
+              settled != null && (() => {
+                // + when the model called it high (in the red), − when low.
+                const diff = prediction.predicted_revenue - settled;
+                return (
+                  <StatCard key="df" label="Prediction Off By" accent={diff > 0}
+                    value={(diff > 0 ? "+" : "") + fmt(diff)} />
                 );
               })(),
-              (selected.budget ?? 0) > 0
-                ? (() => {
-                    const profit = estProfit(prediction.predicted_revenue, selected.budget!);
-                    return (
-                      <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0}
-                        countTo={profit} format={fmt}
-                        note={`Studio\u2019s ~half of the gross, minus the ${fmt(selected.budget!)} budget`} />
-                    );
-                  })()
-                : <StatCard key="pf" label="Est. Profit" value="—" note="Budget not reported" />,
-            ].map((cell, i) => (
+            ].filter(Boolean).map((cell, i) => (
               <div key={i} data-cell className="border-r border-b border-ink/20">
                 {cell}
               </div>
             ))}
           </div>
 
-          {(prediction.actual_revenue ?? 0) > 0 && (() => {
-            const actual = prediction.actual_revenue!;
-            const diff = prediction.predicted_revenue - actual;
-            const over = diff > 0;
-            return (
-              <div data-ledger-follow className="border-l-2 border-ink pl-4 py-1 -mt-5 mb-11">
-                <p className="font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase m-0 mb-1.5">
-                  Run settled
-                </p>
-                <p className="text-ink text-[0.9rem] leading-[1.55] m-0">
-                  Final worldwide gross{" "}
-                  <span className="font-mono tabular-nums font-bold">{fmt(actual)}</span>
-                  {" · "}
-                  <span className={`font-mono tabular-nums font-bold ${over ? "text-red" : "text-ink"}`}>
-                    {over ? "Over" : "Under"} {fmt(Math.abs(diff))}
-                  </span>
-                  <span className="text-ink3"> ({((Math.abs(diff) / actual) * 100).toFixed(1)}%)</span>
-                </p>
-              </div>
-            );
-          })()}
+          <p data-ledger-follow className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 uppercase mt-3 mb-11 leading-relaxed">
+            {profit != null
+              ? `Profit: studio\u2019s ~50% of the gross, minus the ${fmt(selected.budget!)} budget`
+              : "Profit needs a reported budget"}
+            {lam == null && " \u00b7 Drop needs two weekends of figures"}
+          </p>
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div data-ledger-follow>
@@ -366,7 +354,8 @@ export function MovieDetail({
             </p>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {prediction?.error && (() => {
         const { title, body } = errorCopy(prediction.code, daysSinceRelease);
