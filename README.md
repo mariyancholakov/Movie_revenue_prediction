@@ -11,6 +11,8 @@ is public.
   weekend-gross decay curve.
 - **Rankings** (`/leaderboard`): priced films ranked by predicted total.
 - **The Ledger** (`/finished`): settled runs, predicted vs. actual.
+- **How It Works** (`/how-it-works`): the pipeline worked through for one film
+  now playing, including what raised or lowered its multiplier.
 
 ## How it works
 
