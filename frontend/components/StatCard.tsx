@@ -5,7 +5,7 @@ interface StatCardProps {
   value: string | number;
   /** negative reading ("in the red") — over budget / miss */
   accent?: boolean;
-  /** the headline figure (the predicted total): softened spot red */
+  /** the headline figure (the predicted total): spot red darkened toward ink */
   headline?: boolean;
   /** optional numeric value + formatter to animate the figure totting up */
   countTo?: number;
@@ -22,7 +22,7 @@ export function StatCard({ label, value, accent = false, headline = false, count
       </p>
       <p
         className={`font-mono text-[1.25rem] sm:text-[1.6rem] font-normal leading-none tabular-nums m-0 ${accent ? 'text-red' : 'text-ink'}`}
-        style={headline ? { color: 'color-mix(in srgb, var(--color-red) 78%, var(--color-paper))' } : undefined}
+        style={headline ? { color: 'color-mix(in srgb, var(--color-red) 72%, var(--color-ink))' } : undefined}
       >
         {countTo != null && format ? <CountUp value={countTo} format={format} /> : value}
       </p>
