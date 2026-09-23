@@ -3,8 +3,7 @@
 // reduced motion and SSR show plain text); MovieDetail's reveal hides their
 // [data-char]s and typeOut strikes them back one key at a time, at a human,
 // uneven pace.
-import { useRef } from 'react';
-import { gsap, motion, useGSAP } from '@/lib/motion';
+import { gsap } from '@/lib/motion';
 
 // Deterministic 0–1 noise per (text, index), so a figure's ink texture and
 // rhythm are the same on every render and never shift under the reader.
@@ -55,60 +54,4 @@ export function typeOut(tl: gsap.core.Timeline, el: Element, { pace = 1, keepCar
   // flips, so it ends hidden) and the chart that follows doesn't wait for it.
   if (keepCaret) tl.call(() => { gsap.to(caret, { opacity: 0, duration: 0.01, repeat: 6, yoyo: true, repeatDelay: 0.4, delay: 0.4 }); }, [], t);
   else tl.set(caret, { opacity: 0 }, t);
-}
-
-// Loading state: one line typed quickly behind a caret, then dots struck one
-// at a time and cleared, on a loop until the answer lands. Answers are often back in
-// a moment, so this has to read at a glance. Reduced motion (and SSR) shows
-// the line with its dots, still.
-const LINE = 'FILING THE NUMBERS';
-
-export function TypedLoader() {
-  const root = useRef<HTMLParagraphElement>(null);
-
-  useGSAP(() => {
-    motion(() => {
-      const text = root.current!.querySelector<HTMLElement>('[data-text]')!;
-      const dots = root.current!.querySelector<HTMLElement>('[data-dots]')!;
-      const caret = root.current!.querySelector('[data-caret]');
-      const n = { i: 0 };
-      const d = { i: 0 };
-      text.textContent = '';
-      dots.textContent = '';
-      gsap.timeline()
-        .to(n, {
-          i: LINE.length,
-          duration: LINE.length * 0.028,
-          ease: `steps(${LINE.length})`,
-          onUpdate: () => { text.textContent = LINE.slice(0, Math.round(n.i)); },
-        })
-        // the caret steps aside once the line is typed; the dots carry on
-        .set(caret, { display: 'none' }, '+=0.15')
-        .add(
-          gsap.timeline({ repeat: -1, repeatDelay: 0.25 }).to(d, {
-            i: 3,
-            duration: 0.9,
-            ease: 'steps(3)',
-            onUpdate: () => { dots.textContent = '.'.repeat(Math.round(d.i)); },
-          })
-        );
-    });
-  }, { scope: root });
-
-  return (
-    <p
-      ref={root}
-      className="font-mono text-[0.78rem] sm:text-[0.85rem] tracking-[0.14em] text-ink m-0 flex items-center min-h-[1.5em]"
-    >
-      <span className="sr-only">Filing the numbers</span>
-      <span data-text aria-hidden className="whitespace-pre">{LINE}</span>
-      <span data-dots aria-hidden className="whitespace-pre">...</span>
-      <span
-        data-caret
-        aria-hidden
-        className="inline-block w-[0.6em] h-[1.1em] bg-current"
-        style={{ animation: 'caretBlink 0.9s steps(1) infinite' }}
-      />
-    </p>
-  );
 }

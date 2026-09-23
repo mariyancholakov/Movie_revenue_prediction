@@ -115,8 +115,10 @@ body {
   [data-intro] { visibility: hidden; animation: introFallback 0s 2.5s forwards; }
 }
 
-/* Typewriter caret. */
-@keyframes caretBlink { 50% { opacity: 0; } }
+/* Film-leader countdown (FilmLeader.tsx): the hand sweeps the dial once
+   a second, starting from 12 o'clock. */
+@keyframes leaderSweep { to { stroke-dashoffset: 0; } }
+.leader-sweep { animation: leaderSweep 1s linear infinite; }
 
 /* Newsprint placeholder shimmer (loading). */
 @keyframes paperShimmer {
