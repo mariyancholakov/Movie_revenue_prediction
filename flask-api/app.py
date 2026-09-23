@@ -3,7 +3,8 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page
+from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features
+from model_lib import FRANCHISE_FEATURES
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
@@ -38,7 +39,17 @@ except Exception as e:
     print(f"Supabase connection error: {e}")
 
 model = joblib.load('models/box_office_model_final.pkl')
-feature_columns = joblib.load('models/feature_columns_final.pkl')
+# A feature snapshot keeps every column any model has used (so a later model
+# can be retrained on it); each model reads the subset it was trained on.
+# Models before MultiplierModel don't carry their list and use the original 26.
+BASE_FEATURES = joblib.load('models/feature_columns_final.pkl')
+SNAPSHOT_COLUMNS = BASE_FEATURES + FRANCHISE_FEATURES
+MODEL_FEATURES = getattr(model, 'features', BASE_FEATURES)
+
+
+def score(feature_row):
+    """The current model's predicted total for a feature row, in dollars."""
+    return float(model.predict(feature_row.reindex(columns=MODEL_FEATURES, fill_value=0))[0])
 
 MAJOR_STUDIOS = ['Warner Bros', 'Disney', 'Marvel', 'Universal', 'Paramount', 'Sony', 'Legendary', 'Columbia']
 GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
@@ -126,9 +137,10 @@ def build_feature_row(details, opening_weekend):
     
     for genre in GENRES:
         row[f'genre_{genre.lower().replace(" ", "_")}'] = int(genre in genre_names)
+    row.update(get_franchise_features(details))  # may raise ConnectionError
     
     df_row = pd.DataFrame([row])
-    df_row = df_row.reindex(columns=feature_columns, fill_value=0)
+    df_row = df_row.reindex(columns=SNAPSHOT_COLUMNS, fill_value=0)
     return df_row
 
 
@@ -147,6 +159,20 @@ def store_features(tmdb_id, feature_row):
     except Exception as e:
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
 
+def complete_snapshot(movie):
+    """Add columns introduced after a film's snapshot was taken (the
+    franchise and release-year features) and store the result, so an older
+    snapshot is upgraded once instead of looked up on every read. Raises if
+    TMDB can't be reached."""
+    details = get_movie_details(movie['tmdb_id'])
+    if not details:
+        raise ConnectionError(f"TMDB details unavailable for {movie['tmdb_id']}")
+    feats = {**movie['features'], **get_franchise_features(details)}
+    supabase.table('movies').update({'features': feats}).eq('tmdb_id', movie['tmdb_id']).execute()
+    movie['features'] = feats
+    return feats
+
+
 def live_prediction(movie):
     """The prediction to show for a cached movie row.
 
@@ -160,8 +186,9 @@ def live_prediction(movie):
     if movie.get('is_in_theaters') is False or not feats:
         return stored
     try:
-        row = pd.DataFrame([feats]).reindex(columns=feature_columns, fill_value=0)
-        return round(float(model.predict(row)[0]))
+        if any(c not in feats for c in MODEL_FEATURES):
+            feats = complete_snapshot(movie)
+        return round(score(pd.DataFrame([feats])))
     except Exception as e:
         print(f"[predict] live re-score failed for {movie.get('tmdb_id')}: {e}")
         return stored
@@ -305,7 +332,10 @@ def predict_for(tmdb_id):
 
     try:
         feature_row = build_feature_row(details, opening_weekend)
-        predicted_revenue = float(model.predict(feature_row)[0])
+        predicted_revenue = score(feature_row)
+    except ConnectionError as e:
+        print(f"[predict] {e}")
+        return {'error': 'Movie data is temporarily unavailable. Please try again.', 'code': 'upstream'}, 503
     except (KeyError, ValueError) as e:
         # Malformed/incomplete TMDB details (e.g. missing release_date).
         print(f"[predict] feature build failed for {tmdb_id}: {e}")

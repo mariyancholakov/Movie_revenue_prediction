@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 
+from model_lib import franchise_row
+
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'}
 load_dotenv()
 
@@ -112,6 +114,27 @@ def get_movie_details(tmdb_id, with_status=False):
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
     data, status = _tmdb_fetch(url)
     return (data or {}, status) if with_status else (data or {})
+
+COLLECTION_TTL = 24 * 60 * 60  # seconds; a collection gains a part a few times a decade
+_collection_cache = {}  # collection id -> (fetched_at, parts)
+
+
+def get_collection_parts(collection_id):
+    """[(tmdb_id, release_date), ...] for every film in a TMDB collection, or
+    None if TMDB couldn't be reached (so callers don't mistake an outage for
+    "no earlier parts")."""
+    hit = _collection_cache.get(collection_id)
+    if hit and time.time() - hit[0] < COLLECTION_TTL:
+        return hit[1]
+    data, status = _tmdb_fetch(f"https://api.themoviedb.org/3/collection/{collection_id}?api_key={TMDB_API_KEY}")
+    if status == 404:
+        parts = []  # collection deleted on TMDB: treat as a standalone film
+    elif not data:
+        return None
+    else:
+        parts = [(p.get('id'), p.get('release_date')) for p in data.get('parts', [])]
+    _collection_cache[collection_id] = (time.time(), parts)
+    return parts
 
 def get_movie_page(tmdb_id, cast_limit=6):
     """Everything the movie page shows, from one TMDB call (details + credits).
@@ -245,3 +268,15 @@ def parse_and_fit_decay(df_weekly):
         'half_life': round(float(np.log(2) / lam), 1),
         'opening_weekend': round(float(opening))
     }
+
+
+def get_franchise_features(details):
+    """model_lib.FRANCHISE_FEATURES for a film, from its TMDB details. Raises
+    ConnectionError if the collection lookup fails, since guessing "not a
+    sequel" would quietly skew the prediction."""
+    collection = details.get('belongs_to_collection') or {}
+    cid = collection.get('id')
+    parts = get_collection_parts(cid) if cid else []
+    if parts is None:
+        raise ConnectionError(f"TMDB collection {cid} unavailable")
+    return franchise_row(details.get('release_date'), cid, parts, details.get('id'))
