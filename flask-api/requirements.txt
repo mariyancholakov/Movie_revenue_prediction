@@ -8,7 +8,9 @@ Werkzeug==3.1.8
 flask-cors==6.0.2
 gunicorn==23.0.0
 
-# ML model + numerics (sklearn is required to unpickle the model)
+# ML model + numerics. The production model is an XGBRegressor, so xgboost is
+# required to unpickle it; sklearn is used by its wrapper and by retrain.py.
+xgboost==3.2.0
 scikit-learn==1.8.0
 joblib==1.5.3
 numpy==2.4.6
