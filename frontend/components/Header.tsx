@@ -50,11 +50,12 @@ export function Header() {
   return (
     <header ref={root} data-intro className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10 text-center">
       <div>
-        {/* Folio: today's edition date, set flush right above the nameplate */}
+        {/* Folio: byline at left, today's edition date at right */}
         <div data-rule className="rule-hair mb-2.5" />
-        <p className="font-mono text-ink3 text-[0.58rem] sm:text-[0.62rem] tracking-[0.16em] uppercase text-right tabular-nums m-0 mb-4 sm:mb-6 min-h-[1em]">
-          {edition}
-        </p>
+        <div className="flex items-baseline justify-between gap-4 font-mono text-ink3 text-[0.58rem] sm:text-[0.62rem] tracking-[0.16em] uppercase mb-4 sm:mb-6 min-h-[1em]">
+          <span>Made by Mariyan Cholakov</span>
+          <span className="tabular-nums text-right">{edition}</span>
+        </div>
 
         {/* Nameplate */}
         <h1
