@@ -3,16 +3,14 @@ import { useRef, useState } from "react";
 import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
 import { estProfit } from "@/lib/profit";
 import { parseDay } from "@/lib/release";
+import { fmtMoney } from "@/lib/money";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 import { Typed, TypedLoader, typeOut } from "./Typed";
 
-const fmt = (n: number) => {
-  const a = Math.abs(n);
-  return (n < 0 ? "\u2212$" : "$") + (a >= 1e9 ? (a / 1e9).toFixed(2) + "B" : (a / 1e6).toFixed(1) + "M");
-};
+const fmt = fmtMoney;
 
 const fmtRuntime = (mins: number) => {
   const h = Math.floor(mins / 60);
@@ -378,7 +376,6 @@ export function MovieDetail({
             <div data-ledger-follow>
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
-                <span className="font-mono text-[0.6rem] tracking-[0.12em] text-ink3 pb-1">$ MILLIONS</span>
               </div>
               <DecayCurve data={prediction.decay_curve} />
             </div>
