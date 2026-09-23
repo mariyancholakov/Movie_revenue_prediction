@@ -3,7 +3,7 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_movie_details, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page
+from scraper import get_now_playing, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
@@ -264,7 +264,8 @@ def predict_for(tmdb_id):
     if not imdb_id:
         return {'error': 'No box-office listing for this film yet.', 'code': 'no_box_office'}, 404
 
-    opening_weekend = get_opening_weekend(imdb_id)
+    title_page = get_title_page(imdb_id)
+    opening_weekend = get_opening_weekend(imdb_id, title_page)
     if not opening_weekend:
         return {'error': 'No opening-weekend figures reported yet.', 'code': 'no_box_office'}, 404
 
@@ -276,7 +277,7 @@ def predict_for(tmdb_id):
         print(f"[predict] feature build failed for {tmdb_id}: {e}")
         return {'error': 'Not enough data to predict for this film yet.', 'code': 'insufficient_data'}, 422
 
-    weekly_data = get_weekly_grossing(imdb_id)
+    weekly_data = get_weekly_grossing(imdb_id, title_page)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
 
     # Store in Supabase

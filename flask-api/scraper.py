@@ -97,18 +97,25 @@ def get_movie_page(tmdb_id, cast_limit=6):
         'vote_average': round(data.get('vote_average', 0), 1) if vote_count > 50 else None,
     }, 200
 
-def get_opening_weekend(imdb_id):
-    """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""
+def get_title_page(imdb_id):
+    """Fetch and parse a film's Box Office Mojo title page. Returns None on any
+    failure. Pass the result to get_opening_weekend / get_weekly_grossing so a
+    prediction downloads the page once instead of once per helper."""
     url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
     try:
         response = requests.get(url, headers=HEADERS, timeout=10)
     except requests.RequestException as e:
-        print(f"[mojo] opening-weekend request failed for {imdb_id}: {e}")
+        print(f"[mojo] title-page request failed for {imdb_id}: {e}")
         return None
     if response.status_code != 200:
         return None
-    
-    soup = BeautifulSoup(response.text, 'html.parser')
+    return BeautifulSoup(response.text, 'html.parser')
+
+def get_opening_weekend(imdb_id, title_page=None):
+    """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""
+    soup = title_page if title_page is not None else get_title_page(imdb_id)
+    if soup is None:
+        return None
     all_spans = soup.find_all('span')
     for i, span in enumerate(all_spans):
         if span.get_text(strip=True) == 'Domestic Opening':
@@ -117,19 +124,16 @@ def get_opening_weekend(imdb_id):
                     value = all_spans[j].get_text().strip().replace('$','').replace(',','')
                     try:
                         return int(value)
-                    except:
+                    except ValueError:
                         return None
     return None
 
-def get_weekly_grossing(imdb_id):
+def get_weekly_grossing(imdb_id, title_page=None):
     """Scrape weekly grossing data from Box Office Mojo. Returns None on any failure."""
-    main_url = f"https://www.boxofficemojo.com/title/{imdb_id}/"
+    soup = title_page if title_page is not None else get_title_page(imdb_id)
+    if soup is None:
+        return None
     try:
-        response = requests.get(main_url, headers=HEADERS, timeout=10)
-        if response.status_code != 200:
-            return None
-
-        soup = BeautifulSoup(response.text, 'html.parser')
         release_links = [a['href'] for a in soup.find_all('a', href=True)
                          if '/release/' in a['href'] and 'weekend' in a['href']]
         if not release_links:
