@@ -69,7 +69,7 @@ export function MovieDetail({
   onBack,
   onPredict,
 }: MovieDetailProps) {
-  const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "copied" | "failed">("idle");
   // Capture "now" once at mount. Reading the clock during render is impure
   // (react-hooks/purity) and can drift between the server render and hydration;
   // these release-timing flags only need a single stable reading.
@@ -82,10 +82,16 @@ export function MovieDetail({
     : (now - releaseTime) / 86_400_000;
   const justOpened = daysSinceRelease >= 0 && daysSinceRelease < 10;
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // navigator.clipboard is missing on insecure origins and writeText rejects
+  // when permission is denied, so report failure instead of claiming success.
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShareState("copied");
+    } catch {
+      setShareState("failed");
+    }
+    setTimeout(() => setShareState("idle"), 2000);
   };
 
   return (
@@ -104,7 +110,7 @@ export function MovieDetail({
           className="font-sans text-[0.68rem] tracking-[0.14em] font-semibold text-ink2
                      hover:text-red transition-colors bg-transparent border-0 p-0"
         >
-          {copied ? "LINK COPIED" : "COPY LINK"}
+          {shareState === "copied" ? "LINK COPIED" : shareState === "failed" ? "COPY FAILED" : "COPY LINK"}
         </button>
       </div>
 
