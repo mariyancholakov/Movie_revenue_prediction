@@ -52,9 +52,6 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
         body: JSON.stringify({ tmdb_id: movie.tmdb_id }),
       });
       const data = await res.json();
-      // TEMPORARY (?wait=ms): simulate an uncached film's wait when comparing reveals.
-      const wait = Number(new URLSearchParams(window.location.search).get('wait')) || 0;
-      if (wait) await new Promise(r => setTimeout(r, wait));
       setPrediction(data);
     } catch {
       setPrediction({ opening_weekend: 0, predicted_revenue: 0, error: 'Request failed', code: 'network' });

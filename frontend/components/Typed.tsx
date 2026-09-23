@@ -1,7 +1,8 @@
 'use client';
-// Typewriter reveal. Figures render fully typed (so reduced motion and SSR
-// show plain text); the reveal timeline hides their [data-char]s and strikes
-// them back one key at a time, at a human, uneven pace.
+// Typewriter set for the prediction ledger. Figures render fully typed (so
+// reduced motion and SSR show plain text); MovieDetail's reveal hides their
+// [data-char]s and typeOut strikes them back one key at a time, at a human,
+// uneven pace.
 import { useRef } from 'react';
 import { gsap, motion, useGSAP } from '@/lib/motion';
 
@@ -49,9 +50,9 @@ export function typeOut(tl: gsap.core.Timeline, el: Element, { pace = 1, keepCar
       .fromTo(c, { y: -1.5, scale: 1.12 }, { y: 0, scale: 1, duration: 0.07, ease: 'power2.out' }, t);
   });
   t += 0.1;
-  // The last caret blinks a few times on its own clock, so the chart that
-  // follows doesn't wait for it.
-  if (keepCaret) tl.call(() => { gsap.to(caret, { opacity: 0, duration: 0.01, repeat: 5, yoyo: true, repeatDelay: 0.4, delay: 0.4 }); }, [], t);
+  // The last caret blinks a few times on its own clock (an odd number of
+  // flips, so it ends hidden) and the chart that follows doesn't wait for it.
+  if (keepCaret) tl.call(() => { gsap.to(caret, { opacity: 0, duration: 0.01, repeat: 6, yoyo: true, repeatDelay: 0.4, delay: 0.4 }); }, [], t);
   else tl.set(caret, { opacity: 0 }, t);
 }
 
