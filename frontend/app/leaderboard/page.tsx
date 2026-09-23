@@ -13,6 +13,19 @@ const fmt = (n: number) => {
   return (n < 0 ? '\u2212$' : '$') + (a >= 1e9 ? (a / 1e9).toFixed(2) + 'B' : (a / 1e6).toFixed(1) + 'M');
 };
 
+// Shared by the column heads and every row, so the two can never drift apart.
+const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
+const COL = {
+  rank: 'w-5 sm:w-7 shrink-0',
+  poster: 'w-10 shrink-0',
+  title: 'min-w-0 flex-1 sm:flex-none sm:w-52',
+  bar: 'hidden sm:flex flex-1 min-w-0',
+  num: 'w-[4.75rem] sm:w-24 shrink-0',
+};
+const HEAD = 'font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase';
+const NUM = 'font-mono tabular-nums text-[0.82rem] sm:text-[0.9rem]';
+const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
+
 interface LeaderboardEntry {
   tmdb_id: number;
   title: string;
@@ -67,21 +80,11 @@ export default function LeaderboardPage() {
             </span>
           )}
         </div>
-        <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-3">
-          Every film now playing, ranked by the model&rsquo;s predicted worldwide run.
+        <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-6">
+          Every film now playing, ranked by the model&rsquo;s predicted worldwide total. Profit is
+          estimated as the studio&rsquo;s roughly half of that gross, minus the budget.
         </p>
 
-        {/* Legend */}
-        {status === 'ok' && entries.length > 0 && (
-          <div className="hidden sm:flex items-center gap-5 font-mono text-[0.6rem] tracking-[0.08em] text-ink3 uppercase mb-2">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-4 h-2.5 bg-ink2" /> US opening weekend
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-4 h-2.5" style={{ background: 'color-mix(in srgb, var(--color-ink2) 30%, transparent)' }} /> → Predicted worldwide total
-            </span>
-          </div>
-        )}
         <div className="rule-double mb-2" />
 
         {/* Loading */}
@@ -113,11 +116,27 @@ export default function LeaderboardPage() {
         {/* Chart */}
         {status === 'ok' && entries.length > 0 && (
           <div ref={chart} className="border-b border-rule">
+            {/* Column heads: each figure is labelled where it sits */}
+            <div className={`${ROW} pt-1 pb-2 ${HEAD}`}>
+              <span className={`${COL.rank} text-right`}>#</span>
+              <span className={COL.poster} />
+              <span className={COL.title}>Film</span>
+              <span className={`${COL.bar} items-center gap-4`}>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-2 bg-ink2" /> Opening weekend
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-3 h-2" style={{ background: TINT }} /> Predicted total
+                </span>
+              </span>
+              <span className={`${COL.num} text-right`}>Predicted</span>
+              <span className={`${COL.num} text-right`}>Est. profit</span>
+            </div>
+
             {entries.map((entry, i) => {
               const profit = entry.budget ? estProfit(entry.predicted_revenue, entry.budget) : null;
               const predPct = (entry.predicted_revenue / maxRevenue) * 100;
               const openPct = (entry.opening_weekend / maxRevenue) * 100;
-              const lead = i === 0;
 
               return (
                 <Link
@@ -126,26 +145,15 @@ export default function LeaderboardPage() {
                   data-row
                   className="no-underline text-inherit block group ledger-row border-t border-rule"
                 >
-                  <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
-                    {/* Rank */}
-                    <span className={`font-mono tabular-nums text-right w-5 sm:w-7 shrink-0 ${lead ? 'text-red text-[1.05rem] sm:text-[1.2rem] font-bold' : 'text-ink3 text-[0.9rem] sm:text-[0.95rem]'}`}>
-                      {i + 1}
-                    </span>
+                  <div className={`${ROW} py-3.5`}>
+                    <span className={`${COL.rank} ${NUM} text-right text-ink3`}>{i + 1}</span>
 
-                    {/* Poster */}
-                    <div className="shrink-0 border border-ink/30">
-                      <Poster
-                        src={entry.poster}
-                        alt={entry.title}
-                        width={lead ? 44 : 38}
-                        height={lead ? 66 : 57}
-                        className="object-cover block"
-                      />
+                    <div className={`${COL.poster} border border-ink/30`}>
+                      <Poster src={entry.poster} alt={entry.title} width={38} height={57} className="object-cover block" />
                     </div>
 
-                    {/* Title */}
-                    <div className="min-w-0 flex-1 sm:flex-none sm:w-52">
-                      <p className={`truncate leading-tight m-0 text-ink group-hover:text-red transition-colors ${lead ? 'text-[0.95rem] sm:text-[1rem] font-bold' : 'text-[0.85rem] sm:text-[0.9rem] font-semibold'}`}>
+                    <div className={COL.title}>
+                      <p className="truncate leading-tight m-0 text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
                       {entry.genres.length > 0 && (
@@ -155,28 +163,20 @@ export default function LeaderboardPage() {
                       )}
                     </div>
 
-                    {/* Bar (desktop) — opening weekend solid, extended to predicted total in tint */}
-                    <div className="hidden sm:block flex-1 min-w-0">
+                    {/* Opening weekend solid, running on to the predicted total in tint */}
+                    <div className={COL.bar}>
                       <div className="relative h-6 w-full">
-                        <div
-                          data-bar-total
-                          className="absolute inset-y-0 left-0"
-                          style={{ width: `${predPct}%`, background: 'color-mix(in srgb, var(--color-ink2) 28%, transparent)' }}
-                        />
+                        <div data-bar-total className="absolute inset-y-0 left-0" style={{ width: `${predPct}%`, background: TINT }} />
                         <div data-bar-open className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${openPct}%` }} />
-                        {/* opening/total boundary tick */}
                         <div data-tick className="absolute inset-y-0 w-px bg-paper" style={{ left: `${openPct}%` }} />
                       </div>
                     </div>
 
-                    {/* Predicted total */}
-                    <p className={`text-right font-mono tabular-nums m-0 w-[5.5rem] sm:w-24 shrink-0 text-ink ${lead ? 'text-[0.98rem] sm:text-[1.05rem] font-bold' : 'text-[0.9rem] sm:text-[0.95rem] font-bold'}`}>
-                      {fmt(entry.predicted_revenue)}
-                    </p>
+                    <p className={`${COL.num} ${NUM} text-right text-ink m-0`}>{fmt(entry.predicted_revenue)}</p>
 
-                    {/* Estimated profit: red when the film is predicted to lose money */}
+                    {/* Red when the film is predicted to lose money */}
                     <p
-                      className={`text-right font-mono text-[0.78rem] sm:text-[0.9rem] tabular-nums m-0 w-[4.5rem] sm:w-24 shrink-0 ${profit != null && profit < 0 ? 'text-red' : 'text-ink2'}`}
+                      className={`${COL.num} ${NUM} text-right m-0 ${profit != null && profit < 0 ? 'text-red' : 'text-ink'}`}
                       title={profit == null ? 'No budget reported' : undefined}
                     >
                       {profit == null ? '\u2014' : fmt(profit)}
@@ -186,12 +186,6 @@ export default function LeaderboardPage() {
               );
             })}
           </div>
-        )}
-
-        {status === 'ok' && entries.length > 0 && (
-          <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.13em] mt-8 uppercase">
-            Right column = est. profit: the studio&rsquo;s ~half of the predicted gross, minus the budget · bars to scale
-          </p>
         )}
       </div>
     </main>
