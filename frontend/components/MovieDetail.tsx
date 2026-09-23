@@ -27,6 +27,26 @@ const fmtDate = (d: string) => {
     : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
+// Reader-facing copy for each failure the API reports. Only a genuine
+// "nothing reported yet" gets the just-opened / no-figures wording.
+function errorCopy(code: Prediction["code"], justOpened: boolean) {
+  switch (code) {
+    case "no_box_office":
+      return justOpened
+        ? "This film just opened — the box office usually reports within a few days. Check back soon."
+        : "No box-office figures are on the books for this film yet.";
+    case "insufficient_data":
+      return "There isn’t enough reported data on this film to price it yet.";
+    case "not_found":
+      return "We couldn’t find this film on file.";
+    case "upstream":
+    case "network":
+      return "Couldn’t reach the box-office desk just now. Please try again in a moment.";
+    default:
+      return "Something went wrong running the numbers. Please try again.";
+  }
+}
+
 interface MovieDetailProps {
   selected: Movie;
   prediction: Prediction | null;
@@ -262,9 +282,7 @@ export function MovieDetail({
 
       {prediction?.error && (
         <p className="text-red text-[0.85rem] mt-6 border-l-2 border-red pl-4 py-1">
-          {justOpened
-            ? "This film just opened — the box office usually reports within a few days. Check back soon."
-            : "No box-office figures are on the books for this film yet."}
+          {errorCopy(prediction.code, justOpened)}
         </p>
       )}
     </section>

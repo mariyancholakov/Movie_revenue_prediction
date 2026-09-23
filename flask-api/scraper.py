@@ -22,23 +22,27 @@ TMDB_GENRE_MAP = {
 
 TMDB_API_KEY = os.getenv('TMDB_API_KEY')
 
-def _tmdb_get(url):
-    """GET a TMDB endpoint and return parsed JSON, or None on any failure
-    (network error, non-200, or unparseable body). Callers handle None so a
-    TMDB outage or rate-limit becomes a graceful empty state, not a 500."""
+def _tmdb_fetch(url):
+    """GET a TMDB endpoint. Returns (parsed JSON or None, HTTP status or None).
+    Never raises: a TMDB outage or rate-limit becomes a graceful empty state,
+    and the status lets callers tell "no such film" (404) from "TMDB is down"."""
     try:
         response = requests.get(url, timeout=10)
     except requests.RequestException as e:
         print(f"[tmdb] request failed: {e}")
-        return None
+        return None, None
     if response.status_code != 200:
         print(f"[tmdb] {response.status_code} for {url.split('?')[0]}")
-        return None
+        return None, response.status_code
     try:
-        return response.json()
+        return response.json(), 200
     except ValueError:
         print(f"[tmdb] non-JSON response for {url.split('?')[0]}")
-        return None
+        return None, 200
+
+def _tmdb_get(url):
+    """Like _tmdb_fetch, but just the JSON (None on any failure)."""
+    return _tmdb_fetch(url)[0]
 
 def get_now_playing():
     """Fetch movies currently in theaters from TMDB. Returns [] on failure."""
@@ -60,19 +64,21 @@ def get_now_playing():
         })
     return movies
 
-def get_movie_details(tmdb_id):
-    """Get full movie details from TMDB by ID. Returns {} on failure."""
+def get_movie_details(tmdb_id, with_status=False):
+    """Get full movie details from TMDB by ID. Returns {} on failure, or
+    ({} / details, HTTP status) with with_status=True."""
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}&append_to_response=external_ids"
-    return _tmdb_get(url) or {}
+    data, status = _tmdb_fetch(url)
+    return (data or {}, status) if with_status else (data or {})
 
 def get_movie_page(tmdb_id, cast_limit=6):
     """Everything the movie page shows, from one TMDB call (details + credits).
-    Returns None on failure."""
+    Returns (page or None, HTTP status or None)."""
     url = (f"https://api.themoviedb.org/3/movie/{tmdb_id}?api_key={TMDB_API_KEY}"
            f"&append_to_response=credits")
-    data = _tmdb_get(url)
+    data, status = _tmdb_fetch(url)
     if not data:
-        return None
+        return None, status
     credits = data.get('credits') or {}
     poster_path = data.get('poster_path')
     vote_count = data.get('vote_count', 0)
@@ -89,7 +95,7 @@ def get_movie_page(tmdb_id, cast_limit=6):
         'runtime': data.get('runtime', 0),
         # A handful of votes is noise; only surface the rating once it means something.
         'vote_average': round(data.get('vote_average', 0), 1) if vote_count > 50 else None,
-    }
+    }, 200
 
 def get_opening_weekend(imdb_id):
     """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""

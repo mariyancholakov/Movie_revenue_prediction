@@ -48,7 +48,7 @@ export default function MoviePage() {
       const data = await res.json();
       setPrediction(data);
     } catch {
-      setPrediction({ opening_weekend: 0, predicted_revenue: 0, error: 'Request failed' });
+      setPrediction({ opening_weekend: 0, predicted_revenue: 0, error: 'Request failed', code: 'network' });
     } finally {
       setPredicting(false);
     }

@@ -161,9 +161,11 @@ def now_playing():
 def movie(tmdb_id):
     """One film's page data. Works for any TMDB id, not just now-playing, so
     films linked from the Ledger (whose runs have ended) still resolve."""
-    page = get_movie_page(tmdb_id)
+    page, status = get_movie_page(tmdb_id)
+    if status == 404:
+        return jsonify({'error': 'Movie not found.', 'code': 'not_found'}), 404
     if not page:
-        return jsonify({'error': 'Movie not found.'}), 404
+        return jsonify({'error': 'Movie data is temporarily unavailable.', 'code': 'upstream'}), 503
     return jsonify(page)
 
 def predict_for(tmdb_id):
@@ -242,17 +244,21 @@ def predict_for(tmdb_id):
         # else: stale beyond FULL_TTL → fall through to a full re-scrape below.
 
     # Not cached or stale — full scrape + model prediction.
-    details = get_movie_details(tmdb_id)
+    # Every error payload carries a `code` so the frontend can pick the right
+    # message: 'no_box_office' (nothing reported yet, usually a fresh release)
+    # vs. 'upstream' (a source is down) vs. 'not_found' / 'insufficient_data'.
+    details, tmdb_status = get_movie_details(tmdb_id, with_status=True)
+    if tmdb_status == 404:
+        return {'error': 'Movie not found.', 'code': 'not_found'}, 404
     if not details:
-        # TMDB unreachable or unknown id — transient upstream failure.
-        return {'error': 'Movie data is temporarily unavailable. Please try again.'}, 503
+        return {'error': 'Movie data is temporarily unavailable. Please try again.', 'code': 'upstream'}, 503
     imdb_id = details.get('external_ids', {}).get('imdb_id')
     if not imdb_id:
-        return {'error': 'Could not find IMDB ID'}, 400
+        return {'error': 'No box-office listing for this film yet.', 'code': 'no_box_office'}, 404
 
     opening_weekend = get_opening_weekend(imdb_id)
     if not opening_weekend:
-        return {'error': 'Could not find opening weekend data'}, 400
+        return {'error': 'No opening-weekend figures reported yet.', 'code': 'no_box_office'}, 404
 
     try:
         feature_row = build_feature_row(details, opening_weekend)
@@ -260,7 +266,7 @@ def predict_for(tmdb_id):
     except (KeyError, ValueError) as e:
         # Malformed/incomplete TMDB details (e.g. missing release_date).
         print(f"[predict] feature build failed for {tmdb_id}: {e}")
-        return {'error': 'Not enough data to predict for this film yet.'}, 400
+        return {'error': 'Not enough data to predict for this film yet.', 'code': 'insufficient_data'}, 422
 
     weekly_data = get_weekly_grossing(imdb_id)
     decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
@@ -312,7 +318,7 @@ def predict():
     except Exception as e:
         # Last-resort guard: never leak a stack trace to the client.
         print(f"[predict] unexpected error for {tmdb_id}: {e}")
-        return jsonify({'error': 'Something went wrong generating the prediction.'}), 500
+        return jsonify({'error': 'Something went wrong generating the prediction.', 'code': 'internal'}), 500
     return jsonify(payload), status
 
 @app.route('/api/leaderboard', methods=['GET'])
