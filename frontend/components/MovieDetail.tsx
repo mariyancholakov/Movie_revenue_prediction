@@ -1,6 +1,6 @@
 'use client';
 import { useState } from "react";
-import Image from "next/image";
+import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
@@ -118,7 +118,7 @@ export function MovieDetail({
         {/* Poster plate */}
         <div className="shrink-0 mx-auto sm:mx-0">
           <div className="relative w-52 sm:w-60 md:w-72 aspect-[2/3] plate overflow-hidden bg-panel">
-            <Image
+            <Poster
               src={selected.poster}
               alt={selected.title}
               fill

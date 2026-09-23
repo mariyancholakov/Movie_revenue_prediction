@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
@@ -117,7 +117,7 @@ export default function LeaderboardPage() {
 
                     {/* Poster */}
                     <div className="shrink-0 border border-ink/30">
-                      <Image
+                      <Poster
                         src={entry.poster}
                         alt={entry.title}
                         width={lead ? 44 : 38}

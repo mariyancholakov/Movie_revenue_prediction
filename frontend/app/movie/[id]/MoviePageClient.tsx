@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from '@/components/Poster';
 import { MovieDetail } from '@/components/MovieDetail';
 import { RunningHead } from '@/components/RunningHead';
 import type { Movie, Prediction } from '@/components/types';
@@ -98,7 +98,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
                 {similarMovies.map(m => (
                   <Link key={m.tmdb_id} href={`/movie/${m.tmdb_id}`} className="no-underline text-inherit group">
                     <div className="plate w-[84px] overflow-hidden bg-panel">
-                      <Image
+                      <Poster
                         src={m.poster}
                         alt={m.title}
                         width={84}

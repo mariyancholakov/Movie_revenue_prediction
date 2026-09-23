@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
@@ -132,7 +132,7 @@ export default function FinishedPage() {
                   <div className="flex items-center gap-3 sm:gap-5 px-2 sm:px-3 py-3.5">
                     {/* Film */}
                     <div className="shrink-0 border border-ink/30">
-                      <Image src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
+                      <Poster src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
                     </div>
                     <div className="min-w-0 w-[9rem] sm:w-52 shrink-0">
                       <p className="text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">

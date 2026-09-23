@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import { Poster } from './Poster';
 import type { Movie } from './types';
 import { SearchBar } from './SearchBar';
 import { WireDown } from './WireDown';
@@ -81,7 +81,7 @@ export function MovieGrid({
             style={{ animationDelay: `${Math.min(index, 16) * 0.035}s` }}
           >
             <div className="relative aspect-[2/3] w-full plate overflow-hidden bg-panel">
-              <Image
+              <Poster
                 src={movie.poster}
                 alt={movie.title}
                 fill
