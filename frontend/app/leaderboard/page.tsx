@@ -17,13 +17,13 @@ const fmt = (n: number) => {
 const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
 const COL = {
   rank: 'w-5 sm:w-7 shrink-0',
-  poster: 'w-10 shrink-0',
-  title: 'min-w-0 flex-1 sm:flex-none sm:w-52',
+  poster: 'w-12 shrink-0',
+  title: 'min-w-0 flex-1 sm:flex-none sm:w-60',
   bar: 'hidden sm:flex flex-1 min-w-0',
-  num: 'w-[4.75rem] sm:w-24 shrink-0',
+  num: 'w-[5.25rem] sm:w-28 shrink-0',
 };
-const HEAD = 'font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase';
-const NUM = 'font-mono tabular-nums text-[0.82rem] sm:text-[0.9rem]';
+const HEAD = 'font-mono text-[0.62rem] tracking-[0.14em] text-ink3 uppercase';
+const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
 const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
 
 interface LeaderboardEntry {
@@ -84,7 +84,7 @@ export default function LeaderboardPage() {
         {status === 'loading' && (
           <div className="space-y-px pt-2">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="paper-skeleton h-[70px]" />
+              <div key={i} className="paper-skeleton h-[86px]" />
             ))}
           </div>
         )}
@@ -116,10 +116,10 @@ export default function LeaderboardPage() {
               <span className={COL.title}>{entries.length} film{entries.length !== 1 ? 's' : ''}</span>
               <span className={`${COL.bar} items-center gap-4`}>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-2 bg-ink2" /> Opening weekend
+                  <span className="inline-block w-3.5 h-2.5 bg-ink2" /> Opening weekend
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-2" style={{ background: TINT }} /> Predicted total
+                  <span className="inline-block w-3.5 h-2.5" style={{ background: TINT }} /> Predicted total
                 </span>
               </span>
               <span className={`${COL.num} text-right`}>Predicted</span>
@@ -138,19 +138,19 @@ export default function LeaderboardPage() {
                   data-row
                   className="no-underline text-inherit block group ledger-row border-t border-rule"
                 >
-                  <div className={`${ROW} py-3.5`}>
+                  <div className={`${ROW} py-4`}>
                     <span className={`${COL.rank} ${NUM} text-right text-ink3`}>{i + 1}</span>
 
                     <div className={`${COL.poster} border border-ink/30`}>
-                      <Poster src={entry.poster} alt={entry.title} width={38} height={57} className="object-cover block" />
+                      <Poster src={entry.poster} alt={entry.title} width={46} height={69} className="object-cover block" />
                     </div>
 
                     <div className={COL.title}>
-                      <p className="truncate leading-tight m-0 text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold group-hover:text-red transition-colors">
+                      <p className="truncate leading-tight m-0 text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
                       {entry.genres.length > 0 && (
-                        <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.06em] truncate mt-0.5 uppercase">
+                        <p className="font-mono text-ink3 text-[0.64rem] tracking-[0.06em] truncate mt-1 uppercase">
                           {entry.genres.slice(0, 2).join(' · ')}
                         </p>
                       )}
@@ -158,7 +158,7 @@ export default function LeaderboardPage() {
 
                     {/* Opening weekend solid, running on to the predicted total in tint */}
                     <div className={COL.bar}>
-                      <div className="relative h-6 w-full">
+                      <div className="relative h-7 w-full">
                         <div data-bar-total className="absolute inset-y-0 left-0" style={{ width: `${predPct}%`, background: TINT }} />
                         <div data-bar-open className="absolute inset-y-0 left-0 bg-ink2" style={{ width: `${openPct}%` }} />
                         <div data-tick className="absolute inset-y-0 w-px bg-paper" style={{ left: `${openPct}%` }} />

@@ -16,14 +16,14 @@ const fmtDiff = (n: number) => (n > 0 ? '+' : n < 0 ? '\u2212' : '') + fmt(Math.
 // Shared by the column heads and every row, so the two can never drift apart.
 const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
 const COL = {
-  poster: 'w-[38px] shrink-0',
-  title: 'min-w-0 flex-1 sm:flex-none sm:w-52',
+  poster: 'w-12 shrink-0',
+  title: 'min-w-0 flex-1 sm:flex-none sm:w-60',
   bar: 'hidden sm:flex flex-1 min-w-0',
-  num: 'hidden sm:block w-24 shrink-0',
-  diff: 'w-32 sm:w-36 shrink-0 whitespace-nowrap',
+  num: 'hidden sm:block w-28 shrink-0',
+  diff: 'w-36 sm:w-40 shrink-0 whitespace-nowrap',
 };
-const HEAD = 'font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase';
-const NUM = 'font-mono tabular-nums text-[0.82rem] sm:text-[0.9rem]';
+const HEAD = 'font-mono text-[0.62rem] tracking-[0.14em] text-ink3 uppercase';
+const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
 // The same two tones as Rankings: solid for real grosses, tint for the model.
 const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
 
@@ -122,7 +122,7 @@ export default function FinishedPage() {
         {status === 'loading' && (
           <div className="space-y-px pt-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="paper-skeleton h-[66px]" />
+              <div key={i} className="paper-skeleton h-[86px]" />
             ))}
           </div>
         )}
@@ -146,10 +146,10 @@ export default function FinishedPage() {
               <span className={COL.title}>Film</span>
               <span className={`${COL.bar} items-center gap-4`}>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-2" style={{ background: TINT }} /> Predicted
+                  <span className="inline-block w-3.5 h-2.5" style={{ background: TINT }} /> Predicted
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-3 h-2 bg-ink2" /> Actual
+                  <span className="inline-block w-3.5 h-2.5 bg-ink2" /> Actual
                 </span>
               </span>
               <span className={`${COL.num} text-right`}>Predicted</span>
@@ -164,16 +164,16 @@ export default function FinishedPage() {
 
               return (
                 <Link key={entry.tmdb_id} href={`/movie/${entry.tmdb_id}`} data-row className="no-underline text-inherit block group ledger-row border-t border-rule">
-                  <div className={`${ROW} py-3.5`}>
+                  <div className={`${ROW} py-4`}>
                     <div className={`${COL.poster} border border-ink/30`}>
-                      <Poster src={entry.poster} alt={entry.title} width={36} height={54} className="object-cover block" />
+                      <Poster src={entry.poster} alt={entry.title} width={46} height={69} className="object-cover block" />
                     </div>
                     <div className={COL.title}>
-                      <p className="text-ink text-[0.85rem] sm:text-[0.9rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">
+                      <p className="text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
                       {entry.genres.length > 0 && (
-                        <p className="font-mono text-ink3 text-[0.6rem] tracking-[0.06em] truncate mt-0.5 uppercase">
+                        <p className="font-mono text-ink3 text-[0.64rem] tracking-[0.06em] truncate mt-1 uppercase">
                           {entry.genres.slice(0, 2).join(' · ')}
                         </p>
                       )}
@@ -181,8 +181,8 @@ export default function FinishedPage() {
 
                     {/* Two bars to one scale: the model's call over the actual gross */}
                     <div className={`${COL.bar} flex-col gap-1`}>
-                      <div data-bar-pred className="h-2.5" style={{ width: `${predPct}%`, background: TINT }} />
-                      <div data-bar-actual className="h-2.5 bg-ink2" style={{ width: `${actualPct}%` }} />
+                      <div data-bar-pred className="h-3" style={{ width: `${predPct}%`, background: TINT }} />
+                      <div data-bar-actual className="h-3 bg-ink2" style={{ width: `${actualPct}%` }} />
                     </div>
 
                     <p className={`${COL.num} ${NUM} text-right text-ink m-0`}>{fmt(entry.predicted_revenue)}</p>
