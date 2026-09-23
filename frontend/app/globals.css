@@ -55,12 +55,15 @@ body {
   outline-offset: 2px;
 }
 
-/* The search field shows focus on its own underline, which turns red,
-   instead of the global outline box. */
+/* The search field shows focus on its own underline, which turns red, over
+   a faint red wash, instead of the global outline box. It sits 0.5rem left
+   of the column with matching padding, so the text stays aligned. */
+.search-field { transition: border-color 0.2s ease, background-color 0.2s ease; }
 .search-field:focus,
 .search-field:focus-visible {
   outline: none;
   border-bottom-color: var(--color-red);
+  background-color: color-mix(in srgb, var(--color-red) 7%, transparent);
 }
 
 /* ─── Newspaper rules ─────────────────────────────────────────────────────── */
