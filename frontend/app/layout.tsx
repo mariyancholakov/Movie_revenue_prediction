@@ -27,7 +27,10 @@ const courier = Courier_Prime({
 });
 
 export const metadata: Metadata = {
-  title: "MOVIEGROSS — The Box-Office Ledger",
+  title: {
+    default: "MOVIEGROSS — The Box-Office Ledger",
+    template: "%s · MOVIEGROSS",
+  },
   description:
     "The predicted worldwide box-office run of every film now playing, typeset like the weekend grosses — from a model trained on 5,000+ theatrical releases.",
 };
