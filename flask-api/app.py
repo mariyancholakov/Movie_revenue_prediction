@@ -147,6 +147,26 @@ def store_features(tmdb_id, feature_row):
     except Exception as e:
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
 
+def live_prediction(movie):
+    """The prediction to show for a cached movie row.
+
+    For a film still in theaters, re-run the *current* model on the stored
+    feature snapshot (milliseconds, no scraping), so a promoted model takes
+    effect everywhere at once instead of films drifting over as their 7-day
+    cache expires. A finished run keeps the prediction it was settled with,
+    since that's the claim the Ledger holds the model to."""
+    stored = movie.get('predicted_revenue')
+    feats = movie.get('features')
+    if movie.get('is_in_theaters') is False or not feats:
+        return stored
+    try:
+        row = pd.DataFrame([feats]).reindex(columns=feature_columns, fill_value=0)
+        return round(float(model.predict(row)[0]))
+    except Exception as e:
+        print(f"[predict] live re-score failed for {movie.get('tmdb_id')}: {e}")
+        return stored
+
+
 @app.route('/health', methods=['GET'])
 def health():
     """Lightweight liveness probe for the host's health check. Reports whether
@@ -203,9 +223,19 @@ def predict_for(tmdb_id):
                 .eq('imdb_id', imdb_id).order('week').execute().data or []
         has_decay = movie.get('decay_rate') is not None and bool(weekly_rows)
 
+        predicted = live_prediction(movie)
+        if predicted != movie.get('predicted_revenue'):
+            # Model changed since this row was written: keep the stored value in
+            # step so Rankings and the eventual Ledger entry agree with the page.
+            try:
+                supabase.table('movies').update({'predicted_revenue': predicted}) \
+                    .eq('tmdb_id', tmdb_id).execute()
+            except Exception as e:
+                print(f"[predict] could not store re-scored prediction for {tmdb_id}: {e}")
+
         base = {
             'title': movie['title'],
-            'predicted_revenue': movie['predicted_revenue'],
+            'predicted_revenue': predicted,
             'opening_weekend': movie['opening_weekend'],
             'cached': True,
         }
@@ -348,7 +378,8 @@ def leaderboard():
 
     results = []
     for movie in cached.data:
-        if not movie.get('predicted_revenue'):
+        predicted = live_prediction(movie)
+        if not predicted:
             continue
         tid = movie['tmdb_id']
         results.append({
@@ -357,7 +388,7 @@ def leaderboard():
             'poster':            poster_map.get(tid, ''),
             'genres':            genre_map.get(tid, []),
             'opening_weekend':   movie['opening_weekend'],
-            'predicted_revenue': movie['predicted_revenue'],
+            'predicted_revenue': predicted,
             'decay_rate':        movie.get('decay_rate'),
         })
 
@@ -472,10 +503,14 @@ def capture_finished_runs():
             pending += 1  # retry on a later run
             continue
 
+        # Settle against the prediction the site was showing (current model),
+        # which may be newer than the stored value if a model was promoted.
+        predicted = live_prediction(movie)
         update = {
             'is_in_theaters': False,
             'actual_revenue': int(revenue),
             'finished_at': now.isoformat(),
+            'predicted_revenue': predicted,
         }
         # Backfill a feature snapshot if the prediction predates feature capture.
         if not movie.get('features') and movie.get('opening_weekend'):
@@ -489,7 +524,6 @@ def capture_finished_runs():
         except Exception as e:
             return {'error': f'update failed (did you run the migration?): {e}'}
 
-        predicted = movie.get('predicted_revenue')
         finished.append({
             'tmdb_id': tid,
             'title': movie.get('title'),
