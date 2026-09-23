@@ -56,35 +56,60 @@ export function typeOut(tl: gsap.core.Timeline, el: Element, { pace = 1, keepCar
   else tl.set(caret, { opacity: 0 }, t);
 }
 
-// Loading state: the typist narrates what the server is doing, backspacing
-// between steps, until the answer lands.
+// Loading state: a running log. The typist types what the server is doing,
+// one step per line, each finished line dimming as the next begins; the last
+// keeps a blinking caret until the answer lands. Reduced motion (and SSR)
+// shows a single static line instead.
 const STEPS = ['PULLING THE FILM DETAILS', 'CHECKING THE WEEKEND GROSSES', 'RUNNING THE MODEL'];
 
 export function TypedLoader() {
-  const root = useRef<HTMLParagraphElement>(null);
+  const root = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
     motion(() => {
-      const line = root.current!.querySelector<HTMLElement>('[data-line]')!;
-      const tl = gsap.timeline({ repeat: -1 });
-      STEPS.forEach(step => {
+      const q = gsap.utils.selector(root);
+      const lines = q('[data-step]');
+      gsap.set(q('[data-static]'), { display: 'none' });
+      const tl = gsap.timeline();
+      lines.forEach((line, i) => {
+        const text = line.querySelector<HTMLElement>('[data-text]')!;
+        const caret = line.querySelector('[data-caret]');
+        const step = STEPS[i];
         const n = { i: 0 };
-        const draw = () => { line.textContent = step.slice(0, Math.round(n.i)); };
-        tl.to(n, { i: step.length, duration: step.length * 0.055, ease: `steps(${step.length})`, onUpdate: draw })
-          .to(n, { i: 0, duration: step.length * 0.018, ease: `steps(${step.length})`, onUpdate: draw }, '+=0.9');
+        tl.set(line, { display: 'flex' }, i ? '+=0.35' : 0)
+          .to(n, {
+            i: step.length,
+            duration: step.length * 0.032,
+            ease: `steps(${step.length})`,
+            onUpdate: () => { text.textContent = step.slice(0, Math.round(n.i)); },
+          });
+        if (i < lines.length - 1) {
+          tl.set(caret, { display: 'none' }, '+=0.35').to(line, { color: 'var(--color-ink3)', duration: 0.3 }, '<');
+        }
       });
     });
   }, { scope: root });
 
+  const caret = (
+    <span
+      data-caret
+      aria-hidden
+      className="inline-block w-[0.6em] h-[1.1em] bg-current ml-1"
+      style={{ animation: 'caretBlink 0.9s steps(1) infinite' }}
+    />
+  );
+  const line = 'flex items-center min-h-[1.5em]';
+
   return (
-    <p ref={root} className="font-mono text-[0.8rem] sm:text-[0.9rem] tracking-[0.16em] text-ink m-0 flex items-center min-h-[1.2em]">
+    <div ref={root} className="font-mono text-[0.78rem] sm:text-[0.85rem] tracking-[0.14em] text-ink">
       <span className="sr-only">Filing the numbers</span>
-      <span data-line aria-hidden className="whitespace-pre">FILING THE NUMBERS</span>
-      <span
-        aria-hidden
-        className="inline-block w-[0.6em] h-[1.1em] bg-ink ml-1"
-        style={{ animation: 'caretBlink 0.9s steps(1) infinite' }}
-      />
-    </p>
+      <p data-static aria-hidden className={`${line} m-0`}>FILING THE NUMBERS{caret}</p>
+      {STEPS.map(step => (
+        <p key={step} data-step aria-hidden className={`${line} m-0 hidden`}>
+          <span data-text className="whitespace-pre" />
+          {caret}
+        </p>
+      ))}
+    </div>
   );
 }
