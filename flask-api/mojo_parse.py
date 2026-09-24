@@ -52,14 +52,16 @@ def market_rows(soup):
 
 
 def international_openings(markets, us_date, weeks=range(1, 9)):
-    """International opening weekends known by the end of US weekend k:
-    summed over markets that opened no later than that weekend's Sunday."""
+    """International opening weekends known when US weekend k is reported:
+    summed over markets that opened before that weekend's Friday. Overseas
+    figures come in days late, so a market opening the same weekend as the
+    US isn't counted yet (holdout: no less accurate than counting it)."""
     out = {}
     if pd.isna(us_date):
         return out
     intl = [(d, o) for name, d, o in markets if name != 'Domestic' and not pd.isna(d) and o]
     for k in weeks:
-        cutoff = us_date + pd.Timedelta(days=7 * (k - 1) + 2)
+        cutoff = us_date + pd.Timedelta(days=7 * (k - 1) - 1)
         opened = [o for d, o in intl if d <= cutoff]
         out[f'intl_open_w{k}'] = sum(opened)
         out[f'intl_markets_w{k}'] = len(opened)
