@@ -52,6 +52,66 @@ def franchise_row(release_date, collection_id, collection_parts, tmdb_id=None):
     }
 
 
+TOP_CAST = 3  # billed cast counted as a film's leads
+
+
+def credit_ids(credits):
+    """('|'-joined director ids, '|'-joined top-billed cast ids) from a TMDB
+    /credits response. Used identically for the seed data and live films."""
+    directors = [str(c['id']) for c in credits.get('crew', []) if c.get('job') == 'Director']
+    cast = [str(c['id']) for c in sorted(credits.get('cast', []), key=lambda c: c.get('order', 99))[:TOP_CAST]]
+    return '|'.join(directors), '|'.join(cast)
+
+
+TRACK_FEATURES = ['dir_prior_n', 'dir_prior_log_mult', 'dir_prior_log_total',
+                  'cast_prior_n', 'cast_prior_log_mult', 'cast_prior_log_total']
+# A prior film only counts once its run is over, as it would be when scoring
+# live: released at least this long before the film being scored.
+SETTLED_DAYS = 120
+
+
+def track_records(films, history):
+    """Leak-free director and lead-cast track records.
+
+    `films`: rows with release_date, director_ids, cast_ids.
+    `history`: rows with the same columns plus total (worldwide) and
+    opening_weekend, the films whose outcomes are known.
+    For each film, averages log(total / opening) and log(total) over the
+    history films by the same director(s) / lead cast that were released at
+    least SETTLED_DAYS earlier. NaN when there are none (XGBoost learns what
+    'no track record' means)."""
+    hist = history.dropna(subset=['release_date']).copy()
+    hist['date'] = pd.to_datetime(hist['release_date'], errors='coerce')
+    hist = hist.dropna(subset=['date'])
+    hist['log_mult'] = np.log(np.clip(hist['total'], 1, None) / np.clip(hist['opening_weekend'], 1, None))
+    hist['log_total'] = np.log(np.clip(hist['total'], 1, None))
+
+    def index(col):
+        by_person = {}
+        for date_, ids, lm, lt in zip(hist['date'], hist[col], hist['log_mult'], hist['log_total']):
+            for pid in str(ids or '').split('|'):
+                if pid and pid != 'nan':
+                    by_person.setdefault(pid, []).append((date_, lm, lt))
+        return by_person
+
+    people = {'dir': index('director_ids'), 'cast': index('cast_ids')}
+    rows = []
+    for r in films.itertuples():
+        cutoff = pd.to_datetime(getattr(r, 'release_date', None), errors='coerce')
+        out = {}
+        for key, col in (('dir', 'director_ids'), ('cast', 'cast_ids')):
+            prior = []
+            if not pd.isna(cutoff):
+                cutoff_s = cutoff - pd.Timedelta(days=SETTLED_DAYS)
+                for pid in str(getattr(r, col, '') or '').split('|'):
+                    prior += [(lm, lt) for d, lm, lt in people[key].get(pid, []) if d <= cutoff_s]
+            out[f'{key}_prior_n'] = len(prior)
+            out[f'{key}_prior_log_mult'] = float(np.mean([p[0] for p in prior])) if prior else np.nan
+            out[f'{key}_prior_log_total'] = float(np.mean([p[1] for p in prior])) if prior else np.nan
+        rows.append(out)
+    return pd.DataFrame(rows, index=films.index, columns=TRACK_FEATURES)
+
+
 class MultiplierModel:
     """Predicts a film's total as opening weekend x a predicted multiplier.
 
