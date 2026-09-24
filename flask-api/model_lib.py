@@ -216,6 +216,8 @@ class RunModel:
     predict() takes raw snapshot rows (the columns above, strings and a
     `weeks` list included) and derives every model input itself, so the
     seed backfill and a film priced live go through the same code.
+    A live snapshot may also carry `ww_to_date`, the worldwide gross so far,
+    which floors the latest forecast.
     """
 
     def __init__(self, base_features, params, distributors=(), use_track=True):
@@ -302,8 +304,15 @@ class RunModel:
             x, to_date = self._matrix([raw], k)
             us_m, ratio_m = self.models_[k]
             us = to_date[0] * np.exp(us_m.predict(x)[0])
+            total = us * np.exp(ratio_m.predict(x)[0])
+            if stage is None:
+                # The latest forecast never sits below what the film has
+                # already grossed worldwide (a live fact the stage models,
+                # which only see international openings, can't know). Never
+                # applied to an earlier stage's call, which must not see it.
+                total = max(total, _num(raw.get('ww_to_date')) or 0)
             us_out.append(us)
-            ww.append(us * np.exp(ratio_m.predict(x)[0]))
+            ww.append(total)
         return np.array(ww), np.array(us_out)
 
     def predict(self, X, stage=None):
@@ -326,6 +335,11 @@ class RunModel:
                 by_feature[f] = by_feature.get(f, 0.0) + v
         # US gross to date vs the opening weekend: part of the run so far.
         by_feature['run_to_date_vs_opening'] = float(np.log(to_date[0] / ow))
+        # The worldwide-gross-to-date floor (predict_parts) is also the run so far.
+        unfloored = ow * np.exp(bias + sum(by_feature.values()))
+        floor = _num(raw.get('ww_to_date')) or 0
+        if floor > unfloored:
+            by_feature['run_ww_to_date_floor'] = float(np.log(floor / unfloored))
         factors = {
             group: float(np.exp(sum(v for f, v in by_feature.items() if belongs(f))))
             for group, belongs in RUN_EXPLAIN_GROUPS.items()

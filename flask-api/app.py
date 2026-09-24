@@ -208,6 +208,7 @@ def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
     weeks = weekend_table(weekly_data) if weekly_data is not None else None
     facts = film_facts(title_page, market_page, weeks)
     snap = {k: facts.get(k) for k in ('open_theaters', 'mpaa', 'distributor')}
+    snap['ww_to_date'] = facts.get('ww_all')  # floors the live forecast only
     for k in range(1, MAX_STAGE + 1):
         snap[f'intl_open_w{k}'] = facts.get(f'intl_open_w{k}')
         snap[f'intl_markets_w{k}'] = facts.get(f'intl_markets_w{k}')
