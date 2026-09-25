@@ -428,7 +428,11 @@ export default function HowItWorksPage() {
                   about {Math.round(Math.exp(-lam) * 100)}% of the one before, so its
                   weekend gross halves every {(Math.LN2 / lam).toFixed(1)} weeks.</>
                 )}
-                {' '}The curve is a read-out, not an input: the prediction doesn&rsquo;t use it.
+                {' '}The curve itself is a read-out. The weekends aren&rsquo;t: after each
+                one, the forecast is made again with the run so far, the gross to date,
+                the last weekend and how hard it dropped. On films the model never saw, the
+                median miss falls from 29% at opening to 17% after four weekends and 14%
+                after eight.
               </p>
               <Exhibit ready={!!data}>
                 {data && (curve && curve.weeks.length > 1 ? (
