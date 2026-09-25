@@ -81,20 +81,20 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
         <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke={INK} strokeWidth={1.5} />
         <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
 
-        {banded && <path data-fc-band d={bandPath} fill={INK2} opacity={0.12} />}
+        {banded && <path d={bandPath} fill={INK2} opacity={0.12} />}
 
-        <path data-fc-area d={areaPath} fill="url(#fc-hatch)" />
+        <path d={areaPath} fill="url(#fc-hatch)" />
 
         {final != null && final > 0 && (
-          <line data-fc-final x1={0} y1={yScale(final)} x2={innerW} y2={yScale(final)}
+          <line x1={0} y1={yScale(final)} x2={innerW} y2={yScale(final)}
             stroke={INK2} strokeWidth={1.5} strokeDasharray="5 4" />
         )}
 
-        <path data-fc-line d={stepPath} fill="none" stroke={INK} strokeWidth={2.25}
+        <path d={stepPath} fill="none" stroke={INK} strokeWidth={2.25}
           strokeLinejoin="round" strokeLinecap="round" />
 
         {history.map((h, i) => (
-          <circle data-fc-dot key={`dot-${i}`} cx={xScale(i)} cy={yScale(h.forecast)} r={3.5}
+          <circle key={`dot-${i}`} cx={xScale(i)} cy={yScale(h.forecast)} r={3.5}
             fill={INK} stroke={PAPER} strokeWidth={1.5} />
         ))}
 

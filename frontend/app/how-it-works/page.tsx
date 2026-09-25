@@ -27,7 +27,7 @@ interface Explain {
   factors: Partial<Record<Group, number>>;
   features: Record<string, number | boolean | string | null>;
   weeks_reported?: number;
-  decay_curve: (DecayCurveData & { half_life?: number | null }) | null;
+  decay_curve: DecayCurveData | null;
 }
 
 interface Film { tmdb_id: number; title: string; poster: string; budget: number | null; decay_rate: number | null }

@@ -100,7 +100,6 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
             predicting={predicting}
             onBack={() => router.push('/')}
             onPredict={handlePredict}
-            fullPage
           />
 
           {similarMovies.length > 0 && (

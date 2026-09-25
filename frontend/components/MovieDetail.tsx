@@ -142,7 +142,6 @@ interface MovieDetailProps {
   predicting: boolean;
   onBack: () => void;
   onPredict: () => void;
-  fullPage?: boolean;
 }
 
 // One ruled row of the particulars ledger.
@@ -286,7 +285,7 @@ export function MovieDetail({
               fill
               sizes="(max-width: 640px) 208px, (max-width: 768px) 240px, 288px"
               className="object-cover"
-              priority
+              preload
             />
           </div>
         </div>
@@ -449,9 +448,7 @@ export function MovieDetail({
 
           {hasForecast && (
             <div data-ledger-follow>
-              <div className="flex items-end justify-between mb-3">
-                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">The Forecast, Weekend by Weekend</h3>
-              </div>
+              <h3 className="font-display text-ink text-[1.25rem] font-bold m-0 mb-3">The Forecast, Weekend by Weekend</h3>
               <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
                 The worldwide prediction after each US weekend, with its range shaded.
               </p>

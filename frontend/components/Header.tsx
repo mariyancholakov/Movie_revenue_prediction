@@ -73,7 +73,7 @@ export function Header({ filmCount = 0 }: { filmCount?: number }) {
           </div>
           <h1
             className="font-display text-ink font-black leading-[0.9] m-0 select-none
-                       text-[3.1rem] xs:text-[3.8rem] sm:text-[6rem] lg:text-[7rem] 2xl:text-[8rem]
+                       text-[3.1rem] sm:text-[6rem] lg:text-[7rem] 2xl:text-[8rem]
                        tracking-[-0.02em]"
             aria-label={NAMEPLATE}
           >
