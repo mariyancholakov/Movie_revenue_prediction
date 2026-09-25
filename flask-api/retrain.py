@@ -50,7 +50,7 @@ import dataset
 import ranges
 import mojo_cache
 from model_lib import (FRANCHISE_FEATURES, MAX_STAGE, N_DISTRIBUTORS, MultiplierModel,
-                       RunModel, credit_ids, track_records)
+                       RunModel, credit_ids, reached, track_records)
 from scraper import TMDB_API_KEY, _tmdb_get, get_franchise_features, get_movie_details
 
 load_dotenv()
@@ -209,7 +209,7 @@ def run_retrain(promote=False):
     print("  RunModel as the run plays (films still in release after k US weekends):")
     stages = {}
     for k in range(1, MAX_STAGE + 1):
-        idx = [i for i, r in enumerate(raws) if len(r['weeks']) >= k or k == 1]
+        idx = [i for i, r in enumerate(raws) if reached(r, k)]
         m = metrics(y_test[idx], candidate.predict([raws[i] for i in idx], stage=k))
         stages[k] = m
         print(f"    after weekend {k} (n={len(idx):4d}) : {fmt(m)}")

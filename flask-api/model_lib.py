@@ -194,11 +194,29 @@ def _num(v):
     return v
 
 
+def run_weeks(raw):
+    """The US weekends in a snapshot, one per weekend number. Box Office Mojo
+    repeats a number for holiday long weekends; mojo_parse.weekend_table
+    keeps the first of each, as training did, but snapshots stored before it
+    did still carry the repeats."""
+    weeks = raw.get('weeks') if isinstance(raw.get('weeks'), (list, tuple)) else []
+    seen, out = set(), []
+    for w in weeks:
+        if w.get('week') not in seen:
+            seen.add(w.get('week'))
+            out.append(w)
+    return out
+
+
+def reached(raw, stage):
+    """Whether a film's run has the weekends a `stage` forecast reads (every
+    film has stage 1, the opening-weekend call)."""
+    return stage == 1 or len(run_weeks(raw)) >= stage
+
+
 def stage_of(raw):
     """How many US weekends a film's forecast can use (1 = opening weekend)."""
-    weeks = raw.get('weeks')
-    n = len(weeks) if isinstance(weeks, (list, tuple)) else 0
-    return int(min(max(n, 1), MAX_STAGE))
+    return int(min(max(len(run_weeks(raw)), 1), MAX_STAGE))
 
 
 class RunModel:
@@ -260,8 +278,7 @@ class RunModel:
         x['log_intl_open'] = np.log1p(intl) - np.log(ow) if not np.isnan(intl) else np.nan
         x['intl_markets'] = _num(raw.get(f'intl_markets_w{stage}'))
 
-        weeks = raw.get('weeks') if isinstance(raw.get('weeks'), (list, tuple)) else []
-        weeks = weeks[:stage]
+        weeks = run_weeks(raw)[:stage]
         to_date = _num(weeks[-1].get('to_date')) if weeks else np.nan
         if np.isnan(to_date) or to_date <= 0:
             to_date = ow
@@ -284,7 +301,7 @@ class RunModel:
         totals. Stage k trains on the films that played at least k weekends."""
         us_total, total = np.asarray(us_total, float), np.asarray(total, float)
         for k in range(1, MAX_STAGE + 1):
-            idx = [i for i, r in enumerate(raws) if k == 1 or len(r.get('weeks') or []) >= k]
+            idx = [i for i, r in enumerate(raws) if reached(r, k)]
             X, to_date = self._matrix([raws[i] for i in idx], k)
             keep = us_total[idx] >= to_date * 0.98  # a US total below the to-date is a broken row
             us = XGBRegressor(**self.params).fit(X[keep], np.log(us_total[idx][keep] / to_date[keep]))

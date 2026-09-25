@@ -16,7 +16,7 @@ import os
 import numpy as np
 
 import dataset
-from model_lib import MAX_STAGE
+from model_lib import MAX_STAGE, reached
 
 RANGES_PATH = os.path.join(os.path.dirname(__file__), 'models', 'forecast_ranges.json')
 QUANTILES = (0.25, 0.75)
@@ -38,7 +38,7 @@ def calibrate(model, test):
     bins = np.array([opening_bin(o) for o in test['opening_weekend']])
     stages, prev = {}, None
     for k in range(1, MAX_STAGE + 1):
-        idx = np.array([i for i, r in enumerate(raws) if k == 1 or len(r['weeks'] or []) >= k])
+        idx = np.array([i for i, r in enumerate(raws) if reached(r, k)])
         calls = model.predict([raws[i] for i in idx], stage=k)
         ok = np.isfinite(final[idx]) & (final[idx] > 0) & (calls > 0)
         resid = np.log(final[idx][ok] / calls[ok])

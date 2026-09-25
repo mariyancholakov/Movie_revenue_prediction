@@ -6,7 +6,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, NOW_PLAYING_TTL, TMDB_API_KEY, _is_current_release, _tmdb_get
-from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, track_records
+from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, run_weeks, track_records
 from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
 import ranges
@@ -150,6 +150,22 @@ def build_fitted_curve(weeks, gross, decay_rate):
     xs = np.linspace(0, max_w, 200)
     ys = amplitude * np.exp(-decay_rate * xs)
     return xs.tolist(), ys.tolist()
+
+
+def stored_weeks(imdb_id):
+    """A film's stored US weekend grosses, one row per weekend. Runs stored
+    before the parser dropped Box Office Mojo's repeated holiday rows have
+    two rows at some weekends; the first written is the one to keep."""
+    if not imdb_id:
+        return []
+    rows = supabase.table('weekly_gross').select('*').eq('imdb_id', imdb_id) \
+        .order('week').order('id').execute().data or []
+    seen, out = set(), []
+    for r in rows:
+        if r['week'] not in seen:
+            seen.add(r['week'])
+            out.append(r)
+    return out
 
 
 def decay_curve_from_db(weekly_rows, decay_rate, half_life):
@@ -478,7 +494,7 @@ def forecast_history(feats, latest=None):
     on record by then. `latest` replaces the last one with the figure the
     page shows (the live forecast is floored at the worldwide gross to date,
     which the earlier calls must not see). Empty for older models."""
-    weeks = feats.get('weeks') or []
+    weeks = run_weeks(feats)
     if not IS_RUN_MODEL or not weeks:
         return []
     history = [{'week': k, 'us_to_date': round(float(weeks[k - 1].get('to_date') or 0)),
@@ -509,7 +525,7 @@ def headline_range(feats, predicted, settled):
     """The range around the figure the page leads with: the opening call for
     a settled run, the latest call for a live one."""
     try:
-        weeks = len(feats.get('weeks') or [])
+        weeks = len(run_weeks(feats))
         stage = 1 if settled else min(max(weeks, 1), MAX_STAGE)
         span = call_range(feats, predicted, stage, floored=not settled)
         return list(span) if span else None
@@ -545,10 +561,7 @@ def predict_for(tmdb_id):
         last_scraped = datetime.fromisoformat(movie['last_scraped'])
         age = now - last_scraped
 
-        weekly_rows = []
-        if imdb_id:
-            weekly_rows = supabase.table('weekly_gross').select('*') \
-                .eq('imdb_id', imdb_id).order('week').execute().data or []
+        weekly_rows = stored_weeks(imdb_id)
         has_decay = movie.get('decay_rate') is not None and bool(weekly_rows)
 
         predicted = live_prediction(movie)
@@ -773,10 +786,7 @@ def explain(tmdb_id):
         print(f"[explain] failed for {tmdb_id}: {e}")
         return jsonify({'error': 'TMDB is not responding.', 'code': 'tmdb_unavailable'}), 503
 
-    weekly_rows = []
-    if movie.get('imdb_id') and movie.get('decay_rate') is not None:
-        weekly_rows = supabase.table('weekly_gross').select('*') \
-            .eq('imdb_id', movie['imdb_id']).order('week').execute().data or []
+    weekly_rows = stored_weeks(movie.get('imdb_id')) if movie.get('decay_rate') is not None else []
     return jsonify({
         'tmdb_id': tmdb_id,
         'title': movie['title'],
@@ -786,7 +796,7 @@ def explain(tmdb_id):
         'base_multiplier': base,
         'factors': factors,
         'features': {k: feats.get(k, 0) for k in SHOWN_FEATURES},
-        'weeks_reported': len(feats.get('weeks') or []),
+        'weeks_reported': len(run_weeks(feats)),
         'decay_curve': decay_curve_from_db(weekly_rows, movie.get('decay_rate'), movie.get('half_life')),
     })
 
@@ -864,7 +874,7 @@ LATER_CALLS = (2, 4, 8)
 def later_calls(feats):
     """A settled film's forecast as it stood after each of LATER_CALLS US
     weekends, for the weekends its run reached. Empty if it can't be scored."""
-    weeks = len(feats.get('weeks') or [])
+    weeks = len(run_weeks(feats))
     if not IS_RUN_MODEL:
         return {}
     try:
