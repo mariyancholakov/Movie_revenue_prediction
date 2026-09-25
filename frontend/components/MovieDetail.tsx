@@ -24,8 +24,10 @@ const fmtRuntime = (mins: number) => {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 };
 
+// A calendar date as written (parseDay), so 'YYYY-MM-DD' never shifts to the
+// day before in time zones west of UTC.
 const fmtDate = (d: string) => {
-  const t = new Date(d);
+  const t = parseDay(d) ?? new Date(d);
   return Number.isNaN(t.getTime())
     ? d
     : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -35,8 +37,13 @@ const fmtDate = (d: string) => {
 // one or two sentences saying why, and what happens next.
 const RETRYABLE = new Set<Prediction["code"]>(["tmdb_unavailable", "box_office_unavailable", "network", "internal"]);
 
-function errorCopy(code: Prediction["code"], daysSinceRelease: number): { title: string; body: string } {
+// `usOpening` / `openedAbroad` are display dates: the US release, and the
+// film's first release elsewhere when that came earlier (else null).
+function errorCopy(
+  code: Prediction["code"], daysSinceRelease: number, usOpening: string, openedAbroad: string | null,
+): { title: string; body: string } {
   const days = Math.floor(daysSinceRelease);
+  const abroad = openedAbroad ? ` It first opened abroad on ${openedAbroad}.` : "";
   switch (code) {
     case "not_released":
       return {
@@ -44,10 +51,15 @@ function errorCopy(code: Prediction["code"], daysSinceRelease: number): { title:
         body: "Predictions start from a film\u2019s US opening weekend, so this one opens up after its first weekend in theaters.",
       };
     case "no_opening_weekend":
+      if (daysSinceRelease < 0)
+        return {
+          title: "Not in US theaters yet",
+          body: `It opens in the US on ${usOpening}.${abroad} We predict from the first US weekend\u2019s gross, which is published the Monday after.`,
+        };
       if (days < 4)
         return {
           title: "Opening weekend in progress",
-          body: `It opened ${days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`}. We predict from the first weekend\u2019s US gross, which is published the Monday after. Check back then.`,
+          body: `It opened in US theaters ${days === 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`}.${abroad} We predict from the first US weekend\u2019s gross, which is published the Monday after. Check back then.`,
         };
       if (days < 14)
         return {
@@ -173,6 +185,11 @@ export function MovieDetail({
   const daysSinceRelease = Number.isNaN(usRelease)
     ? Infinity
     : (now - usRelease) / 86_400_000;
+  // TMDB's release date is the film's first release anywhere; when the US
+  // came later, say so, or 'opened today' contradicts 'Released'.
+  const usDay = parseDay(selected.us_release_date);
+  const firstDay = parseDay(selected.release_date);
+  const laterInUS = usDay && firstDay && usDay.getTime() > firstDay.getTime() ? usDay : null;
 
   // Shares this film's page. Phones get the native share sheet; elsewhere the
   // link is copied. navigator.clipboard is missing on insecure origins and
@@ -268,6 +285,9 @@ export function MovieDetail({
           {/* Particulars ledger */}
           <div className="border-t border-ink/25">
             <Particular label="Released">{fmtDate(selected.release_date)}</Particular>
+            {laterInUS && (
+              <Particular label="In the US">{fmtDate(selected.us_release_date!)}</Particular>
+            )}
             {(selected.runtime ?? 0) > 0 && (
               <Particular label="Runtime">{fmtRuntime(selected.runtime!)}</Particular>
             )}
@@ -427,7 +447,11 @@ export function MovieDetail({
       })()}
 
       {prediction?.error && (() => {
-        const { title, body } = errorCopy(prediction.code, daysSinceRelease);
+        const { title, body } = errorCopy(
+          prediction.code, daysSinceRelease,
+          fmtDate(selected.us_release_date || selected.release_date),
+          laterInUS ? fmtDate(selected.release_date) : null,
+        );
         return (
           <div role="alert" className="mt-8 border-l-2 border-red pl-4 py-1 max-w-prose">
             <p className="font-display text-ink text-[1.05rem] font-bold m-0 mb-1">{title}</p>
