@@ -72,7 +72,7 @@ export default function LeaderboardPage() {
           Rankings
         </h1>
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-6">
-          Every film now playing, ranked by the model&rsquo;s predicted worldwide total. Profit is
+          Every film now playing that the model has priced, ranked by its predicted worldwide total. Profit is
           estimated as the studio&rsquo;s roughly half of that gross, minus the budget.
         </p>
 
