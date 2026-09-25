@@ -20,6 +20,7 @@ Env vars:
                        return fast regardless.
 """
 import os
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -47,7 +48,7 @@ def main():
     if not movies:
         log("warm_cache: TMDB returned no now-playing films (upstream down?) — nothing to do")
         log("=== warm_cache run end ===")
-        return
+        sys.exit(1)  # so the scheduled run shows as failed, not green
 
     warmed = fresh = failed = 0
     for m in movies:

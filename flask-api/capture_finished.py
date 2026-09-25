@@ -18,6 +18,7 @@ Every run appends to logs/pipeline.log.
 """
 import json
 import os
+import sys
 from datetime import datetime, timezone
 
 # Relative paths in app.py / retrain.py assume the flask-api dir is the cwd.
@@ -62,7 +63,7 @@ def main():
     result = capture_finished_runs()
     if 'error' in result:
         log(f"capture FAILED: {result['error']}")
-        return
+        sys.exit(1)  # so the scheduled run shows as failed, not green
     titles = ", ".join(m['title'] for m in result['finished']) or "none"
     log(f"capture: checked {result['checked']} tracked | newly finished "
         f"{result['newly_finished']} ({titles}) | awaiting revenue {result['pending_revenue']}")
