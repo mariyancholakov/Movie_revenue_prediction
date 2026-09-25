@@ -145,8 +145,9 @@ runs on 5001 here.
    the old local launchd agent (`flask-api/scripts/`).
 5. **Promoting a model.** Run the workflow's `retrain` job from the Actions
    tab. If the report shows the candidate winning on the holdout, commit the
-   artifact as `flask-api/models/box_office_model_final.pkl` and redeploy the
-   API.
+   artifact's model as `flask-api/models/box_office_model_final.pkl` and its
+   `candidate_*_ranges.json` as `flask-api/models/forecast_ranges.json` (the
+   ranges belong to the model they were read from), then redeploy the API.
 
 ## Data & attribution
 
