@@ -114,7 +114,14 @@ def performance_totals(soup):
 def weekend_table(df):
     """Mojo's raw weekend table (pd.read_html) as clean numbers: week,
     weekend_gross, theaters, to_date (domestic gross to date, weekdays
-    included), sorted by week."""
+    included), sorted by week, one row per weekend number. The table has two
+    "Weekend" headers: pandas names the gross column 'Weekend' and the
+    weekend-number column 'Weekend.1'.
+
+    Mojo also lists holiday long weekends ("Thanksgiving 4-Day", "Presidents'
+    Day wknd") as extra rows that repeat a weekend number, usually 1. Only the
+    first row of each number is kept, exactly as the training weeks have
+    always been (dataset.weeks_by_film)."""
     out = pd.DataFrame({
         'week': pd.to_numeric(df.get('Weekend.1'), errors='coerce'),
         'weekend_gross': df['Weekend'].map(_money),
@@ -122,7 +129,8 @@ def weekend_table(df):
         'to_date': df['To Date'].map(_money),
         'dates': df['Date'],
     })
-    return out.dropna(subset=['week', 'weekend_gross']).sort_values('week').reset_index(drop=True)
+    return out.dropna(subset=['week', 'weekend_gross']).sort_values('week') \
+        .drop_duplicates('week').reset_index(drop=True)
 
 
 def film_facts(title, market_page, weeks):

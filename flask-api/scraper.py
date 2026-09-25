@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import os
 
 from model_lib import franchise_row
+from mojo_parse import weekend_table
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'}
 load_dotenv()
@@ -279,19 +280,18 @@ def parse_and_fit_decay(df_weekly):
 
     Returns None (rather than raising) when the table can't be parsed or the fit
     isn't meaningful, so a Mojo layout change or a thin run costs the chart, not
-    the whole prediction. Mojo's table has two "Weekend" headers: pandas names
-    the gross column 'Weekend' and the weekend-number column 'Weekend.1'.
+    the whole prediction. The table is read by mojo_parse.weekend_table, like
+    the model's weeks, so the chart and the forecast see the same weekends.
     """
     try:
-        df = df_weekly[df_weekly['Weekend.1'].apply(lambda x: str(x).isdigit())].copy()
-        df['gross'] = df['Weekend'].astype(str).str.replace('[$,]', '', regex=True).astype(float)
-        df['week'] = df['Weekend.1'].astype(int) - 1
+        table = weekend_table(df_weekly)
     except (KeyError, ValueError, TypeError, AttributeError) as e:
         print(f"[mojo] weekend table not in the expected format: {e}")
         return None
 
-    weeks = df['week'].values
-    gross = df['gross'].values
+    # Counted from 0 here, so the fitted amplitude is the opening weekend.
+    weeks = (table['week'] - 1).astype(int).values
+    gross = table['weekend_gross'].astype(float).values
     if len(weeks) < 2 or gross[0] <= 0:
         return None  # need at least two weekends to fit a decay
 
@@ -310,7 +310,7 @@ def parse_and_fit_decay(df_weekly):
 
     weeks_smooth = np.linspace(0, max(weeks), 200)
     return {
-        'weeks': df['week'].tolist(),
+        'weeks': weeks.tolist(),
         'actual_gross': gross.tolist(),
         'fitted_weeks': weeks_smooth.tolist(),
         'fitted_gross': (opening * np.exp(-lam * weeks_smooth)).tolist(),
