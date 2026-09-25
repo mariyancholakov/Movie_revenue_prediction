@@ -15,7 +15,10 @@ function noise(text: string, i: number) {
 
 export function Typed({ text, className }: { text: string; className?: string }) {
   return (
-    <span aria-label={text} className={`whitespace-pre ${className ?? ''}`}>
+    <span className={`whitespace-pre ${className ?? ''}`}>
+      {/* What a screen reader reads: the glyphs below are hidden from it, and
+          aria-label on a plain span is ignored. */}
+      <span className="sr-only">{text}</span>
       {[...text].map((ch, i) => (
         // A real ribbon never inks two keys quite alike: each character
         // carries a hair of its own density.
