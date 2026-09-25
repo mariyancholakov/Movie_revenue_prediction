@@ -5,7 +5,7 @@ for setup, the API it talks to, and deployment.
 
 ```bash
 npm install
-npm run dev     # http://localhost:3000, needs NEXT_PUBLIC_API_URL in .env.local
+npm run dev     # http://localhost:3000; API from NEXT_PUBLIC_API_URL in .env.local (default http://127.0.0.1:5000)
 npm run build   # fails fast if NEXT_PUBLIC_API_URL is unset
 npm run lint
 ```
