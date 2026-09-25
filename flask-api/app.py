@@ -7,6 +7,7 @@ from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, 
 from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, track_records
 from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
+import ranges
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
@@ -49,6 +50,8 @@ model = joblib.load(os.getenv('MODEL_PATH', 'models/box_office_model_final.pkl')
 BASE_FEATURES = joblib.load('models/feature_columns_final.pkl')
 SNAPSHOT_COLUMNS = BASE_FEATURES + FRANCHISE_FEATURES
 IS_RUN_MODEL = isinstance(model, RunModel)
+# How far a call can land from the final total (ranges.py); None disables ranges.
+RANGES = ranges.load() if IS_RUN_MODEL else None
 # The snapshot keys the current model reads. RunModel also reads the Box
 # Office Mojo facts, track records and the weekends reported so far.
 MODEL_FEATURES = model.inputs if IS_RUN_MODEL else getattr(model, 'features', BASE_FEATURES)
@@ -351,7 +354,36 @@ def forecast_history(feats, latest=None):
                for k in range(1, min(len(weeks), MAX_STAGE) + 1)]
     if latest is not None:
         history[-1]['forecast'] = latest
+    for h in history:
+        h['low'], h['high'] = call_range(feats, h['forecast'], h['week'], floored=h is history[-1] and latest is not None) or (None, None)
     return history
+
+
+def call_range(feats, call, stage, floored=False):
+    """(low, high) where eight in ten films like this one finished, around a
+    call made after `stage` US weekends (ranges.py). The live call is floored
+    at the worldwide gross to date, and so is its range. None without one."""
+    span = ranges.forecast_range(RANGES, call, stage, feats.get('opening_weekend'))
+    if not span:
+        return None
+    low, high = span
+    if floored:
+        to_date = round(float(feats.get('ww_to_date') or 0))
+        low, high = max(low, to_date), max(high, to_date)
+    return low, high
+
+
+def headline_range(feats, predicted, settled):
+    """The range around the figure the page leads with: the opening call for
+    a settled run, the latest call for a live one."""
+    try:
+        weeks = len(feats.get('weeks') or [])
+        stage = 1 if settled else min(max(weeks, 1), MAX_STAGE)
+        span = call_range(feats, predicted, stage, floored=not settled)
+        return list(span) if span else None
+    except Exception as e:
+        print(f"[predict] forecast range failed: {e}")
+        return None
 
 
 def safe_history(feats, latest=None):
@@ -405,6 +437,7 @@ def predict_for(tmdb_id):
             'predicted_revenue': predicted,
             'opening_weekend': movie['opening_weekend'],
             'forecast_history': safe_history(movie.get('features') or {}, None if settled else predicted),
+            'forecast_range': headline_range(movie.get('features') or {}, predicted, settled),
             'cached': True,
         }
 
@@ -541,6 +574,7 @@ def predict_for(tmdb_id):
         'opening_weekend': opening_weekend,
         'decay_curve': decay_data,
         'forecast_history': safe_history(feats, round(predicted_revenue)),
+        'forecast_range': headline_range(feats, round(predicted_revenue), settled=False),
         'cached': False
     }, 200
 

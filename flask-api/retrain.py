@@ -34,6 +34,7 @@ Promote a winner:
     ./venv/bin/python retrain.py --promote
 """
 import argparse
+import json
 import os
 import shutil
 from datetime import datetime, timezone
@@ -46,6 +47,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from supabase import create_client
 
 import dataset
+import ranges
 import mojo_cache
 from model_lib import (FRANCHISE_FEATURES, MAX_STAGE, N_DISTRIBUTORS, MultiplierModel,
                        RunModel, credit_ids, track_records)
@@ -227,6 +229,10 @@ def run_retrain(promote=False):
     joblib.dump(final, candidate_path)
     result['candidate_path'] = candidate_path
     print(f"Saved candidate model -> {candidate_path}")
+    # Its forecast ranges, read off the holdout calls of the same approach.
+    ranges_path = candidate_path.replace('.pkl', '_ranges.json')
+    with open(ranges_path, 'w') as f:
+        json.dump(ranges.calibrate(candidate, test), f, indent=1)
 
     if not promote:
         print("\nRead-only run. Re-run with --promote to swap it into production (only if it wins).")
@@ -239,6 +245,7 @@ def run_retrain(promote=False):
     backup = f'{MODELS_DIR}/box_office_model_backup_{ts}.pkl'
     shutil.copy(PROD_MODEL, backup)
     joblib.dump(final, PROD_MODEL)
+    shutil.copy(ranges_path, ranges.RANGES_PATH)
     result['promoted'] = True
     result['backup_path'] = backup
     print(f"\nPROMOTED. Backed up previous model -> {backup}")
