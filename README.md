@@ -129,9 +129,10 @@ runs on 5001 here.
    `flask-api/migrations/` in order in the SQL editor. `002_enable_rls.sql`
    locks the tables to the secret key, so running it while the API still
    uses the publishable key breaks every request.
-2. **API** (any host that runs a Procfile, e.g. Render or Railway). Set the
-   root directory to `flask-api`. The host reads `.python-version` and starts
-   the app with `gunicorn` per the `Procfile`. Environment variables:
+2. **API** (e.g. a Render web service). Set the root directory to
+   `flask-api`; the host reads `.python-version`. Railway and Heroku read the
+   start command from the `Procfile`; on Render, paste the `Procfile`'s
+   `gunicorn …` line as the start command. Environment variables:
    `TMDB_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`,
    `ALLOWED_ORIGINS` (the frontend URL), `PROXY_HOPS=1` (the host's load
    balancer, so rate limits count each visitor) and `ADMIN_TOKEN` (optional).
