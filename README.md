@@ -135,7 +135,8 @@ runs on 5001 here.
 
 1. **Supabase.** In the dashboard, copy the **secret** key (`sb_secret_…`).
    Set it as the API's `SUPABASE_KEY` and deploy that change first. Then run
-   `flask-api/migrations/` in order in the SQL editor. `002_enable_rls.sql`
+   `flask-api/migrations/` in order in the SQL editor (`000` creates the
+   tables in a fresh project and changes nothing in an existing one). `002_enable_rls.sql`
    locks the tables to the secret key, so running it while the API still
    uses the publishable key breaks every request.
 2. **API** (e.g. a Render web service). Set the root directory to
