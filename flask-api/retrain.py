@@ -8,8 +8,8 @@ Method:
      price films newer than anything it learned from. A random split would
      let it learn 2020s films' shorter runs from their neighbours.
   2. reference = the previous approach, MultiplierModel (XGBoost on
-     log(total / opening weekend) over TMDB features), trained on
-     seed-train + captured rows with the cleaned worldwide label.
+     log(total / opening weekend) over TMDB features), trained on the
+     pre-2017 seed films with the cleaned worldwide label.
   3. candidate = RunModel (model_lib): US legs x worldwide/US ratio, with Box
      Office Mojo facts (theaters, MPAA, distributor, international market
      openings), director/cast track records, and one model pair per US
@@ -19,7 +19,10 @@ Method:
      (dataset.clean_total, what the Ledger settles at): MAE / median APE / MAPE / R^2. The candidate is scored at stage 1,
      the opening-weekend forecast, which is the like-for-like comparison; the
      later stages are reported to show how the forecast tightens.
-  5. Fit the final production artifact on ALL data (seed + captured).
+  5. Fit the final production artifact on ALL data (seed + captured). The
+     captured runs join only here: they're newer than the holdout, and their
+     track records read holdout outcomes, so in the exam they'd train a
+     "pre-2017" model on the future.
   6. Only if --promote is passed AND the candidate is no worse than the
      reference on both MAE and median APE, back up the current model and swap
      in the new one.
@@ -184,10 +187,10 @@ def run_retrain(promote=False):
     print(f"seed rows: {len(seed)} (with Mojo US total: {seed['us_total'].notna().sum()}) "
           f"| captured finished rows: {len(captured)}\n")
 
-    # 1. Shared holdout: the seed films released from HOLDOUT_FROM_YEAR on.
+    # 1. Shared holdout: the seed films released from HOLDOUT_FROM_YEAR on,
+    # priced by models trained only on the films before (step 5).
     newer = seed['release_year'] >= HOLDOUT_FROM_YEAR
-    seed_train, test = seed[~newer], seed[newer]
-    train = pd.concat([seed_train, captured], ignore_index=True)
+    train, test = seed[~newer], seed[newer]
     y_test = test[TARGET].values
 
     # 2 + 3. Reference vs candidate, same training films, same unseen holdout.

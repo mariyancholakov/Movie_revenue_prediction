@@ -488,8 +488,8 @@ export default function HowItWorksPage() {
                     <span className="text-right">Median miss</span>
                   </div>
                   {[
-                    ['One multiplier, TMDB facts only', '$53M', '37.2%'],
-                    ['US run × trip abroad, Mojo facts (now live)', '$42M', '26.9%'],
+                    ['One multiplier, TMDB facts only', '$53M', '38.4%'],
+                    ['US run × trip abroad, Mojo facts (now live)', '$43M', '27.3%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>

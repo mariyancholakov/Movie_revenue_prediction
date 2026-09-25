@@ -41,7 +41,7 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   the current model on every read.
 - **Accuracy** (films from 2017 on, trained on earlier ones, vs the cleaned
   worldwide total): median miss 27% at the opening weekend (the previous
-  model: 37%), 21% after US weekend 2, 16% after weekend 4, 13% after weekend 8.
+  model: 38%), 21% after US weekend 2, 16% after weekend 4, 13% after weekend 8.
 - **Ranges:** `ranges.py` reads each call's likely range off the model's own
   misses on those unseen films, by US weekend and size of opening;
   `retrain.py` recalibrates it with every model it builds.
