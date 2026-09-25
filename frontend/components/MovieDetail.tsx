@@ -347,7 +347,7 @@ export function MovieDetail({
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
               ),
               // Where half of films like it finished (ranges.py).
-              <StatCard key="rg" label="Likely Range"
+              <StatCard key="rg" label="Likely Range" breakAfter={"\u2013"}
                 value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
               profit != null
                 ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} />
@@ -382,17 +382,8 @@ export function MovieDetail({
             {prediction.forecast_range && " \u00b7 Range: where half of films like it finished"}
           </p>
 
-          {(prediction.forecast_history?.length ?? 0) > 1 && (
-            <div data-ledger-follow className="mb-11">
-              <div className="flex items-end justify-between mb-5">
-                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">The Forecast, Weekend by Weekend</h3>
-              </div>
-              <ForecastChart history={prediction.forecast_history!} final={settled} />
-            </div>
-          )}
-
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
-            <div data-ledger-follow>
+            <div data-ledger-follow className="mb-11">
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
                 {/* decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
@@ -409,9 +400,26 @@ export function MovieDetail({
           )}
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length <= 2 && (
-            <p className="text-ink2 text-[0.85rem] italic">
+            <p className="text-ink2 text-[0.85rem] italic mb-11">
               Not enough weekends on the books yet — check back after a few more.
             </p>
+          )}
+
+          {(prediction.forecast_history?.length ?? 0) > 1 && (
+            <div data-ledger-follow>
+              <div className="flex items-end justify-between mb-3">
+                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">The Forecast, Weekend by Weekend</h3>
+              </div>
+              {/* The chart is new to most readers: say in plain words what each mark is. */}
+              <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
+                After every US weekend the model predicts the worldwide total again, now
+                knowing how the film is actually selling. Each step of the line is the
+                prediction it made after that weekend, and the shaded band around it the
+                likely range. The hatched area is what the film had taken in the US by then
+                {settled != null ? "; the dashed line is where it finally finished." : "."}
+              </p>
+              <ForecastChart history={prediction.forecast_history!} final={settled} />
+            </div>
           )}
         </div>
         );
