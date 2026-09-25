@@ -50,7 +50,10 @@ export default function RootLayout({
       lang="en"
       className={`${franklin.variable} ${bodoni.variable} ${courier.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      {/* Browser extensions (e.g. ColorZilla's cz-shortcut-listen) add
+          attributes to <body> before React hydrates; this ignores those on
+          this one element only, not its children. */}
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
         <Footer />
       </body>
