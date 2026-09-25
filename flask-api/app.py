@@ -337,6 +337,33 @@ def movie(tmdb_id):
     page['us_release_date'] = get_us_theatrical_date(tmdb_id) or ''
     return jsonify(page)
 
+def forecast_history(feats, latest=None):
+    """The forecast as it stood after each US weekend, 1..MAX_STAGE, rebuilt
+    from the snapshot: each stage sees only the weekends and openings abroad
+    on record by then. `latest` replaces the last one with the figure the
+    page shows (the live forecast is floored at the worldwide gross to date,
+    which the earlier calls must not see). Empty for older models."""
+    weeks = feats.get('weeks') or []
+    if not IS_RUN_MODEL or not weeks:
+        return []
+    history = [{'week': k, 'us_to_date': round(float(weeks[k - 1].get('to_date') or 0)),
+                'forecast': round(score(feats, stage=k))}
+               for k in range(1, min(len(weeks), MAX_STAGE) + 1)]
+    if latest is not None:
+        history[-1]['forecast'] = latest
+    return history
+
+
+def safe_history(feats, latest=None):
+    """forecast_history, or none at all: the chart must never cost a film
+    its prediction."""
+    try:
+        return forecast_history(feats, latest)
+    except Exception as e:
+        print(f"[predict] forecast history failed: {e}")
+        return []
+
+
 def predict_for(tmdb_id):
     """Core prediction pipeline: returns (payload_dict, status_code), honoring the
     Supabase cache. Shared by the /api/predict endpoint and the warm_cache job so
@@ -370,10 +397,14 @@ def predict_for(tmdb_id):
             except Exception as e:
                 print(f"[predict] could not store re-scored prediction for {tmdb_id}: {e}")
 
+        # A settled run keeps its opening call as the headline; every weekend's
+        # call is shown as it stood. A live run's last call is the headline.
+        settled = movie.get('is_in_theaters') is False
         base = {
             'title': movie['title'],
             'predicted_revenue': predicted,
             'opening_weekend': movie['opening_weekend'],
+            'forecast_history': safe_history(movie.get('features') or {}, None if settled else predicted),
             'cached': True,
         }
 
@@ -509,6 +540,7 @@ def predict_for(tmdb_id):
         'predicted_revenue': round(predicted_revenue),
         'opening_weekend': opening_weekend,
         'decay_curve': decay_data,
+        'forecast_history': safe_history(feats, round(predicted_revenue)),
         'cached': False
     }, 200
 
