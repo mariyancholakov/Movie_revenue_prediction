@@ -50,8 +50,8 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   (SHAP values) add up to the log multiplier, so grouped (budget, genre,
   franchise, ...) and exponentiated they multiply back out to the prediction
   exactly: starting point × each factor = multiplier (`RunModel.explain`).
-- **Tracking:** only a current release (at most 180 days old) is tracked as
-  a run. Opening an older film's page caches its numbers but never puts it
+- **Tracking:** only a current release (at most 180 days since its US
+  opening) is tracked as a run. Opening an older film's page caches its numbers but never puts it
   on the Ledger.
 - **Settling:** a weekly job marks a film finished once it has left the
   now-playing list, is at least 12 weeks past release, and has a TMDB revenue

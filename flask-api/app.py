@@ -618,7 +618,12 @@ def predict_for(tmdb_id):
         return fail('not_found', 'TMDB has no film with this id.', 404)
     if not details:
         return fail('tmdb_unavailable', 'TMDB is not responding.', 503)
-    if run_age_days(details) < 0:
+    # Released anywhere yet: a film that opened abroad first still gets a
+    # Box Office Mojo lookup, which tells its reader when it opens in the US.
+    released = days_since(details.get('release_date'))
+    if released is None:
+        return fail('insufficient_data', 'TMDB is missing details the model needs.', 422)
+    if released < 0:
         return fail('not_released', 'The film has not been released yet.', 422)
     imdb_id = details.get('external_ids', {}).get('imdb_id')
     if not imdb_id:
@@ -653,7 +658,8 @@ def predict_for(tmdb_id):
     # so it never reaches the Ledger with a prediction made after its run.
     # A row that is already tracked stays tracked.
     was_tracked = bool(cached.data) and cached.data[0].get('is_in_theaters') is True
-    tracked = was_tracked or 0 <= run_age_days(details) <= MAX_RELEASE_AGE_DAYS
+    age = run_age_days(details)
+    tracked = was_tracked or (age is not None and 0 <= age <= MAX_RELEASE_AGE_DAYS)
     movie_record = {
         'imdb_id': imdb_id,
         'tmdb_id': tmdb_id,
@@ -900,7 +906,8 @@ def capture_finished_runs():
         # slide off page 2 mid-run), and TMDB's `revenue` fills in *during* the
         # run, so an early capture records a partial total. Require a minimum
         # run length before settling.
-        if run_age_days(details) < MIN_RUN_DAYS or revenue <= 0:
+        age = run_age_days(details)
+        if age is None or age < MIN_RUN_DAYS or revenue <= 0:
             pending += 1  # retry on a later run
             continue
 
@@ -948,12 +955,24 @@ def capture_finished_runs():
     }
 
 
-def run_age_days(details):
+def days_since(date):
+    """Whole days (UTC) since a 'YYYY-MM-DD' date, or None if it doesn't parse."""
     try:
-        released = datetime.strptime(details.get('release_date', ''), '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        released = datetime.strptime(date or '', '%Y-%m-%d').replace(tzinfo=timezone.utc)
     except (TypeError, ValueError):
-        return -1
+        return None
     return (datetime.now(timezone.utc) - released).days
+
+
+def run_age_days(details):
+    """Days since the film opened in US theaters: the run the model prices,
+    dated the way Now Playing dates it. TMDB's `release_date` is the first
+    release anywhere, which for a film that played abroad or at festivals
+    first can be months earlier. Falls back to it when TMDB has no US date
+    or can't be reached; None when neither is known."""
+    us_date = get_us_theatrical_date(details['id']) if details.get('id') else None
+    age = days_since(us_date)
+    return age if age is not None else days_since(details.get('release_date'))
 
 
 def settled_total(details, imdb_id):
@@ -987,7 +1006,8 @@ def refresh_settled_revenue():
     updated = []
     for movie in rows:
         details = get_movie_details(movie['tmdb_id'])
-        if not details or run_age_days(details) > 365:
+        age = run_age_days(details) if details else None
+        if age is None or age > 365:
             continue
         latest = settled_total(details, movie.get('imdb_id'))
         if latest <= (movie.get('actual_revenue') or 0):
