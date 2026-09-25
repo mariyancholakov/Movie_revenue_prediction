@@ -9,14 +9,14 @@ Method:
      let it learn 2020s films' shorter runs from their neighbours.
   2. reference = the previous approach, MultiplierModel (XGBoost on
      log(total / opening weekend) over TMDB features), trained on
-     seed-train + captured rows with TMDB revenue as the label.
+     seed-train + captured rows with the cleaned worldwide label.
   3. candidate = RunModel (model_lib): US legs x worldwide/US ratio, with Box
      Office Mojo facts (theaters, MPAA, distributor, international market
      openings), director/cast track records, and one model pair per US
      weekend so the forecast tightens as a film plays. Trained on the same
      films, with the cleaned labels from dataset.py.
-  4. Score both on the shared holdout against TMDB revenue (what the Ledger
-     uses): MAE / median APE / MAPE / R^2. The candidate is scored at stage 1,
+  4. Score both on the shared holdout against the cleaned worldwide label
+     (dataset.clean_total, what the Ledger settles at): MAE / median APE / MAPE / R^2. The candidate is scored at stage 1,
      the opening-weekend forecast, which is the like-for-like comparison; the
      later stages are reported to show how the forecast tightens.
   5. Fit the final production artifact on ALL data (seed + captured).
@@ -77,7 +77,8 @@ RUN_PARAMS = dict(
     subsample=0.8, colsample_bytree=0.8,
     objective='reg:absoluteerror', random_state=42,
 )
-LABEL = 'revenue'
+LABEL = 'revenue'  # a captured row's settled actual, cleaned again in add_mojo
+TARGET = 'total'  # the cleaned worldwide label every model is fit and scored on
 
 
 def load_captured():
@@ -158,7 +159,7 @@ def metrics(y, p):
 
 def fit_reference(d):
     """The previous production approach: opening weekend x multiplier."""
-    return MultiplierModel(FEATURES, **PARAMS).fit(d, d[LABEL])
+    return MultiplierModel(FEATURES, **PARAMS).fit(d, d[TARGET])
 
 
 def fit(d):
@@ -187,7 +188,7 @@ def run_retrain(promote=False):
     newer = seed['release_year'] >= HOLDOUT_FROM_YEAR
     seed_train, test = seed[~newer], seed[newer]
     train = pd.concat([seed_train, captured], ignore_index=True)
-    y_test = test[LABEL].values
+    y_test = test[TARGET].values
 
     # 2 + 3. Reference vs candidate, same training films, same unseen holdout.
     reference = fit_reference(train)
@@ -196,7 +197,7 @@ def run_retrain(promote=False):
     reference_m = metrics(y_test, reference.predict(test[ALL_COLUMNS]))
     candidate_m = metrics(y_test, candidate.predict(raws, stage=1))
 
-    print(f"Holdout (seed films from {HOLDOUT_FROM_YEAR}, n={len(test)}, unseen by both), vs TMDB revenue:")
+    print(f"Holdout (seed films from {HOLDOUT_FROM_YEAR}, n={len(test)}, unseen by both), vs the cleaned worldwide label:")
     print(f"  reference  opening x multiplier      : {fmt(reference_m)}")
     print(f"  candidate  RunModel, opening weekend : {fmt(candidate_m)}")
     wins = (candidate_m['mae'] <= reference_m['mae']
