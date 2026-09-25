@@ -701,9 +701,11 @@ def predict():
     if not isinstance(data, dict) or 'tmdb_id' not in data:
         return jsonify({'error': 'Request body must be JSON with a "tmdb_id".', 'code': 'bad_request'}), 400
     try:
-        tmdb_id = int(data['tmdb_id'])
-    except (TypeError, ValueError):
-        return jsonify({'error': '"tmdb_id" must be an integer.', 'code': 'bad_request'}), 400
+        tmdb_id = int(data['tmdb_id'])  # OverflowError: JSON's Infinity
+    except (TypeError, ValueError, OverflowError):
+        tmdb_id = 0
+    if tmdb_id <= 0:
+        return jsonify({'error': '"tmdb_id" must be a positive integer.', 'code': 'bad_request'}), 400
 
     try:
         payload, status = predict_for(tmdb_id)
