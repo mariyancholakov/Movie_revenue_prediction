@@ -469,7 +469,7 @@ export default function HowItWorksPage() {
               <p className={PROSE}>
                 Every settled run becomes one more training example. A new candidate model
                 is then put through an honest exam: it trains only on films released before
-                2017 and is scored on the ~730 released since, the same job it does live,
+                2017 and is scored on the 1,107 released since, the same job it does live,
                 pricing films newer than anything it has seen. It replaces the current model
                 only if it wins, and a person makes that call.
               </p>
@@ -481,8 +481,8 @@ export default function HowItWorksPage() {
                     <span className="text-right">Median miss</span>
                   </div>
                   {[
-                    ['Predict the dollars directly', '$62M', '39.9%'],
-                    ['Predict the multiplier (now live)', '$54M', '37.6%'],
+                    ['One multiplier, TMDB facts only', '$53M', '37.9%'],
+                    ['US run × trip abroad, Mojo facts (now live)', '$43M', '29.3%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>
@@ -492,7 +492,7 @@ export default function HowItWorksPage() {
                   ))}
                 </div>
                 <p className={`${HEAD} normal-case tracking-[0.04em] mt-2 mb-0`}>
-                  Scored on films released 2017 and later, unseen in training.
+                  Opening-weekend calls, scored on films released 2017 and later, unseen in training.
                 </p>
               </Exhibit>
               <Cycle />
