@@ -22,12 +22,20 @@ export interface DecayCurveData {
   decay_rate: number;
 }
 
+// The forecast as it stood after one US weekend (1..8).
+export interface ForecastPoint {
+  week: number;
+  us_to_date: number;
+  forecast: number;
+}
+
 export interface Prediction {
   opening_weekend: number;
   predicted_revenue: number;
   // Set only once the run has finished: the real total it's settled against.
   actual_revenue?: number | null;
   decay_curve?: DecayCurveData;
+  forecast_history?: ForecastPoint[];
   error?: string;
   // Why the prediction failed, set alongside `error` by the API
   // ('network' is set client-side when the request never got an answer).

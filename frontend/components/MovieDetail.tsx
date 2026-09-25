@@ -8,6 +8,7 @@ import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
+import { ForecastChart } from "./ForecastChart";
 import { Typed, typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
 
@@ -383,6 +384,15 @@ export function MovieDetail({
               : "Profit needs a reported budget"}
             {lam == null && " \u00b7 Drop needs two weekends of figures"}
           </p>
+
+          {(prediction.forecast_history?.length ?? 0) > 1 && (
+            <div data-ledger-follow className="mb-11">
+              <div className="flex items-end justify-between mb-5">
+                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">The Forecast, Weekend by Weekend</h3>
+              </div>
+              <ForecastChart history={prediction.forecast_history!} final={settled} />
+            </div>
+          )}
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div data-ledger-follow>
