@@ -86,7 +86,7 @@ export function MovieGrid({
         </h2>
         {status !== 'error' && (
           <span className="font-mono text-ink2 text-[0.66rem] tracking-[0.1em] pb-1 whitespace-nowrap">
-            {loading ? 'FILING…' : `${totalCount} FILMS · NEWEST FIRST`}
+            {loading ? 'FILING…' : `${totalCount} FILMS`}
           </span>
         )}
       </div>
