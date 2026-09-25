@@ -14,15 +14,17 @@ const INK3 = '#6E6555';
 const MONO = 'var(--font-courier), monospace';
 
 // The forecast as it stood after each US weekend, printed as a step line: a
-// call holds until the next weekend's figures remake it. The hatched area is
-// the US gross banked by then; a settled run adds its final total, dashed.
+// call holds until the next weekend's figures remake it. The tinted band is
+// where eight in ten films like it finished; the hatched area is the US gross
+// banked by then; a settled run adds its final total, dashed.
 export function ForecastChart({ history, final }: ForecastChartProps) {
   const n = history.length;
-  const peak = Math.max(...history.map(h => h.forecast), final ?? 0);
+  const banded = history.every(h => h.low != null && h.high != null);
+  const peak = Math.max(...history.map(h => (banded ? h.high! : h.forecast)), final ?? 0);
   if (n < 2 || peak <= 0) return null;
-  // Four gridline steps of a round size (1, 2, 2.5, 3, 4 or 5 × a power of ten).
+  // Four gridline steps of a round size (1, 1.5, 2, 2.5, 3, 4, 5, 6 or 7.5 × a power of ten).
   const unit = 10 ** Math.floor(Math.log10(peak / 4));
-  const step = [1, 2, 2.5, 3, 4, 5, 10].map(m => m * unit).find(v => v * 4 >= peak)!;
+  const step = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 10].map(m => m * unit).find(v => v * 4 >= peak)!;
   const top = step * 4;
 
   const width = 640;
@@ -44,7 +46,24 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
     history.map((h, i) => `L${xScale(i)},${yScale(h.us_to_date)} H${xScale(i + 1)}`).join(' ') +
     ` L${innerW},${innerH} Z`;
 
+  // Along the tops of the bands, then back along their bottoms.
+  const bandPath = banded
+    ? history.map((h, i) => `${i === 0 ? 'M' : 'L'}${xScale(i)},${yScale(h.high!)} H${xScale(i + 1)}`).join(' ') +
+      [...history].reverse().map((h, j) => {
+        const i = n - 1 - j;
+        return ` L${xScale(i + 1)},${yScale(h.low!)} H${xScale(i)}`;
+      }).join('') + ' Z'
+    : '';
+
   const yTicks = [0, 0.25, 0.5, 0.75, 1];
+  // Legend entries right-aligned above the plot, each as wide as its label.
+  const legend = [
+    { key: 'forecast', label: 'FORECAST', width: 90 },
+    ...(banded ? [{ key: 'range', label: '8 IN 10 FINISHED', width: 140 }] : []),
+    { key: 'us', label: 'US TO DATE', width: 104 },
+    ...(final != null && final > 0 ? [{ key: 'final', label: 'FINAL', width: 62 }] : []),
+  ];
+  const legendWidth = legend.reduce((w, e) => w + e.width, 0);
 
   return (
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
@@ -62,6 +81,8 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
 
         <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke={INK} strokeWidth={1.5} />
         <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
+
+        {banded && <path data-fc-band d={bandPath} fill={INK2} opacity={0.12} />}
 
         <path data-fc-area d={areaPath} fill="url(#fc-hatch)" />
 
@@ -101,17 +122,21 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
           </g>
         ))}
 
-        <g transform={`translate(${innerW - (final != null && final > 0 ? 290 : 196)}, -16)`}>
-          <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />
-          <text x={22} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>FORECAST</text>
-          <rect x={96} y={0} width={16} height={12} fill="url(#fc-hatch)" stroke={RULE} strokeWidth={0.5} />
-          <text x={118} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>US TO DATE</text>
-          {final != null && final > 0 && (
-            <>
-              <line x1={200} y1={6} x2={216} y2={6} stroke={INK2} strokeWidth={1.5} strokeDasharray="5 4" />
-              <text x={222} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>FINAL</text>
-            </>
-          )}
+        <g transform={`translate(${innerW - legendWidth}, -16)`}>
+          {legend.reduce<{ x: number; nodes: React.ReactNode[] }>((acc, e) => {
+            const x = acc.x;
+            acc.nodes.push(
+              <g key={e.key} transform={`translate(${x}, 0)`}>
+                {e.key === 'forecast' && <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />}
+                {e.key === 'range' && <rect x={0} y={0} width={16} height={12} fill={INK2} opacity={0.12} />}
+                {e.key === 'us' && <rect x={0} y={0} width={16} height={12} fill="url(#fc-hatch)" stroke={RULE} strokeWidth={0.5} />}
+                {e.key === 'final' && <line x1={0} y1={6} x2={16} y2={6} stroke={INK2} strokeWidth={1.5} strokeDasharray="5 4" />}
+                <text x={22} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>{e.label}</text>
+              </g>
+            );
+            acc.x += e.width;
+            return acc;
+          }, { x: 0, nodes: [] }).nodes}
         </g>
       </g>
     </svg>
