@@ -36,7 +36,7 @@ export function Seal({
         <circle cx="100" cy="100" r="90.5" fill="none" strokeWidth="0.8" />
         <g
           stroke="none"
-          style={spin ? { transformOrigin: '100px 100px', animation: `spin ${spin}s linear infinite` } : undefined}
+          style={spin ? { transformOrigin: '100px 100px', animation: `sealSpin ${spin}s linear infinite` } : undefined}
         >
           <text fontFamily="var(--font-franklin)" fontSize="11.5" fontWeight="600" letterSpacing="1">
             <textPath href={`#ring-${id}`} textLength={2 * Math.PI * R - 4} lengthAdjust="spacing">{RING}</textPath>

@@ -115,6 +115,10 @@ body {
   [data-intro] { visibility: hidden; animation: introFallback 0s 2.5s forwards; }
 }
 
+/* The seal's text ring (Seal.tsx) turns slowly. Named here because
+   Tailwind only emits its own `spin` keyframes when animate-spin is used. */
+@keyframes sealSpin { to { transform: rotate(360deg); } }
+
 /* Film-leader countdown (FilmLeader.tsx): the hand sweeps the dial once
    a second, starting from 12 o'clock. */
 @keyframes leaderSweep { to { stroke-dashoffset: 0; } }
