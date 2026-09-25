@@ -680,7 +680,7 @@ def finished():
     prediction error is measured in the same unit the model was trained on.
     Sorted by largest absolute miss first."""
     try:
-        cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue') \
+        cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue,features') \
             .eq('is_in_theaters', False).execute()
     except Exception:
         return jsonify([])
@@ -699,10 +699,28 @@ def finished():
             'genres': genres,
             'predicted_revenue': movie['predicted_revenue'],
             'actual_revenue': int(movie['actual_revenue']),
+            'later_calls': later_calls(movie.get('features') or {}),
         })
 
     results.sort(key=lambda x: abs(x['predicted_revenue'] - x['actual_revenue']), reverse=True)
     return jsonify(results)
+
+
+# The later weekends the Ledger also scores, beside the opening call.
+LATER_CALLS = (2, 4, 8)
+
+
+def later_calls(feats):
+    """A settled film's forecast as it stood after each of LATER_CALLS US
+    weekends, for the weekends its run reached. Empty if it can't be scored."""
+    weeks = len(feats.get('weeks') or [])
+    if not IS_RUN_MODEL:
+        return {}
+    try:
+        return {str(k): round(score(feats, stage=k)) for k in LATER_CALLS if k <= weeks}
+    except Exception as e:
+        print(f"[finished] later calls failed: {e}")
+        return {}
 
 
 def capture_finished_runs():
