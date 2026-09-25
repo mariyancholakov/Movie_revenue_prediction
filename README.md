@@ -134,8 +134,8 @@ runs on 5001 here.
    start command from the `Procfile`; on Render, paste the `Procfile`'s
    `gunicorn …` line as the start command. Environment variables:
    `TMDB_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`,
-   `ALLOWED_ORIGINS` (the frontend URL), `PROXY_HOPS=1` (the host's load
-   balancer, so rate limits count each visitor) and `ADMIN_TOKEN` (optional).
+   `ALLOWED_ORIGINS` (the frontend URL), `CLIENT_IP_HEADER=CF-Connecting-IP`
+   (Render's Cloudflare edge; rate limits count each visitor by it) and `ADMIN_TOKEN` (optional).
 3. **Frontend** (e.g. Vercel). Set the root directory to `frontend` and set
    `NEXT_PUBLIC_API_URL` to the API origin. It's baked in at build time, and
    the build fails if it's missing.

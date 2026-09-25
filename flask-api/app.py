@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from werkzeug.middleware.proxy_fix import ProxyFix
 import joblib
 import pandas as pd
 import numpy as np
@@ -33,19 +32,28 @@ ALLOWED_ORIGINS = [
 ]
 CORS(app, origins=ALLOWED_ORIGINS)
 
-# The host's load balancer sits in front of gunicorn, so the client's address
-# arrives in X-Forwarded-For. PROXY_HOPS is how many proxies append to it (1
-# on Render/Railway); 0 when the app is reached directly, as in local dev.
-PROXY_HOPS = int(os.getenv('PROXY_HOPS', '0'))
-if PROXY_HOPS:
-    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=PROXY_HOPS)
+# Behind a host's proxies the socket address is the proxy's, not the visitor's.
+# CLIENT_IP_HEADER names a header the edge sets to the visitor's IP and
+# overwrites if a client sends it: CF-Connecting-IP on Render, whose edge is
+# Cloudflare (X-Forwarded-For there has a varying number of hops). Unset, as in
+# local dev, the socket address is used.
+CLIENT_IP_HEADER = os.getenv('CLIENT_IP_HEADER', '').strip()
+
+
+def client_ip():
+    if CLIENT_IP_HEADER:
+        ip = request.headers.get(CLIENT_IP_HEADER, '').strip()
+        if ip:
+            return ip
+    return get_remote_address()
+
 
 # Per-client request limits. A prediction for a film not yet cached scrapes
 # TMDB and Box Office Mojo, and a flood of those could get the server's IP
 # blocked by Mojo, so /api/predict is held tighter than the reads. Counters
 # live in memory, per gunicorn worker (hence one worker in the Procfile).
 limiter = Limiter(
-    get_remote_address,
+    client_ip,
     app=app,
     default_limits=['120 per minute'],
     storage_uri='memory://',
