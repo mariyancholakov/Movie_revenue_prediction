@@ -6,6 +6,7 @@ import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
+import { medianMiss } from '@/lib/ledger';
 import { fmtMoney } from '@/lib/money';
 
 const fmt = fmtMoney;
@@ -40,19 +41,6 @@ interface FinishedEntry {
 
 // The weekends whose calls the scorecard row scores (1 is the opening call).
 const CALL_WEEKENDS = [1, 2, 4, 8];
-
-// Median, not mean: a handful of small releases the model overshoots by
-// thousands of percent would otherwise swamp the headline figure. Every miss
-// still appears in the table below. As a percentage of the actual gross.
-function medianMiss(calls: { call: number; actual: number }[]): number | null {
-  const errs = calls
-    .filter(c => c.actual > 0)
-    .map(c => Math.abs(c.call - c.actual) / c.actual)
-    .sort((a, b) => a - b);
-  if (!errs.length) return null;
-  const mid = Math.floor(errs.length / 2);
-  return (errs.length % 2 ? errs[mid] : (errs[mid - 1] + errs[mid]) / 2) * 100;
-}
 
 export default function FinishedPage() {
   const [entries, setEntries] = useState<FinishedEntry[]>([]);

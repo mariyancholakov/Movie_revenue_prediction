@@ -9,6 +9,7 @@ import { WireDown } from '@/components/WireDown';
 import { Typed, typeOut } from '@/components/Typed';
 import type { DecayCurveData } from '@/components/types';
 import { API_URL } from '@/lib/api';
+import { medianMiss } from '@/lib/ledger';
 import { fmtMoney } from '@/lib/money';
 
 const REPO = 'https://github.com/mariyancholakov/Movie_revenue_prediction';
@@ -145,13 +146,9 @@ export default function HowItWorksPage() {
     fetch(`${API_URL}/api/finished`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then((rows: { predicted_revenue: number; actual_revenue: number }[]) => {
-        const errs = rows.filter(r => r.actual_revenue > 0)
-          .map(r => Math.abs(r.predicted_revenue - r.actual_revenue) / r.actual_revenue * 100)
-          .sort((a, b) => a - b);
-        if (!errs.length) return setRecord(null);
-        const mid = errs.length / 2;
-        const median = errs.length % 2 ? errs[Math.floor(mid)] : (errs[mid - 1] + errs[mid]) / 2;
-        setRecord({ runs: errs.length, median });
+        const calls = rows.map(r => ({ call: r.predicted_revenue, actual: r.actual_revenue }));
+        const median = medianMiss(calls);
+        setRecord(median == null ? null : { runs: calls.filter(c => c.actual > 0).length, median });
       })
       .catch(() => setRecord(null));
   }, []);
