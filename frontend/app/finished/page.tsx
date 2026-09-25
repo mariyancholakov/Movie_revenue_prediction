@@ -92,6 +92,13 @@ export default function FinishedPage() {
     });
     return { week, films: calls.length, median: medianMiss(calls) };
   }).filter(w => w.films > 0), [entries]);
+  const later = byWeekend.filter(w => w.week > 1 && w.median != null);
+  const latestCall = later.length ? later[later.length - 1] : null;
+  const byWeekendHint = byWeekend.length > 1
+    ? 'After weekend ' + byWeekend
+        .map(w => `${w.week}: ${w.median != null ? `${w.median.toFixed(1)}%` : '—'} (${w.films} films)`)
+        .join(' · ')
+    : undefined;
 
   // The model's most accurate settled call, as a miss relative to the gross.
   const closest = useMemo(() => {
@@ -114,52 +121,36 @@ export default function FinishedPage() {
       <RunningHead active="finished" />
 
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
-        {/* Heading and intro at left, the scorecard at right */}
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-x-12 gap-y-6 mb-6">
-          <div className="max-w-xl">
-            <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
-              The Ledger
-            </h1>
-            <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
-              Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
-              to the final gross. When a film fell short of the prediction, the gap posts in&nbsp;the&nbsp;red.
-            </p>
-          </div>
+        {/* Heading, intro and scorecard in one column; the page's stamp keeps the right edge */}
+        <div className="max-w-xl mb-7">
+          <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
+            The Ledger
+          </h1>
+          <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
+            Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
+            to the final gross. When a film fell short of the prediction, the gap posts in&nbsp;the&nbsp;red.
+            {/* The bars below score the opening call; later calls land closer. */}
+            {status === 'ok' && latestCall && (
+              <> Calls made later in a run land closer: after weekend {latestCall.week}, the median
+                miss is {latestCall.median!.toFixed(1)}%.</>
+            )}
+          </p>
 
           {status === 'ok' && entries.length > 0 && medianError != null && (
-            <dl className="flex gap-x-10 m-0 shrink-0">
+            <dl className="flex gap-x-10 sm:gap-x-14 mt-6 mb-0">
               {[
-                ['Films settled', String(entries.length), undefined],
-                ['Median miss', `${medianError.toFixed(1)}%`, undefined],
-                ['Closest call', closest ? `${closest.miss.toFixed(1)}%` : '\u2014', closest?.title],
+                ['films settled', String(entries.length), undefined],
+                ['median miss', `${medianError.toFixed(1)}%`, byWeekendHint],
+                ['closest call', closest ? `${closest.miss.toFixed(1)}%` : '\u2014', closest?.title],
               ].map(([label, value, hint]) => (
-                <div key={label} className="text-center" title={hint}>
-                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-2">{label}</dt>
-                  <dd className="font-mono text-ink text-[1.4rem] tabular-nums leading-none m-0">{value}</dd>
+                <div key={label} className="flex flex-col-reverse" title={hint}>
+                  <dt className="text-ink2 text-[0.8rem] mt-1.5">{label}</dt>
+                  <dd className="font-mono text-ink text-[1.5rem] tabular-nums leading-none m-0">{value}</dd>
                 </div>
               ))}
             </dl>
           )}
         </div>
-
-        {/* How the call sharpens as the run plays: the bars below score the opening call */}
-        {status === 'ok' && byWeekend.length > 1 && (
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-x-12 gap-y-4 mb-6">
-            <p className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase m-0 max-w-xs leading-relaxed">
-              Median miss of the call made after each US&nbsp;weekend
-            </p>
-            <dl className="grid grid-cols-4 gap-x-6 sm:gap-x-10 m-0 shrink-0">
-              {byWeekend.map(w => (
-                <div key={w.week} className="text-center" title={`${w.films} films`}>
-                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-2">Weekend {w.week}</dt>
-                  <dd className="font-mono text-ink text-[1.1rem] tabular-nums leading-none m-0">
-                    {w.median != null ? `${w.median.toFixed(1)}%` : '\u2014'}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        )}
 
         <div className="rule-double mb-2" />
 
