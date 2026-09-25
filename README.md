@@ -1,14 +1,16 @@
 # MOVIEGROSS — The Box-Office Ledger
 
 Predicts the **worldwide theatrical gross** of every film now playing, from an
-XGBoost model trained on 5,000+ past releases. Every prediction is later
+XGBoost model trained on 5,400 past releases. Every prediction is later
 settled against the real result on **The Ledger**, so the model's track record
 is public.
 
 - **Now Playing** (`/`): films in US theaters, searchable by title and genre. Streaming premieres and releases outside the US are left out: the model predicts from the US opening weekend.
 - **Movie page** (`/movie/<tmdb_id>`): run the numbers for a film. It shows
-  the US opening weekend, predicted worldwide total, decay rate λ, and the US
-  weekend-gross decay curve.
+  the US opening weekend, the predicted worldwide total and its range (where
+  half of similar films finished), an estimated profit, the US weekend-gross
+  decay curve and the forecast as it stood after each US weekend. A settled
+  run adds its final gross and the difference.
 - **Rankings** (`/leaderboard`): priced films ranked by predicted total.
 - **The Ledger** (`/finished`): settled runs, predicted vs. actual.
 - **How It Works** (`/how-it-works`): the whole pipeline explained step by
@@ -51,18 +53,22 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   franchise, ...) and exponentiated they multiply back out to the prediction
   exactly: starting point × each factor = multiplier (`RunModel.explain`).
 - **Tracking:** only a current release (at most 180 days since its US
-  opening) is tracked as a run. Opening an older film's page caches its numbers but never puts it
-  on the Ledger.
+  opening) is tracked as a run. Opening an older film's page caches its
+  numbers but never puts it on the Ledger.
 - **Settling:** a weekly job marks a film finished once it has left the
-  now-playing list, is at least 12 weeks past release, and has a TMDB revenue
-  figure. It stores that as the ground truth and keeps raising it as TMDB
-  revises it. The Ledger scores the opening-weekend call, not the later
-  re-forecasts, which end up close to the real total.
+  now-playing list and is at least 12 weeks past its US opening. Its actual
+  is the label the model trains on (`app.settled_total`): Box Office Mojo's
+  worldwide total when Mojo reports international grosses, else the larger
+  of TMDB's `revenue` and Mojo's US total. It is raised as grosses are
+  revised, for a year after release. The Ledger scores the opening-weekend
+  call, not the later re-forecasts, which end up close to the real total.
 - **Retraining** (`retrain.py`) trains on the seed set plus settled runs and
   compares the candidate to the previous approach on seed films from 2017 on,
-  trained only on earlier ones. Promotion is always deliberate. The label is
-  Mojo's worldwide total where Mojo reports international grosses, else TMDB
-  `revenue`, which sometimes holds only the US gross (`dataset.py`).
+  trained only on earlier ones; settled runs join only the final fit.
+  Promotion is always deliberate. The label is Mojo's worldwide total where
+  Mojo reports international grosses, else the larger of TMDB `revenue`
+  (which sometimes holds only the US gross) and Mojo's US total
+  (`dataset.clean_total`).
 
 ## Repository
 
@@ -89,12 +95,15 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | Method | Path | |
 |---|---|---|
 | GET | `/health` | Liveness, model and DB status |
-| GET | `/api/now-playing` | Films in US theaters (top 2 TMDB pages, kept only with a US theatrical release in the last 180 days) |
+| GET | `/api/now-playing` | Films in US theaters: TMDB's top 2 now-playing pages with a US theatrical release in the last 180 days, plus priced runs TMDB has dropped that haven't settled; films found unpriceable are hidden for a day |
 | GET | `/api/movie/<tmdb_id>` | One film's page data; 404 if unknown |
 | POST | `/api/predict` | `{"tmdb_id": 123}` → prediction; errors carry a `code` |
 | GET | `/api/leaderboard` | Priced now-playing films |
 | GET | `/api/finished` | Settled runs with actual revenue |
 | GET | `/api/explain/<tmdb_id>` | A priced film's feature snapshot and its multiplier split into factors (SHAP) |
+
+The list endpoints answer 503 with a `code` when TMDB or the database is
+down, rather than an empty list.
 
 Requests are rate-limited per visitor: 120 a minute overall, and 10 a minute
 (100 an hour) for `/api/predict`, since a film not yet cached is scraped from
