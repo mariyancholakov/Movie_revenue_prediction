@@ -303,6 +303,15 @@ def complete_snapshot(movie):
     return feats
 
 
+def model_snapshot(movie):
+    """The film's feature snapshot, completed first (complete_snapshot) if
+    the current model reads keys it lacks."""
+    feats = movie.get('features') or {}
+    if any(c not in feats for c in MODEL_FEATURES):
+        feats = complete_snapshot(movie)
+    return feats
+
+
 def live_prediction(movie, stage=None):
     """The prediction to show for a cached movie row.
 
@@ -312,13 +321,10 @@ def live_prediction(movie, stage=None):
     cache expires. A finished run keeps the prediction it was settled with,
     since that's the claim the Ledger holds the model to."""
     stored = movie.get('predicted_revenue')
-    feats = movie.get('features') or {}
     if movie.get('is_in_theaters') is False or not movie.get('opening_weekend'):
         return stored
     try:
-        if any(c not in feats for c in MODEL_FEATURES):
-            feats = complete_snapshot(movie)
-        return round(score(feats, stage=stage))
+        return round(score(model_snapshot(movie), stage=stage))
     except Exception as e:
         print(f"[predict] live re-score failed for {movie.get('tmdb_id')}: {e}")
         return stored
@@ -758,9 +764,7 @@ def explain(tmdb_id):
     if not movie or movie.get('is_in_theaters') is not True or not movie.get('opening_weekend'):
         return jsonify({'error': 'This film has no open run to explain.', 'code': 'not_found'}), 404
     try:
-        feats = movie.get('features') or {}
-        if any(c not in feats for c in MODEL_FEATURES):
-            feats = complete_snapshot(movie)
+        feats = model_snapshot(movie)
         base, factors = model.explain(pd.DataFrame([feats]))
         predicted = round(score(feats))
     except Exception as e:
@@ -896,26 +900,31 @@ def capture_finished_runs():
         if tid is None or tid in now_playing_ids:
             continue  # still playing (or unreleased)
 
-        try:
-            details = get_movie_details(tid)
-        except Exception:
+        # Leaving the now-playing pages isn't proof the run is over (a film can
+        # slide off page 2 mid-run), and grosses fill in *during* the run, so an
+        # early capture records a partial total. Require a minimum run length
+        # before settling.
+        details = get_movie_details(tid)
+        age = run_age_days(details) if details else None
+        if age is None or age < MIN_RUN_DAYS:
+            pending += 1  # retry on a later run
             continue
         revenue = settled_total(details, movie.get('imdb_id'))
-
-        # Leaving the now-playing pages isn't proof the run is over (a film can
-        # slide off page 2 mid-run), and TMDB's `revenue` fills in *during* the
-        # run, so an early capture records a partial total. Require a minimum
-        # run length before settling.
-        age = run_age_days(details)
-        if age is None or age < MIN_RUN_DAYS or revenue <= 0:
-            pending += 1  # retry on a later run
+        if revenue <= 0:
+            pending += 1
             continue
 
         # Settle against the current model's opening-weekend call. The live
         # number is re-forecast every weekend and ends up near the real total,
         # so it would flatter the Ledger; the opening call is the claim the
-        # Ledger has always held the model to.
-        predicted = live_prediction(movie, stage=1)
+        # Ledger has always held the model to. No stand-in if it can't be
+        # made: the stored figure is the latest call.
+        try:
+            predicted = round(score(model_snapshot(movie), stage=1))
+        except Exception as e:
+            print(f"[capture] opening call unavailable for {movie.get('title')}: {e}")
+            pending += 1
+            continue
         update = {
             'is_in_theaters': False,
             'actual_revenue': int(revenue),
@@ -926,12 +935,6 @@ def capture_finished_runs():
             update.update(final_run(movie.get('imdb_id')))
         except Exception as e:
             print(f"[capture] final run not stored for {movie.get('title')}: {e}")
-        # Backfill a feature snapshot if the prediction predates feature capture.
-        if not movie.get('features') and movie.get('opening_weekend'):
-            try:
-                update['features'] = features_to_json(build_feature_row(details, movie['opening_weekend']))
-            except Exception:
-                pass
 
         try:
             supabase.table('movies').update(update).eq('tmdb_id', tid).execute()
