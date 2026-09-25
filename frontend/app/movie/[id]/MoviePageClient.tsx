@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Poster } from '@/components/Poster';
 import { MovieDetail } from '@/components/MovieDetail';
 import { RunningHead } from '@/components/RunningHead';
+import { WireDown } from '@/components/WireDown';
 import type { Movie, Prediction } from '@/components/types';
 import { API_URL } from '@/lib/api';
 
@@ -22,6 +23,8 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
   const [movie, setMovie] = useState<Movie | null>(initialMovie);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [notFound, setNotFound] = useState(initiallyMissing);
+  // The API didn't answer (as opposed to answering that there's no such film).
+  const [unreachable, setUnreachable] = useState(false);
   const [prediction, setPrediction] = useState<Prediction | null>(null);
   const [predicting, setPredicting] = useState(false);
 
@@ -30,9 +33,13 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
     // finished runs linked from the Ledger. Usually the server already has it.
     if (!initialMovie && !initiallyMissing) {
       fetch(`${API_URL}/api/movie/${tmdbId}`)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then((data: Movie) => setMovie(data))
-        .catch(() => setNotFound(true));
+        .then(r => {
+          if (r.status === 404) { setNotFound(true); return null; }
+          if (!r.ok) throw new Error();
+          return r.json();
+        })
+        .then((data: Movie | null) => { if (data) setMovie(data); })
+        .catch(() => setUnreachable(true));
     }
 
     // "See Also" is a nice-to-have; a failure here just hides the strip.
@@ -77,7 +84,13 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
     <main className="min-h-screen text-ink font-sans">
       <RunningHead active="none" />
 
-      {!movie && !notFound && <MovieDetailSkeleton />}
+      {!movie && !notFound && !unreachable && <MovieDetailSkeleton />}
+
+      {unreachable && (
+        <div className="px-4 sm:px-14 py-16">
+          <WireDown className="max-w-lg mx-auto" />
+        </div>
+      )}
 
       {movie && (
         <div className="max-w-[62rem] mx-auto w-full">
