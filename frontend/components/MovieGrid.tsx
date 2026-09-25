@@ -151,7 +151,9 @@ export function MovieGrid({
             <div className="col-span-full py-16 text-center">
               <p className="font-display text-ink text-xl font-bold mb-1.5">Nothing on the marquee</p>
               <p className="text-ink2 text-[0.85rem] m-0">
-                No entry matches that search. Try another title or clear the index.
+                {isFiltering
+                  ? 'No entry matches that search. Try another title or clear the index.'
+                  : 'No films can be priced right now. Check back after the weekend.'}
               </p>
             </div>
           )}

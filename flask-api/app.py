@@ -408,10 +408,17 @@ def showing_now():
     return movies
 
 
+# What the list endpoints answer when TMDB's now-playing list is unavailable,
+# so a page shows the outage rather than an empty list.
+TMDB_DOWN = {'error': 'TMDB is not responding.', 'code': 'tmdb_unavailable'}
+
+
 @app.route('/api/now-playing', methods=['GET'])
 def now_playing():
-    movies = [m for m in showing_now() if not is_unpriceable(m['tmdb_id'])]
-    return jsonify(movies)
+    movies = showing_now()
+    if not movies:
+        return jsonify(TMDB_DOWN), 503
+    return jsonify([m for m in movies if not is_unpriceable(m['tmdb_id'])])
 
 @app.route('/api/movie/<int:tmdb_id>', methods=['GET'])
 def movie(tmdb_id):
@@ -701,7 +708,7 @@ def predict():
 def leaderboard():
     now_playing = showing_now()
     if not now_playing:
-        return jsonify([])
+        return jsonify(TMDB_DOWN), 503
 
     tmdb_ids = [m['tmdb_id'] for m in now_playing]
     poster_map  = {m['tmdb_id']: m['poster']  for m in now_playing}
@@ -816,8 +823,9 @@ def finished():
     try:
         cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue,features') \
             .eq('is_in_theaters', False).execute()
-    except Exception:
-        return jsonify([])
+    except Exception as e:
+        print(f"[finished] settled runs unavailable: {e}")
+        return jsonify({'error': 'The database is not responding.', 'code': 'db_unavailable'}), 503
 
     rows = [m for m in (cached.data or []) if m.get('actual_revenue') and m.get('predicted_revenue')]
     art = finished_art([m['tmdb_id'] for m in rows if m.get('tmdb_id')])

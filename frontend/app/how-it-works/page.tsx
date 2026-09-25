@@ -123,7 +123,8 @@ export default function HowItWorksPage() {
   const [filmId, setFilmId] = useState<number | null>(null);
   const [data, setData] = useState<Explain | null>(null);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
-  const [record, setRecord] = useState<{ runs: number; median: number } | null>(null);
+  // undefined while the Ledger loads; null when it has nothing to show.
+  const [record, setRecord] = useState<{ runs: number; median: number } | null | undefined>(undefined);
   const [active, setActive] = useState(STEPS[0].id);
   const root = useRef<HTMLDivElement>(null);
 
@@ -147,12 +148,12 @@ export default function HowItWorksPage() {
         const errs = rows.filter(r => r.actual_revenue > 0)
           .map(r => Math.abs(r.predicted_revenue - r.actual_revenue) / r.actual_revenue * 100)
           .sort((a, b) => a - b);
-        if (!errs.length) return;
+        if (!errs.length) return setRecord(null);
         const mid = errs.length / 2;
         const median = errs.length % 2 ? errs[Math.floor(mid)] : (errs[mid - 1] + errs[mid]) / 2;
         setRecord({ runs: errs.length, median });
       })
-      .catch(() => {});
+      .catch(() => setRecord(null));
   }, []);
 
   useEffect(() => {
@@ -460,7 +461,7 @@ export default function HowItWorksPage() {
                 learns from: Box Office Mojo&rsquo;s, or TMDB&rsquo;s where Mojo has no
                 foreign grosses.
               </p>
-              <Exhibit ready={record !== null || status === 'error'}>
+              <Exhibit ready={record !== undefined}>
                 {record && (
                   <div className="grid grid-cols-2 gap-5">
                     <Figure label="Runs settled so far" value={String(record.runs)} />
