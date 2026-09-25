@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { EASE, gsap, motion, useGSAP } from "@/lib/motion";
 import { estProfit } from "@/lib/profit";
 import { parseDay } from "@/lib/release";
-import { fmtMoney } from "@/lib/money";
+import { fmtMoney, fmtRange } from "@/lib/money";
 import { Poster } from "./Poster";
 import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
@@ -346,12 +346,9 @@ export function MovieDetail({
               settled != null && (
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
               ),
-              // decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
-              // weekend keeps e^(−λ) of the one before.
-              (() => {
-                const drop = lam != null ? `\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%` : "\u2014";
-                return <StatCard key="wd" label="Drop per Weekend" value={drop} />;
-              })(),
+              // Where eight in ten films like it finished (ranges.py).
+              <StatCard key="rg" label="Likely Range"
+                value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
               profit != null
                 ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} />
                 : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
@@ -382,7 +379,7 @@ export function MovieDetail({
             {profit != null
               ? `Profit: studio\u2019s ~50% of the gross, minus the ${fmt(selected.budget!)} budget`
               : "Profit needs a reported budget"}
-            {lam == null && " \u00b7 Drop needs two weekends of figures"}
+            {prediction.forecast_range && " \u00b7 Range: where 8 in 10 films like it finished"}
           </p>
 
           {(prediction.forecast_history?.length ?? 0) > 1 && (
@@ -398,6 +395,14 @@ export function MovieDetail({
             <div data-ledger-follow>
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
+                {/* decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
+                    weekend keeps e^(−λ) of the one before. */}
+                {lam != null && (
+                  <p className="m-0 text-right">
+                    <span className="block font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-1">Drop per weekend</span>
+                    <span className="font-mono text-ink text-[1.1rem] tabular-nums">{`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}</span>
+                  </p>
+                )}
               </div>
               <DecayCurve data={prediction.decay_curve} />
             </div>

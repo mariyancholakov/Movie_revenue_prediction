@@ -27,6 +27,9 @@ export interface ForecastPoint {
   week: number;
   us_to_date: number;
   forecast: number;
+  // Where eight in ten films like it finished, around this call.
+  low?: number | null;
+  high?: number | null;
 }
 
 export interface Prediction {
@@ -36,6 +39,8 @@ export interface Prediction {
   actual_revenue?: number | null;
   decay_curve?: DecayCurveData;
   forecast_history?: ForecastPoint[];
+  // [low, high] around predicted_revenue: where eight in ten films like it finished.
+  forecast_range?: [number, number] | null;
   error?: string;
   // Why the prediction failed, set alongside `error` by the API
   // ('network' is set client-side when the request never got an answer).
