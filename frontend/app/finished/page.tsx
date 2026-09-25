@@ -34,6 +34,24 @@ interface FinishedEntry {
   genres: string[];
   predicted_revenue: number;
   actual_revenue: number;
+  // The forecast after US weekends 2, 4 and 8, for the weekends its run reached.
+  later_calls?: Record<string, number>;
+}
+
+// The weekends whose calls the scorecard row scores (1 is the opening call).
+const CALL_WEEKENDS = [1, 2, 4, 8];
+
+// Median, not mean: a handful of small releases the model overshoots by
+// thousands of percent would otherwise swamp the headline figure. Every miss
+// still appears in the table below. As a percentage of the actual gross.
+function medianMiss(calls: { call: number; actual: number }[]): number | null {
+  const errs = calls
+    .filter(c => c.actual > 0)
+    .map(c => Math.abs(c.call - c.actual) / c.actual)
+    .sort((a, b) => a - b);
+  if (!errs.length) return null;
+  const mid = Math.floor(errs.length / 2);
+  return (errs.length % 2 ? errs[mid] : (errs[mid - 1] + errs[mid]) / 2) * 100;
 }
 
 export default function FinishedPage() {
@@ -60,19 +78,20 @@ export default function FinishedPage() {
       .catch(() => setStatus('error'));
   }, []);
 
-  // Median, not mean: a handful of small releases the model overshoots by
-  // thousands of percent would otherwise swamp the headline figure. Every miss
-  // still appears in the table below.
-  const medianError = useMemo(() => {
-    const errs = entries
-      .filter(e => e.actual_revenue > 0)
-      .map(e => Math.abs(e.predicted_revenue - e.actual_revenue) / e.actual_revenue)
-      .sort((a, b) => a - b);
-    if (!errs.length) return null;
-    const mid = Math.floor(errs.length / 2);
-    const median = errs.length % 2 ? errs[mid] : (errs[mid - 1] + errs[mid]) / 2;
-    return median * 100;
-  }, [entries]);
+  const medianError = useMemo(
+    () => medianMiss(entries.map(e => ({ call: e.predicted_revenue, actual: e.actual_revenue }))),
+    [entries]
+  );
+
+  // The same median for the call made after each later weekend, over the
+  // films whose run reached it.
+  const byWeekend = useMemo(() => CALL_WEEKENDS.map(week => {
+    const calls = entries.flatMap(e => {
+      const call = week === 1 ? e.predicted_revenue : e.later_calls?.[week];
+      return call != null ? [{ call, actual: e.actual_revenue }] : [];
+    });
+    return { week, films: calls.length, median: medianMiss(calls) };
+  }).filter(w => w.films > 0), [entries]);
 
   // The model's most accurate settled call, as a miss relative to the gross.
   const closest = useMemo(() => {
@@ -122,6 +141,26 @@ export default function FinishedPage() {
             </dl>
           )}
         </div>
+
+        {/* How the call sharpens as the run plays: the bars below score the opening call */}
+        {status === 'ok' && byWeekend.length > 1 && (
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-x-12 gap-y-4 mb-6">
+            <p className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase m-0 max-w-xs leading-relaxed">
+              Median miss of the call made after each US&nbsp;weekend
+            </p>
+            <dl className="grid grid-cols-4 gap-x-6 sm:gap-x-10 m-0 shrink-0">
+              {byWeekend.map(w => (
+                <div key={w.week} className="text-center">
+                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase">Weekend {w.week}</dt>
+                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mt-1 mb-2">{w.films} films</dt>
+                  <dd className="font-mono text-ink text-[1.1rem] tabular-nums leading-none m-0">
+                    {w.median != null ? `${w.median.toFixed(1)}%` : '\u2014'}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
 
         <div className="rule-double mb-2" />
 
