@@ -409,11 +409,11 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && (
-                  <div className="grid grid-cols-[1fr_auto_1fr] sm:grid-cols-[1fr_auto_1fr_auto_1.3fr] items-end gap-x-3 sm:gap-x-5 gap-y-4">
+                  <div className="flex flex-wrap items-end gap-x-4 sm:gap-x-6 gap-y-4">
                     <Figure label="US opening weekend" value={fmtMoney(data.opening_weekend)} />
                     <span className={`${NUM} text-ink3 pb-[0.1rem]`}>×</span>
                     <Figure label="Multiplier" value={`${x2(data.multiplier)}×`} />
-                    <span className={`${NUM} text-ink3 pb-[0.1rem] col-start-2 sm:col-start-auto`}>=</span>
+                    <span className={`${NUM} text-ink3 pb-[0.1rem]`}>=</span>
                     <Figure label="Predicted worldwide total" value={fmtMoney(data.predicted_revenue)} />
                   </div>
                 )}
