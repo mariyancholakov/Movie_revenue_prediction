@@ -50,19 +50,29 @@ def main():
         log("=== warm_cache run end ===")
         sys.exit(1)  # so the scheduled run shows as failed, not green
 
-    warmed = fresh = failed = 0
+    warmed = fresh = failed = broken = 0
     for m in movies:
         tid, title = m['tmdb_id'], m['title']
         try:
             payload, status = predict_for(tid)
         except Exception as e:  # never let one film abort the whole warm pass
             failed += 1
+            broken += 1
             log(f"  ✗ {title} ({tid}): unexpected error: {e}")
             continue
 
         if status != 200:
             failed += 1
+            broken += status >= 500  # an outage, not a film that can't be priced
             log(f"  ✗ {title} ({tid}): {status} {payload.get('error', '')}")
+            continue
+
+        if payload.get('refresh_failed'):
+            # Due a refresh, but the scrape failed; the cached result stands.
+            failed += 1
+            broken += 1
+            log(f"  ✗ {title} ({tid}): refresh failed, cached result kept")
+            time.sleep(DELAY)
             continue
 
         if payload.get('cached'):
@@ -78,6 +88,8 @@ def main():
     log(f"warm_cache: {len(movies)} now-playing | newly warmed {warmed} | "
         f"already fresh {fresh} | failed {failed}")
     log("=== warm_cache run end ===")
+    if broken and not warmed:
+        sys.exit(1)  # every scrape failed (TMDB or Mojo down, or blocking us)
 
 
 if __name__ == '__main__':

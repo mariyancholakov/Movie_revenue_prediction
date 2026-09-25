@@ -229,16 +229,6 @@ def features_to_json(feature_row):
     return json.loads(feature_row.iloc[0].to_json())
 
 
-def store_features(tmdb_id, feats):
-    """Best-effort snapshot of the prediction-time features for later retraining.
-    Silently no-ops if the `features` column doesn't exist yet (migration not run),
-    so predictions keep working regardless."""
-    try:
-        supabase.table('movies').update({'features': feats}).eq('tmdb_id', tmdb_id).execute()
-    except Exception as e:
-        print(f"[features] snapshot skipped for {tmdb_id}: {e}")
-
-
 def _json_safe(v):
     if isinstance(v, dict):
         return {k: _json_safe(x) for k, x in v.items()}
@@ -638,7 +628,8 @@ def predict_for(tmdb_id):
         """An error payload, unless an older cached result can stand in."""
         if stale:
             print(f"[predict] refresh failed for {tmdb_id} ({code}); serving the cached result")
-            return stale, 200
+            # Invisible to the page; lets warm_cache count a failed refresh.
+            return {**stale, 'refresh_failed': True}, 200
         mark_unpriceable(tmdb_id, code)
         return {'error': message, 'code': code}, status
 
@@ -686,6 +677,11 @@ def predict_for(tmdb_id):
         # Malformed/incomplete TMDB details (e.g. missing release_date).
         print(f"[predict] feature build failed for {tmdb_id}: {e}")
         return fail('insufficient_data', 'TMDB is missing details the model needs.', 422)
+    except Exception as e:
+        # Anything else (a page layout the parsers don't expect): the cached
+        # result, if there is one, is better than an error.
+        print(f"[predict] snapshot failed for {tmdb_id}: {e!r}")
+        return fail('internal', 'Something went wrong generating the prediction.', 500)
 
     # Store in Supabase. Only a current release is tracked as a run
     # (is_in_theaters True, so the weekly capture will settle it). Opening an
@@ -705,12 +701,15 @@ def predict_for(tmdb_id):
         'half_life': decay_data['half_life'] if decay_data else None,
         'is_in_theaters': True if tracked else None,
         'last_scraped': now.isoformat(),
+        'features': feats,
     }
-    supabase.table('movies').upsert(movie_record).execute()
-    store_features(tmdb_id, feats)
-
-    if decay_data:
-        store_weekly(imdb_id, decay_data)
+    try:
+        supabase.table('movies').upsert(movie_record).execute()
+        if decay_data:
+            store_weekly(imdb_id, decay_data)
+    except Exception as e:
+        # The fresh prediction still stands; it just isn't cached this time.
+        print(f"[predict] could not store {tmdb_id}: {e}")
 
     return {
         'title': details.get('title'),
