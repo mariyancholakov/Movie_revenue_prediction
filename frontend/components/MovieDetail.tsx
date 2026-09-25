@@ -143,7 +143,7 @@ export function MovieDetail({
   const root = useRef<HTMLElement>(null);
 
   // When the numbers land they are typed up like a filed dispatch: the rule
-  // draws, the dateline fades in beneath it, then each figure in the grid is
+  // draws, then each figure in the grid is
   // struck in turn, then the decay chart inks its line and plots each
   // weekend. A failed prediction just slides its notice in.
   useGSAP(() => {
@@ -158,8 +158,6 @@ export function MovieDetail({
 
       const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
       const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
-      // The dateline just fades in under the rule, so the figures come sooner.
-      tl.from('[data-ledger-label], [data-ledger-basis]', { opacity: 0, duration: 0.3 }, '-=0.3');
       tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '-=0.1');
       figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
 
@@ -304,7 +302,6 @@ export function MovieDetail({
             {(selected.budget ?? 0) > 0 && (
               <Particular label="Budget">
                 <span className="font-mono tabular-nums">{fmt(selected.budget!)}</span>
-                <span className="text-ink3"> reported</span>
               </Particular>
             )}
           </div>
@@ -345,16 +342,8 @@ export function MovieDetail({
         const settled = (prediction.actual_revenue ?? 0) > 0 ? prediction.actual_revenue! : null;
         return (
         <div className="mt-11">
-          <div data-ledger-rule className="rule-double mb-1" />
-          {/* Dateline at left; at right, what every figure below is worked
-              out from (why the chart and the errors speak of the US) */}
-          <div className="flex flex-wrap justify-between gap-x-6 gap-y-1.5 font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
-            <p data-ledger-label className="m-0">
-              {`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
-            </p>
-            <p data-ledger-basis className="m-0">Predicted from the US opening weekend</p>
-          </div>
-
+          <div data-ledger-rule className="rule-double mb-5" />
+          <div className="mb-11">
           {/* The prediction's range sits right after it, as its margin. A
               settled run adds its final gross and the miss, making two rows
               of three; otherwise the four figures share one row. Narrower
@@ -395,12 +384,7 @@ export function MovieDetail({
               Limited release: an opening this small makes the prediction rough
             </p>
           )}
-          <p data-ledger-follow className={`font-mono text-[0.6rem] tracking-[0.12em] text-ink3 uppercase mb-11 leading-relaxed ${prediction.opening_weekend < LIMITED_OPENING ? "mt-1" : "mt-3"}`}>
-            {profit != null
-              ? `Profit: studio\u2019s ~50% of the gross, minus the ${fmt(selected.budget!)} budget`
-              : "Profit needs a reported budget"}
-            {prediction.forecast_range && " \u00b7 Range: where half of films like it finished"}
-          </p>
+          </div>
 
           {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
             <div data-ledger-follow className="mb-11">
@@ -419,15 +403,13 @@ export function MovieDetail({
             </div>
           )}
 
-          {/* The decay curve needs three weekends and the forecast chart two;
-              say so rather than leaving the space empty. */}
-          {!(prediction.decay_curve && prediction.decay_curve.weeks.length > 2) && (
+          {/* With no chart to show yet, say why rather than leaving the space empty. */}
+          {!(prediction.decay_curve && prediction.decay_curve.weeks.length > 2)
+            && (prediction.forecast_history?.length ?? 0) <= 1 && (
             <p data-ledger-follow className="text-ink2 text-[0.85rem] italic mb-11">
               {settled != null
                 ? "This run was too short to chart its weekends."
-                : (prediction.forecast_history?.length ?? 0) > 1
-                  ? "The decay curve needs three weekends of figures \u2014 check back after the next one."
-                  : "Only the opening weekend is in so far. The charts start after the film\u2019s second US weekend \u2014 check back then."}
+                : "The charts start after the film\u2019s second US weekend."}
             </p>
           )}
 
@@ -436,13 +418,8 @@ export function MovieDetail({
               <div className="flex items-end justify-between mb-3">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">The Forecast, Weekend by Weekend</h3>
               </div>
-              {/* The chart is new to most readers: say in plain words what each mark is. */}
               <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
-                After every US weekend the model predicts the worldwide total again, now
-                knowing how the film is actually selling. Each step of the line is the
-                prediction it made after that weekend, and the shaded band around it that
-                prediction&rsquo;s range. The hatched area is what the film had taken in the US by then
-                {settled != null ? "; the dashed line is where it finally finished." : "."}
+                The worldwide prediction after each US weekend, with its range shaded.
               </p>
               <ForecastChart history={prediction.forecast_history!} final={settled} />
             </div>
@@ -462,9 +439,6 @@ export function MovieDetail({
             <p className="font-display text-ink text-[1.05rem] font-bold m-0 mb-1">{title}</p>
             <p className="text-ink2 text-[0.85rem] leading-[1.55] m-0">{body}</p>
             <div className="flex items-center gap-5 mt-3">
-              <span className="font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase">
-                Error · {prediction.code ?? "unknown"}
-              </span>
               {RETRYABLE.has(prediction.code) && (
                 <button
                   onClick={onPredict}
