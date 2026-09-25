@@ -505,9 +505,9 @@ export default function HowItWorksPage() {
               <ul className="list-none m-0 p-0 flex flex-col gap-5 max-w-[44rem]">
                 {[
                   ['Whether the film is any good.', 'Nothing in the file measures word of mouth. A crowd-pleaser and a dud with the same opening and profile get the same number.'],
-                  ['Anything before opening day.', 'No opening weekend, no prediction. Films that skip US theaters, or open abroad first, aren’t priced at all.'],
+                  ['Anything before opening day.', 'No US opening weekend, no prediction. Films that skip US theaters aren’t priced at all, and a film that opens abroad first waits for its US opening.'],
                   ['Small releases, precisely.', 'A limited opening can grow many times over or vanish, so its multiplier is a wide guess. The film page flags these as rough.'],
-                  ['A film’s life abroad.', 'The total is worldwide, but the only box office the model sees is American. A film far bigger overseas than at home will be undercalled.'],
+                  ['How a film holds abroad.', 'The model sees what a film opened to in other countries, but not how it held there afterwards. A film that keeps growing overseas will be undercalled.'],
                   ['Better data than TMDB has.', 'Budgets are often missing or estimates, and the final grosses the Ledger settles against are revised over time.'],
                 ].map(([head, body]) => (
                   <li key={head}>
