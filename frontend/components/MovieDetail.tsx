@@ -420,9 +420,15 @@ export function MovieDetail({
             </div>
           )}
 
-          {prediction.decay_curve && prediction.decay_curve.weeks.length <= 2 && (
-            <p className="text-ink2 text-[0.85rem] italic mb-11">
-              Not enough weekends on the books yet — check back after a few more.
+          {/* The decay curve needs three weekends and the forecast chart two;
+              say so rather than leaving the space empty. */}
+          {!(prediction.decay_curve && prediction.decay_curve.weeks.length > 2) && (
+            <p data-ledger-follow className="text-ink2 text-[0.85rem] italic mb-11">
+              {settled != null
+                ? "This run was too short to chart its weekends."
+                : (prediction.forecast_history?.length ?? 0) > 1
+                  ? "The decay curve needs three weekends of figures \u2014 check back after the next one."
+                  : "Only the opening weekend is in so far. The charts start after the film\u2019s second US weekend \u2014 check back then."}
             </p>
           )}
 
