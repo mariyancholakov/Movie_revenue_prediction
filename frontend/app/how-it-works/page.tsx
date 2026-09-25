@@ -434,7 +434,7 @@ export default function HowItWorksPage() {
                 {' '}The curve itself is a read-out. The weekends aren&rsquo;t: after each
                 one, the forecast is made again with the run so far, the gross to date,
                 the last weekend and how hard it dropped. On films the model never saw, the
-                median miss falls from 29% at opening to 17% after four weekends and 14%
+                median miss falls from 27% at opening to 16% after four weekends and 13%
                 after eight.
               </p>
               <Exhibit ready={!!data}>
@@ -487,8 +487,8 @@ export default function HowItWorksPage() {
                     <span className="text-right">Median miss</span>
                   </div>
                   {[
-                    ['One multiplier, TMDB facts only', '$53M', '37.9%'],
-                    ['US run × trip abroad, Mojo facts (now live)', '$43M', '29.3%'],
+                    ['One multiplier, TMDB facts only', '$53M', '37.2%'],
+                    ['US run × trip abroad, Mojo facts (now live)', '$42M', '26.9%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>

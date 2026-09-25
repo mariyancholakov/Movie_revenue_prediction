@@ -38,9 +38,12 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   in; the live number never sits below the worldwide gross to date. Results
   are cached in Supabase for 7 days, and films in theaters are re-scored
   with the current model on every read.
-- **Accuracy** (films from 2017 on, trained on earlier ones, vs TMDB
-  revenue): median miss 29% at the opening weekend (the previous model: 38%),
-  22% after US weekend 2, 17% after weekend 4, 14% after weekend 8.
+- **Accuracy** (films from 2017 on, trained on earlier ones, vs the cleaned
+  worldwide total): median miss 27% at the opening weekend (the previous
+  model: 37%), 21% after US weekend 2, 16% after weekend 4, 13% after weekend 8.
+- **Ranges:** `ranges.py` reads each call's likely range off the model's own
+  misses on those unseen films, by US weekend and size of opening;
+  `retrain.py` recalibrates it with every model it builds.
 - **Explaining:** `/api/explain/<tmdb_id>` breaks a film's multiplier into
   factors for the How It Works page. XGBoost's per-feature contributions
   (SHAP values) add up to the log multiplier, so grouped (budget, genre,
