@@ -3,7 +3,6 @@
 // reduced motion and SSR show plain text); MovieDetail's reveal hides their
 // [data-char]s and typeOut strikes them back one key at a time, at a human,
 // uneven pace.
-import { Fragment } from 'react';
 import { gsap } from '@/lib/motion';
 
 // Deterministic 0–1 noise per (text, index), so a figure's ink texture and
@@ -14,46 +13,22 @@ function noise(text: string, i: number) {
   return ((h >>> 0) % 1000) / 1000;
 }
 
-export function Typed({ text, className, breakAfter }: {
-  text: string;
-  className?: string;
-  /** a character the figure may wrap after when its cell is too narrow
-   *  (a range's dash); otherwise a figure never breaks */
-  breakAfter?: string;
-}) {
-  // Runs of characters that never break inside; a line may only break
-  // between runs, which end at each `breakAfter`.
-  const runs: { ch: string; i: number }[][] = [[]];
-  [...text].forEach((ch, i) => {
-    runs[runs.length - 1].push({ ch, i });
-    if (ch === breakAfter) runs.push([]);
-  });
+export function Typed({ text, className }: { text: string; className?: string }) {
   return (
-    <span aria-label={text} className={className}>
-      {runs.map((run, r) => (
-        <Fragment key={r}>
-          {r > 0 && <wbr />}
-          <span className="whitespace-pre">
-            {run.map(({ ch, i }) => (
-              // A real ribbon never inks two keys quite alike: each character
-              // carries a hair of its own density.
-              <span key={i} data-char aria-hidden className="inline-block" style={{ opacity: 0.84 + noise(text, i) * 0.16 }}>
-                {ch}
-              </span>
-            ))}
-            {/* The caret rides the last run, so it never wraps onto a line
-                of its own; it takes no net width, so a typed figure aligns
-                like plain text. */}
-            {r === runs.length - 1 && (
-              <span
-                data-caret
-                aria-hidden
-                className="inline-block w-[0.55em] h-[0.95em] bg-current align-[-0.1em] ml-[0.08em] -mr-[0.63em] opacity-0"
-              />
-            )}
-          </span>
-        </Fragment>
+    <span aria-label={text} className={`whitespace-pre ${className ?? ''}`}>
+      {[...text].map((ch, i) => (
+        // A real ribbon never inks two keys quite alike: each character
+        // carries a hair of its own density.
+        <span key={i} data-char aria-hidden className="inline-block" style={{ opacity: 0.84 + noise(text, i) * 0.16 }}>
+          {ch}
+        </span>
       ))}
+      {/* takes no net width, so a typed figure aligns like plain text */}
+      <span
+        data-caret
+        aria-hidden
+        className="inline-block w-[0.55em] h-[0.95em] bg-current align-[-0.1em] ml-[0.08em] -mr-[0.63em] opacity-0"
+      />
     </span>
   );
 }

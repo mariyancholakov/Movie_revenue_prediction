@@ -10,16 +10,17 @@ export function fmtMoney(n: number): string {
   return sign + Math.round(a);
 }
 
-/** A range as the site prints it, each end to three figures so the pair
- *  fits one cell: $492M–$987M, $1.37B–$1.92B, $4.6M–$17M. */
+/** A range as the site prints it, compact enough for one figure cell: each
+ *  end to three figures, the $ once, and the unit once when both ends share
+ *  it: $567–814M, $1.45–1.76B, $820K–1.2M. */
 export function fmtRange(low: number, high: number): string {
-  const short = (n: number) => {
-    if (n >= 1e9) return '$' + Number((n / 1e9).toPrecision(3)) + 'B';
-    if (n >= 1e6) return '$' + Number((n / 1e6).toPrecision(3)) + 'M';
-    if (n >= 1e3) return '$' + Number((n / 1e3).toPrecision(3)) + 'K';
-    return '$' + Math.round(n);
-  };
-  return `${short(low)}\u2013${short(high)}`;
+  const unit = (n: number): [number, string] =>
+    n >= 1e9 ? [1e9, 'B'] : n >= 1e6 ? [1e6, 'M'] : n >= 1e3 ? [1e3, 'K'] : [1, ''];
+  const fig = (n: number, [div]: [number, string]) => String(Number((n / div).toPrecision(3)));
+  const lo = unit(low), hi = unit(high);
+  return lo[1] === hi[1]
+    ? `$${fig(low, lo)}\u2013${fig(high, hi)}${hi[1]}`
+    : `$${fig(low, lo)}${lo[1]}\u2013${fig(high, hi)}${hi[1]}`;
 }
 
 /** Chart-axis labels, all in one unit chosen from the axis's top value `max`

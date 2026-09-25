@@ -357,13 +357,14 @@ export function MovieDetail({
 
           {/* The prediction's range sits right after it, as its margin. A
               settled run adds its final gross and the miss, making two rows
-              of three; otherwise the four figures share one row. */}
-          <div className={`grid grid-cols-2 ${settled != null ? "sm:grid-cols-3" : "sm:grid-cols-4"} border-t border-l border-ink/20`}>
+              of three; otherwise the four figures share one row. Narrower
+              screens set them two by two, so no figure outgrows its cell. */}
+          <div className={`grid grid-cols-2 ${settled != null ? "md:grid-cols-3" : "lg:grid-cols-4"} border-t border-l border-ink/20`}>
             {[
               <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)} />,
               <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} headline />,
               // Where half of films like it finished (ranges.py).
-              <StatCard key="rg" label="Prediction Range" breakAfter={"\u2013"}
+              <StatCard key="rg" label="Prediction Range"
                 value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
               settled != null && (
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
