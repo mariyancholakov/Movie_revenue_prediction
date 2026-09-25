@@ -309,9 +309,11 @@ export default function HowItWorksPage() {
             {/* 2 ─ The file */}
             <Step n={2} id="file" title="Then the model reads the file">
               <p className={PROSE}>
-                TMDB supplies what kind of film it is. This is everything the model gets
-                to know. There are no reviews, no star power and no trailer views, only facts
-                that are on record the week a film opens.
+                TMDB supplies what kind of film it is and who made it; Box Office Mojo adds
+                how many theaters it opened in, its rating, its distributor and what it
+                opened to in other countries. The director and leads are read by their
+                record: what their earlier films made. There are no reviews and no
+                trailer views, only facts that are on record the week a film opens.
               </p>
               <Exhibit ready={!!file}>
                 {file && (
