@@ -252,7 +252,7 @@ export function MovieDetail({
         </button>
         <button
           onClick={handleShare}
-          title="Copy a link to this film\u2019s page"
+          title="Copy a link to this film’s page"
           aria-live="polite"
           className="inline-flex items-center gap-1.5 font-sans text-[0.68rem] tracking-[0.14em] font-semibold
                      text-ink2 hover:text-red transition-colors bg-transparent border-0 p-0"
