@@ -6,7 +6,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, NOW_PLAYING_TTL, TMDB_API_KEY, _is_current_release, _tmdb_get
-from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, run_weeks, track_records
+from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RUN_FACTS, RunModel, credit_ids, run_weeks, track_records
 from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
 import ranges
@@ -264,13 +264,22 @@ def track_history():
     return _history
 
 
+class MojoUnavailable(ConnectionError):
+    """Box Office Mojo didn't answer for a page a snapshot needs."""
+
+
 def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
     """The RunModel facts for a film priced live: Box Office Mojo facts
     (theaters, MPAA, distributor, international openings, the weekends so
     far) and director/cast track records, read with the same parsers the
-    training data went through (mojo_parse, model_lib.track_records)."""
+    training data went through (mojo_parse, model_lib.track_records).
+    Raises ConnectionError rather than guess when a page it reads is
+    unavailable: "no markets abroad" or "no track record" would quietly
+    move the forecast, and the guess would be cached."""
     group = original_group_path(title_page)
     market_page = get_mojo_page(group) if group else title_page
+    if market_page is None:
+        raise MojoUnavailable(f"Box Office Mojo release group {group} unavailable")
     weeks = weekend_table(weekly_data) if weekly_data is not None else None
     facts = film_facts(title_page, market_page, weeks)
     snap = {k: facts.get(k) for k in ('open_theaters', 'mpaa', 'distributor')}
@@ -281,7 +290,9 @@ def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
     snap['weeks'] = weeks[dataset.WEEK_COLUMNS].to_dict('records') if weeks is not None else []
 
     credits = _tmdb_get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}")
-    directors, cast = credit_ids(credits) if credits else ('', '')
+    if credits is None:
+        raise ConnectionError(f"TMDB credits unavailable for {tmdb_id}")
+    directors, cast = credit_ids(credits)
     film = pd.DataFrame([{'release_date': details.get('release_date'),
                           'director_ids': directors, 'cast_ids': cast}])
     snap.update(track_records(film, track_history()).iloc[0].to_dict())
@@ -307,10 +318,12 @@ def complete_snapshot(movie):
         feats = {**movie['features'], **get_franchise_features(details)}
     else:
         feats = features_to_json(build_feature_row(details, movie['opening_weekend']))
-    if IS_RUN_MODEL and 'weeks' not in feats and movie.get('imdb_id'):
+    # Any Box Office Mojo fact missing (not just the weekends, so a model
+    # that reads a new one gets it) means one fresh read of Mojo.
+    if IS_RUN_MODEL and any(k not in feats for k in RUN_FACTS + ['weeks']) and movie.get('imdb_id'):
         title_page = get_title_page(movie['imdb_id'])
         if title_page is None:
-            raise ConnectionError(f"Box Office Mojo unavailable for {movie['tmdb_id']}")
+            raise MojoUnavailable(f"Box Office Mojo unavailable for {movie['tmdb_id']}")
         weekly = get_weekly_grossing(movie['imdb_id'], title_page)
         feats.update(mojo_snapshot(movie['tmdb_id'], details, title_page, weekly))
     feats = _json_safe(feats)
@@ -663,6 +676,9 @@ def predict_for(tmdb_id):
     try:
         feats = build_snapshot(tmdb_id, details, opening_weekend, title_page, weekly_data)
         predicted_revenue = score(feats)
+    except MojoUnavailable as e:
+        print(f"[predict] {e}")
+        return fail('box_office_unavailable', 'Box Office Mojo is not responding.', 503)
     except ConnectionError as e:
         print(f"[predict] {e}")
         return fail('tmdb_unavailable', 'TMDB is not responding.', 503)
