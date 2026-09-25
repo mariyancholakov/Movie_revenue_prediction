@@ -59,7 +59,7 @@ function chartGaps(
 
 // Reader-facing copy for each failure the API reports: a short headline and
 // one or two sentences saying why, and what happens next.
-const RETRYABLE = new Set<Prediction["code"]>(["tmdb_unavailable", "box_office_unavailable", "network", "internal"]);
+const RETRYABLE = new Set<Prediction["code"]>(["tmdb_unavailable", "box_office_unavailable", "network", "internal", "rate_limited"]);
 
 // `usOpening` / `openedAbroad` are display dates: the US release, and the
 // film's first release elsewhere when that came earlier (else null).
@@ -120,6 +120,11 @@ function errorCopy(
       return {
         title: "Box office source unavailable",
         body: "Box Office Mojo, where the weekend grosses come from, isn\u2019t responding. Try again in a minute.",
+      };
+    case "rate_limited":
+      return {
+        title: "Too many requests",
+        body: "You\u2019ve run a lot of predictions in a short time. Wait a minute, then try again.",
       };
     case "network":
       return {

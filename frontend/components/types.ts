@@ -56,6 +56,7 @@ export type ErrorCode =
   | 'not_found'              // TMDB has no film with this id
   | 'tmdb_unavailable'       // TMDB didn't answer
   | 'box_office_unavailable' // Box Office Mojo didn't answer
+  | 'rate_limited'           // too many predictions from this visitor
   | 'bad_request'
   | 'internal'
   | 'network';

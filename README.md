@@ -96,6 +96,11 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | GET | `/api/explain/<tmdb_id>` | A priced film's feature snapshot and its multiplier split into factors (SHAP) |
 | POST | `/api/refresh-finished` | Admin only: `Authorization: Bearer $ADMIN_TOKEN` |
 
+Requests are rate-limited per visitor: 120 a minute overall, and 10 a minute
+(100 an hour) for `/api/predict`, since a film not yet cached is scraped from
+TMDB and Box Office Mojo. Over the limit, the API answers 429 with the code
+`rate_limited`. `/health` is exempt.
+
 ## Local development
 
 Requires Python 3.14 and Node 20+.
@@ -128,7 +133,8 @@ runs on 5001 here.
    root directory to `flask-api`. The host reads `.python-version` and starts
    the app with `gunicorn` per the `Procfile`. Environment variables:
    `TMDB_API_KEY`, `SUPABASE_URL`, `SUPABASE_KEY`,
-   `ALLOWED_ORIGINS` (the frontend URL) and `ADMIN_TOKEN` (optional).
+   `ALLOWED_ORIGINS` (the frontend URL), `PROXY_HOPS=1` (the host's load
+   balancer, so rate limits count each visitor) and `ADMIN_TOKEN` (optional).
 3. **Frontend** (e.g. Vercel). Set the root directory to `frontend` and set
    `NEXT_PUBLIC_API_URL` to the API origin. It's baked in at build time, and
    the build fails if it's missing.

@@ -1,5 +1,8 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from werkzeug.middleware.proxy_fix import ProxyFix
 import joblib
 import pandas as pd
 import numpy as np
@@ -28,6 +31,30 @@ ALLOWED_ORIGINS = [
     o.strip() for o in os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if o.strip()
 ]
 CORS(app, origins=ALLOWED_ORIGINS)
+
+# The host's load balancer sits in front of gunicorn, so the client's address
+# arrives in X-Forwarded-For. PROXY_HOPS is how many proxies append to it (1
+# on Render/Railway); 0 when the app is reached directly, as in local dev.
+PROXY_HOPS = int(os.getenv('PROXY_HOPS', '0'))
+if PROXY_HOPS:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=PROXY_HOPS)
+
+# Per-client request limits. A prediction for a film not yet cached scrapes
+# TMDB and Box Office Mojo, and a flood of those could get the server's IP
+# blocked by Mojo, so /api/predict is held tighter than the reads. Counters
+# live in memory, per gunicorn worker (hence one worker in the Procfile).
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=['120 per minute'],
+    storage_uri='memory://',
+    headers_enabled=True,
+)
+
+
+@app.errorhandler(429)
+def rate_limited(e):
+    return jsonify({'error': 'Too many requests. Try again in a minute.', 'code': 'rate_limited'}), 429
 
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
 if SUPABASE_KEY.startswith('sb_publishable_'):
@@ -278,6 +305,7 @@ def live_prediction(movie, stage=None):
 
 
 @app.route('/health', methods=['GET'])
+@limiter.exempt
 def health():
     """Lightweight liveness probe for the host's health check. Reports whether
     the model loaded and whether Supabase is reachable, but always returns 200 so
@@ -642,6 +670,7 @@ def predict_for(tmdb_id):
 
 
 @app.route('/api/predict', methods=['POST'])
+@limiter.limit('10 per minute; 100 per hour')
 def predict():
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or 'tmdb_id' not in data:
