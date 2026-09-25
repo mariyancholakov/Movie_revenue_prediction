@@ -106,6 +106,7 @@ export function Header({ filmCount = 0 }: { filmCount?: number }) {
             key={href}
             href={href}
             data-active={active}
+            aria-current={active ? 'page' : undefined}
             className="tab whitespace-nowrap font-sans text-[0.6rem] sm:text-[0.7rem] tracking-[0.12em] sm:tracking-[0.18em] font-semibold text-ink2 no-underline pb-1"
           >
             {label}

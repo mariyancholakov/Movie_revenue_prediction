@@ -39,6 +39,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
               key={href}
               href={href}
               data-active={active === key}
+              aria-current={active === key ? 'page' : undefined}
               className="tab whitespace-nowrap font-sans text-[0.6rem] sm:text-[0.66rem] tracking-[0.12em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
             >
               {label}

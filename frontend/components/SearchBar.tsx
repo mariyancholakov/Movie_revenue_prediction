@@ -21,6 +21,7 @@ export function SearchBar({
       <div className="relative max-w-md">
         <input
           type="text"
+          aria-label="Search films by title"
           placeholder="Look up a title…"
           value={query}
           onChange={e => onQueryChange(e.target.value)}
@@ -46,6 +47,7 @@ export function SearchBar({
           <button
             onClick={onClearGenres}
             data-active={activeGenres.length === 0}
+            aria-pressed={activeGenres.length === 0}
             className="tab font-sans text-[0.66rem] tracking-[0.14em] font-semibold pb-0.5
                        data-[active=true]:text-ink text-ink2"
           >
@@ -56,6 +58,7 @@ export function SearchBar({
               key={genre}
               onClick={() => onToggleGenre(genre)}
               data-active={activeGenres.includes(genre)}
+              aria-pressed={activeGenres.includes(genre)}
               className="tab font-sans text-[0.66rem] tracking-[0.14em] font-medium pb-0.5
                          data-[active=true]:text-ink data-[active=true]:font-semibold text-ink2"
             >

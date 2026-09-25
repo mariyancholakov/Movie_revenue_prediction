@@ -65,7 +65,8 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
   const legendWidth = legend.reduce((w, e) => w + e.width, 0);
 
   return (
-    <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+    <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}
+      role="img" aria-label="The worldwide forecast after each US weekend, with its range and the US gross to date">
       <defs>
         <pattern id="fc-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />

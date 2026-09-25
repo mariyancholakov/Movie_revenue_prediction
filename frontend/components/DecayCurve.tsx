@@ -50,7 +50,8 @@ export function DecayCurve({ data }: DecayCurveProps) {
   const yTicks = [0, 0.25, 0.5, 0.75, 1];
 
   return (
-    <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+    <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}
+      role="img" aria-label="US weekend grosses by weekend, with the fitted decay curve">
       <defs>
         <pattern id="ink-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />
