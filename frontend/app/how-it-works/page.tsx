@@ -449,12 +449,13 @@ export default function HowItWorksPage() {
             <Step n={6} id="ledger" title="Every call is settled in public">
               <p className={PROSE}>
                 A prediction is a claim, and claims get checked. Once a film has left
-                theaters, is at least 12 weeks past release and TMDB has its final worldwide
-                gross, the run is settled on{' '}
+                theaters and is at least 12 weeks past release, the run is settled on{' '}
                 <Link href="/finished" className="text-ink underline decoration-red underline-offset-4 hover:text-red">The Ledger</Link>:
                 predicted against actual, misses included. The call it&rsquo;s held to is
                 the one made on opening weekend, not the late forecast, which by then has
-                most of the run in hand.
+                most of the run in hand. The actual is the same worldwide figure the model
+                learns from: Box Office Mojo&rsquo;s, or TMDB&rsquo;s where Mojo has no
+                foreign grosses.
               </p>
               <Exhibit ready={record !== null || status === 'error'}>
                 {record && (
@@ -508,7 +509,7 @@ export default function HowItWorksPage() {
                   ['Anything before opening day.', 'No US opening weekend, no prediction. Films that skip US theaters aren’t priced at all, and a film that opens abroad first waits for its US opening.'],
                   ['Small releases, precisely.', 'A limited opening can grow many times over or vanish, so its multiplier is a wide guess. The film page flags these as rough.'],
                   ['How a film holds abroad.', 'The model sees what a film opened to in other countries, but not how it held there afterwards. A film that keeps growing overseas will be undercalled.'],
-                  ['Better data than TMDB has.', 'Budgets are often missing or estimates, and the final grosses the Ledger settles against are revised over time.'],
+                  ['Better data than TMDB has.', 'Budgets are often missing or estimates, and final grosses keep being revised after a run ends. The Ledger follows the revisions for a year.'],
                 ].map(([head, body]) => (
                   <li key={head}>
                     <p className="text-ink font-semibold text-[0.95rem] m-0 mb-1">{head}</p>
