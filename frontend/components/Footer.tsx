@@ -7,7 +7,7 @@ export function Footer() {
   return (
     <footer className="mt-auto px-4 sm:px-8 lg:px-14 pt-8 pb-12">
       <div className="rule-double mb-4" />
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <span className="flex items-center gap-3">
           <Seal size={52} />
           <span className="font-display text-lg font-black tracking-[0.01em] text-ink">
