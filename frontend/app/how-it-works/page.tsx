@@ -246,8 +246,8 @@ export default function HowItWorksPage() {
 
         {/* The worked example: every figure on the page below is this film's. */}
         <div className="rule-double" />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
-          <label htmlFor="film" className={HEAD}>Worked example</label>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 py-4">
+          <label htmlFor="film" className="text-ink2 text-[0.95rem]">Worked through with</label>
           {films.length > 0 ? (
             <select
               id="film"
@@ -261,8 +261,8 @@ export default function HowItWorksPage() {
             <span className="paper-skeleton inline-block h-6 w-48" />
           ) : null}
           {data && (
-            <Link href={`/movie/${data.tmdb_id}`} className="ml-auto font-mono text-[0.7rem] tracking-[0.12em] uppercase text-ink2 underline decoration-ink/30 underline-offset-4 hover:text-red">
-              Its full page →
+            <Link href={`/movie/${data.tmdb_id}`} className="text-ink2 text-[0.95rem] underline decoration-ink/30 underline-offset-4 hover:text-red">
+              see its page →
             </Link>
           )}
         </div>
@@ -277,9 +277,9 @@ export default function HowItWorksPage() {
                   <a
                     href={`#${s.id}`}
                     onClick={e => goToStep(e, s.id)}
-                    className={`flex items-baseline gap-3 py-1.5 no-underline text-[0.8rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
+                    className={`flex items-baseline gap-3 py-1 no-underline text-[0.92rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
                   >
-                    <span className="font-mono text-[0.7rem] w-4 text-right">{i < 7 ? i + 1 : '·'}</span>
+                    <span className="font-mono text-[0.78rem] w-4 text-right">{i < 7 ? i + 1 : '·'}</span>
                     <span className={`border-b-2 ${active === s.id ? 'border-red' : 'border-transparent'}`}>{s.label}</span>
                   </a>
                 </li>
@@ -298,9 +298,9 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && (
-                  <div className="flex flex-wrap items-baseline justify-between gap-3">
-                    <p className={`${HEAD} m-0`}>Box Office Mojo · US opening weekend · {data.title}</p>
-                    <p data-figure className={`${NUM} text-ink m-0`}><Typed text={fmtMoney(data.opening_weekend)} /></p>
+                  <div className="border-l-2 border-ink/25 pl-5">
+                    <p data-figure className="font-mono tabular-nums text-ink text-[1.8rem] sm:text-[2.2rem] leading-none m-0"><Typed text={fmtMoney(data.opening_weekend)} /></p>
+                    <p className="text-ink2 text-[0.88rem] m-0 mt-2">{data.title}&rsquo;s US opening weekend, as Box Office Mojo reported it</p>
                   </div>
                 )}
               </Exhibit>
