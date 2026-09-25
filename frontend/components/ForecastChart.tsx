@@ -7,10 +7,12 @@ interface ForecastChartProps {
   final?: number | null;
 }
 
-const INK = '#1C1814';
-const RULE = '#CBC2AD';
-const INK2 = '#554D40';
-const INK3 = '#6E6555';
+// The theme's tokens (globals.css), so the chart follows them.
+const INK = 'var(--color-ink)';
+const RULE = 'var(--color-rule)';
+const INK2 = 'var(--color-ink2)';
+const INK3 = 'var(--color-ink3)';
+const PAPER = 'var(--color-paper)';
 const MONO = 'var(--font-courier), monospace';
 
 // The forecast as it stood after each US weekend, printed as a step line: a
@@ -93,7 +95,7 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
 
         {history.map((h, i) => (
           <circle data-fc-dot key={`dot-${i}`} cx={xScale(i)} cy={yScale(h.forecast)} r={3.5}
-            fill={INK} stroke="#EDE7DA" strokeWidth={1.5} />
+            fill={INK} stroke={PAPER} strokeWidth={1.5} />
         ))}
 
         {/* Each weekend's label sits under its band */}

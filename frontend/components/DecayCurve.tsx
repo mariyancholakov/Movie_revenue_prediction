@@ -5,11 +5,13 @@ interface DecayCurveProps {
   data: DecayCurveData;
 }
 
-const INK = '#1C1814';
-const RED = '#C0281F';
-const RULE = '#CBC2AD';
-const INK2 = '#554D40';
-const INK3 = '#6E6555';
+// The theme's tokens (globals.css), so the chart follows them.
+const INK = 'var(--color-ink)';
+const RED = 'var(--color-red)';
+const RULE = 'var(--color-rule)';
+const INK2 = 'var(--color-ink2)';
+const INK3 = 'var(--color-ink3)';
+const PAPER = 'var(--color-paper)';
 const MONO = 'var(--font-courier), monospace';
 
 // A printed weekend-gross chart: ink line + hatched fill for the actual run,
@@ -108,7 +110,7 @@ export function DecayCurve({ data }: DecayCurveProps) {
             cy={yScale(actual_gross[i])}
             r={3.5}
             fill={INK}
-            stroke="#EDE7DA"
+            stroke={PAPER}
             strokeWidth={1.5}
           />
         ))}
