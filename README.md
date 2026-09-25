@@ -71,7 +71,7 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | `flask-api/app.py` | API routes and the prediction / capture pipeline |
 | `flask-api/scraper.py` | TMDB client and Box Office Mojo scraping + decay fit |
 | `flask-api/warm_cache.py` | Pre-computes predictions for every now-playing film |
-| `flask-api/capture_finished.py` | Settles finished runs (optionally retrains) |
+| `flask-api/capture_finished.py` | Settles finished runs onto the Ledger |
 | `flask-api/model_lib.py` | The model classes, franchise features and track records shared by training and serving |
 | `flask-api/mojo_parse.py` | Box Office Mojo page parsers shared by the API and the backfill |
 | `flask-api/mojo_cache.py` | Mojo pages through a gzip cache (`data/mojo_cache/`, gitignored) |
@@ -141,8 +141,7 @@ runs on 5001 here.
    the build fails if it's missing.
 4. **Scheduled jobs.** Add `TMDB_API_KEY`, `SUPABASE_URL` and `SUPABASE_KEY`
    as GitHub Actions secrets. The `data-pipeline` workflow then warms the
-   cache daily and settles finished runs weekly. Once it's running, unload
-   the old local launchd agent (`flask-api/scripts/`).
+   cache daily and settles finished runs weekly.
 5. **Promoting a model.** Run the workflow's `retrain` job from the Actions
    tab. If the report shows the candidate winning on the holdout, commit the
    artifact's model as `flask-api/models/box_office_model_final.pkl` and its

@@ -178,7 +178,7 @@ def fmt(m):
 def run_retrain(promote=False):
     """Validate RunModel against the previous approach and, if `promote` and
     it wins the holdout, swap it into production (backing up first). Returns a
-    summary dict. Importable by the capture job."""
+    summary dict."""
     seed = dataset.load_seed_dataset()
     captured = enrich_captured(load_captured(), seed)
     print(f"seed rows: {len(seed)} (with Mojo US total: {seed['us_total'].notna().sum()}) "

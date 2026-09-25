@@ -11,8 +11,7 @@ flask-api/.env.*
 flask-api/models/candidate_*.pkl
 flask-api/models/candidate_*_ranges.json
 flask-api/models/box_office_model_backup_*.pkl
-# scheduled-pipeline runtime state + logs
-flask-api/models/pipeline_state.json
+# scheduled-pipeline logs
 flask-api/logs/
 
 # ── Next.js ──────────────────────────────────────────────────────────────────

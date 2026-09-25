@@ -67,8 +67,6 @@ jobs:
           cache-dependency-path: flask-api/requirements.txt
       - run: pip install -r requirements.txt
       - run: python capture_finished.py
-        env:
-          CAPTURE_SKIP_RETRAIN: "1"
 
   retrain:
     if: inputs.job == 'retrain'
