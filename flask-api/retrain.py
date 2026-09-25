@@ -1,5 +1,5 @@
-"""Retrain the box-office model on the seed dataset plus the finished-run labels
-captured by /api/refresh-finished, and honestly measure it against the current
+"""Retrain the box-office model on the seed dataset plus the finished runs the
+weekly capture job settled, and honestly measure it against the current
 approach before touching production.
 
 Method:

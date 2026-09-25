@@ -15,7 +15,6 @@ from supabase import create_client
 import os
 import time
 import json
-import hmac
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
@@ -850,10 +849,10 @@ def finished_art(tmdb_ids):
 
 @app.route('/api/finished', methods=['GET'])
 def finished():
-    """Movies whose theatrical run has ended and we predicted for, with the real
-    total revenue (TMDB `revenue`, captured by /api/refresh-finished) so the
-    prediction error is measured in the same unit the model was trained on.
-    Sorted by largest absolute miss first."""
+    """Movies whose theatrical run has ended and we predicted for, with the
+    total they settled at (settled_total, captured by the weekly job), the
+    same worldwide label the model is trained on. Sorted by largest absolute
+    miss first."""
     try:
         cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue,features') \
             .eq('is_in_theaters', False).execute()
@@ -908,8 +907,8 @@ def capture_finished_runs():
     labeled dataset a future retrain will learn from. Safe to call repeatedly
     (e.g. from a weekly job); movies with no total on record yet stay pending.
 
-    Returns a summary dict (with an 'error' key on failure). Standalone-safe:
-    used by both the HTTP endpoint and the scheduled capture_finished.py job."""
+    Returns a summary dict (with an 'error' key on failure). Run by the
+    scheduled capture_finished.py job."""
     now = datetime.now(timezone.utc)
     try:
         now_playing = get_now_playing()
@@ -1049,29 +1048,6 @@ def refresh_settled_revenue():
         except Exception as e:
             print(f"[capture] revenue refresh failed for {movie['title']}: {e}")
     return updated
-
-
-# Shared secret for the admin-only endpoints. Unset means those endpoints are
-# disabled entirely, so a deploy that forgets it fails closed, not open.
-ADMIN_TOKEN = os.getenv('ADMIN_TOKEN', '')
-
-
-def is_admin(req):
-    if not ADMIN_TOKEN:
-        return False
-    supplied = req.headers.get('Authorization', '').removeprefix('Bearer ').strip()
-    return hmac.compare_digest(supplied, ADMIN_TOKEN)
-
-
-@app.route('/api/refresh-finished', methods=['POST'])
-def refresh_finished():
-    # Each call fans out to TMDB for every tracked film and writes to Supabase,
-    # so it is not open to the public. The scheduled job calls
-    # capture_finished_runs() directly and doesn't need this endpoint at all.
-    if not is_admin(request):
-        return jsonify({'error': 'Unauthorized.'}), 401
-    result = capture_finished_runs()
-    return jsonify(result), (500 if 'error' in result else 200)
 
 
 if __name__ == '__main__':
