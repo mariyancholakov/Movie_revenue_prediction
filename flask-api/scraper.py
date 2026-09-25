@@ -34,7 +34,8 @@ def _tmdb_fetch(url):
     try:
         response = requests.get(url, timeout=10)
     except requests.RequestException as e:
-        print(f"[tmdb] request failed: {e}")
+        # Not the exception text: it quotes the full URL, api_key included.
+        print(f"[tmdb] request failed for {url.split('?')[0]}: {type(e).__name__}")
         return None, None
     if response.status_code != 200:
         print(f"[tmdb] {response.status_code} for {url.split('?')[0]}")
