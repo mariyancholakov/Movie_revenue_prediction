@@ -19,35 +19,46 @@ is public.
 ## How it works
 
 ```
-TMDB (film data, worldwide revenue) ─┐
-Box Office Mojo (US weekend grosses) ─┼─> Flask API ──> Supabase (prediction cache,
+TMDB (film data, credits, revenue) ──┐
+Box Office Mojo (US weekends, markets)┼─> Flask API ──> Supabase (prediction cache,
 XGBoost model (models/*.pkl) ─────────┘      │           settled runs, weekly grosses)
                                              v
                                     Next.js frontend
 ```
 
-- **Prediction:** TMDB details plus the Box Office Mojo opening weekend are
-  turned into features (budget, runtime, genres, studio, release timing,
-  franchise and release year). The model predicts the multiplier, total ÷
-  opening weekend, and multiplies it back out (`model_lib.py`). The label is
-  TMDB `revenue` (worldwide), while the opening weekend and decay curve are
-  US domestic. Results are cached in Supabase for 7 days, and films in
-  theaters are re-scored with the current model on every read.
+- **Prediction:** `RunModel` (`model_lib.py`) splits the worldwide total
+  into two questions: how long the film holds in the US (US total ÷ US gross
+  so far) and how far it travels (worldwide ÷ US). It reads TMDB details
+  (budget, runtime, genres, studio, release timing, franchise, release year),
+  Box Office Mojo facts (opening theaters, MPAA rating, distributor, the
+  international markets that have opened and their opening weekends),
+  director and lead-cast track records (their earlier films only), and the
+  US weekends so far. There is one model pair per stage, from the opening
+  weekend to US weekend 8, so the forecast is redone as each weekend comes
+  in; the live number never sits below the worldwide gross to date. Results
+  are cached in Supabase for 7 days, and films in theaters are re-scored
+  with the current model on every read.
+- **Accuracy** (films from 2017 on, trained on earlier ones, vs TMDB
+  revenue): median miss 29% at the opening weekend (the previous model: 38%),
+  22% after US weekend 2, 17% after weekend 4, 14% after weekend 8.
 - **Explaining:** `/api/explain/<tmdb_id>` breaks a film's multiplier into
   factors for the How It Works page. XGBoost's per-feature contributions
   (SHAP values) add up to the log multiplier, so grouped (budget, genre,
   franchise, ...) and exponentiated they multiply back out to the prediction
-  exactly: starting point × each factor = multiplier (`MultiplierModel.explain`).
+  exactly: starting point × each factor = multiplier (`RunModel.explain`).
 - **Tracking:** only a current release (at most 180 days old) is tracked as
   a run. Opening an older film's page caches its numbers but never puts it
   on the Ledger.
 - **Settling:** a weekly job marks a film finished once it has left the
   now-playing list, is at least 12 weeks past release, and has a TMDB revenue
   figure. It stores that as the ground truth and keeps raising it as TMDB
-  revises it.
+  revises it. The Ledger scores the opening-weekend call, not the later
+  re-forecasts, which end up close to the real total.
 - **Retraining** (`retrain.py`) trains on the seed set plus settled runs and
   compares the candidate to the previous approach on seed films from 2017 on,
-  trained only on earlier ones. Promotion is always deliberate.
+  trained only on earlier ones. Promotion is always deliberate. The label is
+  Mojo's worldwide total where Mojo reports international grosses, else TMDB
+  `revenue`, which sometimes holds only the US gross (`dataset.py`).
 
 ## Repository
 
@@ -57,8 +68,13 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | `flask-api/scraper.py` | TMDB client and Box Office Mojo scraping + decay fit |
 | `flask-api/warm_cache.py` | Pre-computes predictions for every now-playing film |
 | `flask-api/capture_finished.py` | Settles finished runs (optionally retrains) |
-| `flask-api/model_lib.py` | The model class and the franchise features shared by training and serving |
+| `flask-api/model_lib.py` | The model classes, franchise features and track records shared by training and serving |
+| `flask-api/mojo_parse.py` | Box Office Mojo page parsers shared by the API and the backfill |
+| `flask-api/mojo_cache.py` | Mojo pages through a gzip cache (`data/mojo_cache/`, gitignored) |
+| `flask-api/dataset.py` | Assembles the training set (seed + Mojo facts + credits + labels) |
 | `flask-api/retrain.py` | Holdout-validated retraining; `--promote` to swap the model |
+| `flask-api/scripts/scrape_mojo.py` | Scrapes Mojo for the seed films into `data/mojo*.csv` |
+| `flask-api/scripts/fetch_credits.py` | TMDB directors and lead cast for the seed films |
 | `flask-api/scripts/enrich_seed.py` | Adds TMDB release date and franchise columns to the seed CSV |
 | `flask-api/migrations/` | SQL to run in the Supabase SQL editor, in order |
 | `frontend/` | Next.js 16 app (App Router, Tailwind v4) |

@@ -42,3 +42,4 @@ yarn-error.log*
 # Impeccable local/verification artifacts
 .impeccable/review/
 .impeccable/config.local.json
+flask-api/data/mojo_cache/

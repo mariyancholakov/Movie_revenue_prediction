@@ -3,8 +3,10 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, MAX_RELEASE_AGE_DAYS
-from model_lib import FRANCHISE_FEATURES
+from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, TMDB_API_KEY, _tmdb_get
+from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, track_records
+from mojo_parse import film_facts, original_group_path, weekend_table
+import dataset
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
@@ -39,18 +41,29 @@ try:
 except Exception as e:
     print(f"Supabase connection error: {e}")
 
-model = joblib.load('models/box_office_model_final.pkl')
+# MODEL_PATH lets a candidate be tried against live films before promotion.
+model = joblib.load(os.getenv('MODEL_PATH', 'models/box_office_model_final.pkl'))
 # A feature snapshot keeps every column any model has used (so a later model
 # can be retrained on it); each model reads the subset it was trained on.
 # Models before MultiplierModel don't carry their list and use the original 26.
 BASE_FEATURES = joblib.load('models/feature_columns_final.pkl')
 SNAPSHOT_COLUMNS = BASE_FEATURES + FRANCHISE_FEATURES
-MODEL_FEATURES = getattr(model, 'features', BASE_FEATURES)
+IS_RUN_MODEL = isinstance(model, RunModel)
+# The snapshot keys the current model reads. RunModel also reads the Box
+# Office Mojo facts, track records and the weekends reported so far.
+MODEL_FEATURES = model.inputs if IS_RUN_MODEL else getattr(model, 'features', BASE_FEATURES)
+# Snapshot keys the explain endpoint shows (the weekly run is in decay_curve).
+SHOWN_FEATURES = [c for c in MODEL_FEATURES if c != 'weeks']
 
 
-def score(feature_row):
-    """The current model's predicted total for a feature row, in dollars."""
-    return float(model.predict(feature_row.reindex(columns=MODEL_FEATURES, fill_value=0))[0])
+def score(feats, stage=None):
+    """The current model's predicted total for a feature snapshot (dict), in
+    dollars. `stage` asks RunModel for the forecast after that many US
+    weekends (1 = the opening-weekend call) instead of the latest one."""
+    if IS_RUN_MODEL:
+        return float(model.predict([feats], stage=stage)[0])
+    row = pd.DataFrame([feats]).reindex(columns=MODEL_FEATURES, fill_value=0)
+    return float(model.predict(row)[0])
 
 MAJOR_STUDIOS = ['Warner Bros', 'Disney', 'Marvel', 'Universal', 'Paramount', 'Sony', 'Legendary', 'Columbia']
 GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
@@ -150,21 +163,77 @@ def features_to_json(feature_row):
     return json.loads(feature_row.iloc[0].to_json())
 
 
-def store_features(tmdb_id, feature_row):
+def store_features(tmdb_id, feats):
     """Best-effort snapshot of the prediction-time features for later retraining.
     Silently no-ops if the `features` column doesn't exist yet (migration not run),
     so predictions keep working regardless."""
     try:
-        supabase.table('movies').update({'features': features_to_json(feature_row)}) \
-            .eq('tmdb_id', tmdb_id).execute()
+        supabase.table('movies').update({'features': feats}).eq('tmdb_id', tmdb_id).execute()
     except Exception as e:
         print(f"[features] snapshot skipped for {tmdb_id}: {e}")
 
+
+def _json_safe(v):
+    if isinstance(v, dict):
+        return {k: _json_safe(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [_json_safe(x) for x in v]
+    if isinstance(v, pd.Timestamp):
+        return None if pd.isna(v) else v.date().isoformat()
+    if isinstance(v, np.generic):
+        v = v.item()
+    if isinstance(v, float) and np.isnan(v):
+        return None
+    return v
+
+
+_history = None
+
+
+def track_history():
+    """Settled films (seed data) the director/cast track records draw on."""
+    global _history
+    if _history is None:
+        _history = dataset.history()
+    return _history
+
+
+def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
+    """The RunModel facts for a film priced live: Box Office Mojo facts
+    (theaters, MPAA, distributor, international openings, the weekends so
+    far) and director/cast track records, read with the same parsers the
+    training data went through (mojo_parse, model_lib.track_records)."""
+    group = original_group_path(title_page)
+    market_page = get_mojo_page(group) if group else title_page
+    weeks = weekend_table(weekly_data) if weekly_data is not None else None
+    facts = film_facts(title_page, market_page, weeks)
+    snap = {k: facts.get(k) for k in ('open_theaters', 'mpaa', 'distributor')}
+    snap['ww_to_date'] = facts.get('ww_all')  # floors the live forecast only
+    for k in range(1, MAX_STAGE + 1):
+        snap[f'intl_open_w{k}'] = facts.get(f'intl_open_w{k}')
+        snap[f'intl_markets_w{k}'] = facts.get(f'intl_markets_w{k}')
+    snap['weeks'] = weeks[dataset.WEEK_COLUMNS].to_dict('records') if weeks is not None else []
+
+    credits = _tmdb_get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}")
+    directors, cast = credit_ids(credits) if credits else ('', '')
+    film = pd.DataFrame([{'release_date': details.get('release_date'),
+                          'director_ids': directors, 'cast_ids': cast}])
+    snap.update(track_records(film, track_history()).iloc[0].to_dict())
+    return snap
+
+
+def build_snapshot(tmdb_id, details, opening_weekend, title_page, weekly_data):
+    """Everything any model reads for one film, JSON-safe for storage."""
+    feats = features_to_json(build_feature_row(details, opening_weekend))
+    feats.update(mojo_snapshot(tmdb_id, details, title_page, weekly_data))
+    return _json_safe(feats)
+
 def complete_snapshot(movie):
-    """Bring a film's feature snapshot up to SNAPSHOT_COLUMNS and store it:
-    add the columns introduced after it was taken (franchise, release year),
-    or build it outright for a row cached before snapshots existed. Runs once
-    per film instead of on every read. Raises if TMDB can't be reached."""
+    """Bring a film's feature snapshot up to what the current model reads and
+    store it: add the columns introduced after it was taken (franchise,
+    release year, the Box Office Mojo facts), or build it outright for a row
+    cached before snapshots existed. Runs once per film instead of on every
+    read. Raises if TMDB or Box Office Mojo can't be reached."""
     details = get_movie_details(movie['tmdb_id'])
     if not details:
         raise ConnectionError(f"TMDB details unavailable for {movie['tmdb_id']}")
@@ -172,12 +241,19 @@ def complete_snapshot(movie):
         feats = {**movie['features'], **get_franchise_features(details)}
     else:
         feats = features_to_json(build_feature_row(details, movie['opening_weekend']))
+    if IS_RUN_MODEL and 'weeks' not in feats and movie.get('imdb_id'):
+        title_page = get_title_page(movie['imdb_id'])
+        if title_page is None:
+            raise ConnectionError(f"Box Office Mojo unavailable for {movie['tmdb_id']}")
+        weekly = get_weekly_grossing(movie['imdb_id'], title_page)
+        feats.update(mojo_snapshot(movie['tmdb_id'], details, title_page, weekly))
+    feats = _json_safe(feats)
     supabase.table('movies').update({'features': feats}).eq('tmdb_id', movie['tmdb_id']).execute()
     movie['features'] = feats
     return feats
 
 
-def live_prediction(movie):
+def live_prediction(movie, stage=None):
     """The prediction to show for a cached movie row.
 
     For a film still in theaters, re-run the *current* model on the stored
@@ -192,7 +268,7 @@ def live_prediction(movie):
     try:
         if any(c not in feats for c in MODEL_FEATURES):
             feats = complete_snapshot(movie)
-        return round(score(pd.DataFrame([feats])))
+        return round(score(feats, stage=stage))
     except Exception as e:
         print(f"[predict] live re-score failed for {movie.get('tmdb_id')}: {e}")
         return stored
@@ -385,9 +461,12 @@ def predict_for(tmdb_id):
     if not opening_weekend:
         return fail('no_opening_weekend', 'No US opening weekend has been reported.', 404)
 
+    weekly_data = get_weekly_grossing(imdb_id, title_page)
+    decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
+
     try:
-        feature_row = build_feature_row(details, opening_weekend)
-        predicted_revenue = score(feature_row)
+        feats = build_snapshot(tmdb_id, details, opening_weekend, title_page, weekly_data)
+        predicted_revenue = score(feats)
     except ConnectionError as e:
         print(f"[predict] {e}")
         return fail('tmdb_unavailable', 'TMDB is not responding.', 503)
@@ -395,9 +474,6 @@ def predict_for(tmdb_id):
         # Malformed/incomplete TMDB details (e.g. missing release_date).
         print(f"[predict] feature build failed for {tmdb_id}: {e}")
         return fail('insufficient_data', 'TMDB is missing details the model needs.', 422)
-
-    weekly_data = get_weekly_grossing(imdb_id, title_page)
-    decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
 
     # Store in Supabase. Only a current release is tracked as a run
     # (is_in_theaters True, so the weekly capture will settle it). Opening an
@@ -418,7 +494,7 @@ def predict_for(tmdb_id):
         'last_scraped': now.isoformat(),
     }
     supabase.table('movies').upsert(movie_record).execute()
-    store_features(tmdb_id, feature_row)
+    store_features(tmdb_id, feats)
 
     if decay_data:
         weekly_records = [
@@ -509,9 +585,8 @@ def explain(tmdb_id):
         feats = movie.get('features') or {}
         if any(c not in feats for c in MODEL_FEATURES):
             feats = complete_snapshot(movie)
-        X = pd.DataFrame([feats])
-        base, factors = model.explain(X)
-        predicted = round(score(X))
+        base, factors = model.explain(pd.DataFrame([feats]))
+        predicted = round(score(feats))
     except Exception as e:
         print(f"[explain] failed for {tmdb_id}: {e}")
         return jsonify({'error': 'TMDB is not responding.', 'code': 'tmdb_unavailable'}), 503
@@ -528,7 +603,8 @@ def explain(tmdb_id):
         'multiplier': predicted / movie['opening_weekend'],
         'base_multiplier': base,
         'factors': factors,
-        'features': {k: feats.get(k, 0) for k in MODEL_FEATURES},
+        'features': {k: feats.get(k, 0) for k in SHOWN_FEATURES},
+        'weeks_reported': len(feats.get('weeks') or []),
         'decay_curve': decay_curve_from_db(weekly_rows, movie.get('decay_rate'), movie.get('half_life')),
     })
 
@@ -639,9 +715,11 @@ def capture_finished_runs():
             pending += 1  # retry on a later run
             continue
 
-        # Settle against the prediction the site was showing (current model),
-        # which may be newer than the stored value if a model was promoted.
-        predicted = live_prediction(movie)
+        # Settle against the current model's opening-weekend call. The live
+        # number is re-forecast every weekend and ends up near the real total,
+        # so it would flatter the Ledger; the opening call is the claim the
+        # Ledger has always held the model to.
+        predicted = live_prediction(movie, stage=1)
         update = {
             'is_in_theaters': False,
             'actual_revenue': int(revenue),

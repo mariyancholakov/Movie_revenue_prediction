@@ -216,6 +216,16 @@ def get_title_page(imdb_id, with_status=False):
     page = BeautifulSoup(response.text, 'html.parser') if response.status_code == 200 else None
     return (page, response.status_code) if with_status else page
 
+def get_mojo_page(path):
+    """Any Box Office Mojo page by path (e.g. a release group), parsed.
+    None on any failure."""
+    try:
+        response = requests.get(f"https://www.boxofficemojo.com{path}", headers=HEADERS, timeout=10)
+    except requests.RequestException as e:
+        print(f"[mojo] request failed for {path}: {e}")
+        return None
+    return BeautifulSoup(response.text, 'html.parser') if response.status_code == 200 else None
+
 def get_opening_weekend(imdb_id, title_page=None):
     """Scrape opening weekend from Box Office Mojo. Returns None on any failure."""
     soup = title_page if title_page is not None else get_title_page(imdb_id)

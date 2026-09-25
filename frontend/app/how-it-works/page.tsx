@@ -13,8 +13,9 @@ import { fmtMoney } from '@/lib/money';
 
 const REPO = 'https://github.com/mariyancholakov/Movie_revenue_prediction';
 
-// The groups /api/explain splits a film's multiplier into (model_lib.EXPLAIN_GROUPS).
-type Group = 'opening' | 'budget' | 'runtime' | 'genre' | 'timing' | 'franchise' | 'origin' | 'era';
+// The groups /api/explain splits a film's multiplier into (model_lib.RUN_EXPLAIN_GROUPS).
+type Group = 'opening' | 'budget' | 'runtime' | 'genre' | 'timing' | 'franchise' | 'origin' | 'era'
+  | 'rating' | 'talent' | 'abroad' | 'run';
 
 interface Explain {
   tmdb_id: number;
@@ -23,8 +24,9 @@ interface Explain {
   predicted_revenue: number;
   multiplier: number;
   base_multiplier: number;
-  factors: Record<Group, number>;
-  features: Record<string, number | boolean>;
+  factors: Partial<Record<Group, number>>;
+  features: Record<string, number | boolean | string | null>;
+  weeks_reported?: number;
   decay_curve: (DecayCurveData & { half_life?: number | null }) | null;
 }
 
@@ -56,14 +58,18 @@ const PROSE = 'text-ink2 text-[0.95rem] sm:text-[1.02rem] leading-[1.7] m-0 max-
 const x2 = (n: number) => n.toFixed(2);
 
 /** The file, as the model reads it: one plain line per group of features. */
-function describe(f: Explain['features']) {
+function describe(f: Explain['features'], weeksReported = 0) {
   const n = (k: string) => Number(f[k] ?? 0);
+  const stage = Math.min(Math.max(weeksReported, 1), 8);
+  const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
   const genres = GENRES.filter(([k]) => n(`genre_${k}`)).map(([, name]) => name);
   const month = n('release_month');
   const season = ['Winter', 'Spring', 'Summer', 'Fall'].find(s => f[`release_season_${s}`]) ?? '';
   const prior = n('prior_parts');
   return {
-    opening: fmtMoney(n('opening_weekend')),
+    opening: n('open_theaters')
+      ? `${fmtMoney(n('opening_weekend'))} · ${n('open_theaters').toLocaleString('en-US')} theaters`
+      : fmtMoney(n('opening_weekend')),
     budget: n('budget') ? fmtMoney(n('budget')) : 'Not reported',
     runtime: n('runtime') ? `${n('runtime')} min` : 'Not reported',
     genre: genres.length ? genres.join(' · ') : 'None listed',
@@ -74,8 +80,15 @@ function describe(f: Explain['features']) {
       n('is_major_studio') ? 'Major studio' : 'Independent',
       n('is_us_production') ? 'US-made' : 'Made abroad',
       n('is_english') ? 'English' : 'Not in English',
+      ...(f.distributor ? [String(f.distributor)] : []),
     ].join(' · '),
     era: n('release_year') ? String(n('release_year')) : 'Unknown',
+    rating: f.mpaa ? String(f.mpaa) : 'Not rated',
+    talent: `${plural(n('dir_prior_n'), 'earlier film')} by the director · ${n('cast_prior_n')} by the leads`,
+    abroad: n(`intl_markets_w${stage}`)
+      ? `${fmtMoney(n(`intl_open_w${stage}`))} from ${plural(n(`intl_markets_w${stage}`), 'market')}`
+      : 'No markets reported yet',
+    run: weeksReported > 1 ? `${weeksReported} US weekends so far` : 'Opening weekend only',
   } satisfies Record<Group, string>;
 }
 
@@ -88,6 +101,10 @@ const LABELS: Record<Group, string> = {
   franchise: 'Franchise',
   origin: 'Studio, country, language',
   era: 'Release year',
+  rating: 'Rating',
+  talent: 'Director and leads',
+  abroad: 'Openings abroad',
+  run: 'The run so far',
 };
 
 // The step index glides to its step instead of jumping (a plain jump under
@@ -194,7 +211,7 @@ export default function HowItWorksPage() {
     });
   }, { scope: root, dependencies: [data], revertOnUpdate: true });
 
-  const file = data ? describe(data.features) : null;
+  const file = data ? describe(data.features, data.weeks_reported) : null;
   const factors = data
     ? (Object.entries(data.factors) as [Group, number][])
         .sort((a, b) => Math.abs(Math.log(b[1])) - Math.abs(Math.log(a[1])))
@@ -299,7 +316,7 @@ export default function HowItWorksPage() {
               <Exhibit ready={!!file}>
                 {file && (
                   <dl className="m-0 border-t border-ink">
-                    {(['budget', 'runtime', 'genre', 'timing', 'franchise', 'origin', 'era'] as Group[]).map(g => (
+                    {(['budget', 'runtime', 'genre', 'timing', 'franchise', 'origin', 'rating', 'talent', 'abroad', 'era'] as Group[]).map(g => (
                       <div key={g} data-row className="grid grid-cols-[8.5rem_1fr] sm:grid-cols-[13rem_1fr] gap-4 py-2.5 border-b border-rule">
                         <dt className={`${HEAD} pt-[0.2rem]`}>{LABELS[g]}</dt>
                         <dd className="m-0 font-mono text-ink text-[0.9rem]">{file[g]}</dd>
