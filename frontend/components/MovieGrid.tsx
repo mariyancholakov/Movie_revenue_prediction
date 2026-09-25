@@ -23,10 +23,9 @@ interface MovieGridProps {
   onClearGenres: () => void;
 }
 
-const year = (d: string) => {
-  const t = new Date(d).getFullYear();
-  return Number.isNaN(t) ? '' : String(t);
-};
+// Read off the 'YYYY-MM-DD' string: parsed as a Date it's UTC midnight, which
+// puts a 1 January release in the year before for readers west of UTC.
+const year = (d: string) => /^\d{4}/.exec(d ?? '')?.[0] ?? '';
 
 export function MovieGrid({
   posters,

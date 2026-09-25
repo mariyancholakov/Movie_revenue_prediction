@@ -27,16 +27,15 @@ export default function Home() {
 
   const filteredMovies = useMemo(() => {
     let result = movies;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
       result = result.filter(m => m.title.toLowerCase().includes(q));
     }
     if (activeGenres.length > 0) {
       result = result.filter(m => m.genres?.some(g => activeGenres.includes(g)));
     }
-    result = [...result].sort(
-      (a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime()
-    );
+    // Newest first. ISO dates sort as text, and a missing one sorts last.
+    result = [...result].sort((a, b) => (b.release_date || '').localeCompare(a.release_date || ''));
     return result;
   }, [movies, searchQuery, activeGenres]);
 
