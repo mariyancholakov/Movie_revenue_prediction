@@ -8,9 +8,10 @@ export interface Movie {
   overview: string;
   genres?: string[];
   cast?: string[];
-  director?: string;
-  budget?: number;
-  runtime?: number;
+  // null when TMDB has none on file.
+  director?: string | null;
+  budget?: number | null;
+  runtime?: number | null;
   vote_average?: number | null;
 }
 
@@ -37,7 +38,9 @@ export interface Prediction {
   predicted_revenue: number;
   // Set only once the run has finished: the real total it's settled against.
   actual_revenue?: number | null;
-  decay_curve?: DecayCurveData;
+  // null until a decay can be fitted (fewer than two weekends, or a run that
+  // grows instead of falling).
+  decay_curve?: DecayCurveData | null;
   forecast_history?: ForecastPoint[];
   // [low, high] around predicted_revenue: where half of films like it finished.
   forecast_range?: [number, number] | null;
