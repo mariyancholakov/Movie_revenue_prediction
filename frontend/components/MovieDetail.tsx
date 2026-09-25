@@ -399,7 +399,7 @@ export function MovieDetail({
                     weekend keeps e^(−λ) of the one before. */}
                 {lam != null && (
                   <p className="m-0 text-right">
-                    <span className="block font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-1">Drop per weekend</span>
+                    <span className="block font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-1 whitespace-nowrap">Drop per weekend</span>
                     <span className="font-mono text-ink text-[1.1rem] tabular-nums">{`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}</span>
                   </p>
                 )}
