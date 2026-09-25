@@ -309,9 +309,11 @@ export default function HowItWorksPage() {
             {/* 2 ─ The file */}
             <Step n={2} id="file" title="Then the model reads the file">
               <p className={PROSE}>
-                TMDB supplies what kind of film it is. This is everything the model gets
-                to know. There are no reviews, no star power and no trailer views, only facts
-                that are on record the week a film opens.
+                TMDB supplies what kind of film it is and who made it; Box Office Mojo adds
+                how many theaters it opened in, its rating, its distributor and what it
+                opened to in other countries. The director and leads are read by their
+                record: what their earlier films made. There are no reviews and no
+                trailer views, only facts that are on record the week a film opens.
               </p>
               <Exhibit ready={!!file}>
                 {file && (
@@ -341,9 +343,11 @@ export default function HowItWorksPage() {
                 mostly says how long it will hold, and how far it will travel abroad.
               </p>
               <p className={PROSE}>
-                The model, a gradient-boosted tree ensemble (XGBoost) trained on 5,000+ past
-                releases, starts from the multiplier of a typical film and lets each part
-                of the file push it up or down.
+                It answers those two questions separately, with two gradient-boosted tree
+                ensembles (XGBoost) trained on 5,389 past releases: how many times its
+                opening the film will make in the US, and how much bigger the world makes
+                that. Together they start from the multiplier of a typical film and let
+                each part of the file push it up or down.
                 {up && down && data && (
                   <> For {data.title}, the biggest push came from {LABELS[up[0]].toLowerCase()} (×{x2(up[1])}),
                   and the biggest pull from {LABELS[down[0]].toLowerCase()} (×{x2(down[1])}).</>
@@ -396,8 +400,9 @@ export default function HowItWorksPage() {
             <Step n={4} id="total" title="Multiply it back out">
               <p className={PROSE}>
                 Opening weekend times multiplier is the predicted total. It&rsquo;s a
-                worldwide figure, even though the opening is US-only: from past films, the
-                model has learned how a US opening translates into a global run.
+                worldwide figure, even though the opening is US-only: from past films, and
+                from what this one opened to abroad, the model has learned how a US opening
+                translates into a global run.
               </p>
               <Exhibit ready={!!data}>
                 {data && (
@@ -423,7 +428,11 @@ export default function HowItWorksPage() {
                   about {Math.round(Math.exp(-lam) * 100)}% of the one before, so its
                   weekend gross halves every {(Math.LN2 / lam).toFixed(1)} weeks.</>
                 )}
-                {' '}The curve is a read-out, not an input: the prediction doesn&rsquo;t use it.
+                {' '}The curve itself is a read-out. The weekends aren&rsquo;t: after each
+                one, the forecast is made again with the run so far, the gross to date,
+                the last weekend and how hard it dropped. On films the model never saw, the
+                median miss falls from 29% at opening to 17% after four weekends and 14%
+                after eight.
               </p>
               <Exhibit ready={!!data}>
                 {data && (curve && curve.weeks.length > 1 ? (
@@ -443,7 +452,9 @@ export default function HowItWorksPage() {
                 theaters, is at least 12 weeks past release and TMDB has its final worldwide
                 gross, the run is settled on{' '}
                 <Link href="/finished" className="text-ink underline decoration-red underline-offset-4 hover:text-red">The Ledger</Link>:
-                predicted against actual, misses included.
+                predicted against actual, misses included. The call it&rsquo;s held to is
+                the one made on opening weekend, not the late forecast, which by then has
+                most of the run in hand.
               </p>
               <Exhibit ready={record !== null || status === 'error'}>
                 {record && (
@@ -460,7 +471,7 @@ export default function HowItWorksPage() {
               <p className={PROSE}>
                 Every settled run becomes one more training example. A new candidate model
                 is then put through an honest exam: it trains only on films released before
-                2017 and is scored on the ~730 released since, the same job it does live,
+                2017 and is scored on the 1,107 released since, the same job it does live,
                 pricing films newer than anything it has seen. It replaces the current model
                 only if it wins, and a person makes that call.
               </p>
@@ -472,8 +483,8 @@ export default function HowItWorksPage() {
                     <span className="text-right">Median miss</span>
                   </div>
                   {[
-                    ['Predict the dollars directly', '$62M', '39.9%'],
-                    ['Predict the multiplier (now live)', '$54M', '37.6%'],
+                    ['One multiplier, TMDB facts only', '$53M', '37.9%'],
+                    ['US run × trip abroad, Mojo facts (now live)', '$43M', '29.3%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>
@@ -483,7 +494,7 @@ export default function HowItWorksPage() {
                   ))}
                 </div>
                 <p className={`${HEAD} normal-case tracking-[0.04em] mt-2 mb-0`}>
-                  Scored on films released 2017 and later, unseen in training.
+                  Opening-weekend calls, scored on films released 2017 and later, unseen in training.
                 </p>
               </Exhibit>
               <Cycle />
@@ -494,9 +505,9 @@ export default function HowItWorksPage() {
               <ul className="list-none m-0 p-0 flex flex-col gap-5 max-w-[44rem]">
                 {[
                   ['Whether the film is any good.', 'Nothing in the file measures word of mouth. A crowd-pleaser and a dud with the same opening and profile get the same number.'],
-                  ['Anything before opening day.', 'No opening weekend, no prediction. Films that skip US theaters, or open abroad first, aren’t priced at all.'],
+                  ['Anything before opening day.', 'No US opening weekend, no prediction. Films that skip US theaters aren’t priced at all, and a film that opens abroad first waits for its US opening.'],
                   ['Small releases, precisely.', 'A limited opening can grow many times over or vanish, so its multiplier is a wide guess. The film page flags these as rough.'],
-                  ['A film’s life abroad.', 'The total is worldwide, but the only box office the model sees is American. A film far bigger overseas than at home will be undercalled.'],
+                  ['How a film holds abroad.', 'The model sees what a film opened to in other countries, but not how it held there afterwards. A film that keeps growing overseas will be undercalled.'],
                   ['Better data than TMDB has.', 'Budgets are often missing or estimates, and the final grosses the Ledger settles against are revised over time.'],
                 ].map(([head, body]) => (
                   <li key={head}>
