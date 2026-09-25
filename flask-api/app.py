@@ -3,7 +3,7 @@ from flask_cors import CORS
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, TMDB_API_KEY, _tmdb_get
+from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, NOW_PLAYING_TTL, TMDB_API_KEY, _is_current_release, _tmdb_get
 from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, track_records
 from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
@@ -322,9 +322,58 @@ def is_unpriceable(tmdb_id):
     return marked is not None and time.time() - marked < UNPRICEABLE_TTL
 
 
+_showing_cache = {'at': 0.0, 'movies': None}
+
+
+def _tracked_entry(tmdb_id):
+    """A now-playing entry for a priced film TMDB no longer lists, or None if
+    TMDB can't be reached or the film opened in the US too long ago."""
+    us_date = get_us_theatrical_date(tmdb_id)
+    if not us_date or not _is_current_release(us_date):
+        return None
+    details = get_movie_details(tmdb_id)
+    if not details:
+        return None
+    poster_path = details.get('poster_path')
+    return {
+        'tmdb_id': tmdb_id,
+        'title': details.get('title', ''),
+        'poster': f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else '',
+        'release_date': details.get('release_date', ''),
+        'overview': details.get('overview', ''),
+        'genres': [g['name'] for g in details.get('genres', [])],
+        'us_release_date': us_date,
+    }
+
+
+def showing_now():
+    """TMDB's now-playing list, plus every priced film whose run hasn't
+    settled. TMDB lists only about six weeks of releases, so a long run (a
+    summer tentpole) drops off it mid-run; a priced film stays up until
+    capture_finished_runs settles it onto the Ledger. Leaving TMDB's list is
+    that job's settling signal, so it reads get_now_playing() directly."""
+    if _showing_cache['movies'] is not None and time.time() - _showing_cache['at'] < NOW_PLAYING_TTL:
+        return _showing_cache['movies']
+    movies = get_now_playing()
+    if not movies:
+        return []
+    listed = {m['tmdb_id'] for m in movies}
+    try:
+        tracked = supabase.table('movies').select('tmdb_id') \
+            .eq('is_in_theaters', True).not_.is_('predicted_revenue', 'null').execute().data or []
+    except Exception as e:
+        print(f"[now-playing] tracked films unavailable: {e}")
+        return movies
+    extra = [r['tmdb_id'] for r in tracked if r['tmdb_id'] not in listed]
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        movies = movies + [m for m in pool.map(_tracked_entry, extra) if m]
+    _showing_cache.update(at=time.time(), movies=movies)
+    return movies
+
+
 @app.route('/api/now-playing', methods=['GET'])
 def now_playing():
-    movies = [m for m in get_now_playing() if not is_unpriceable(m['tmdb_id'])]
+    movies = [m for m in showing_now() if not is_unpriceable(m['tmdb_id'])]
     return jsonify(movies)
 
 @app.route('/api/movie/<int:tmdb_id>', methods=['GET'])
@@ -612,7 +661,7 @@ def predict():
 
 @app.route('/api/leaderboard', methods=['GET'])
 def leaderboard():
-    now_playing = get_now_playing()
+    now_playing = showing_now()
     if not now_playing:
         return jsonify([])
 

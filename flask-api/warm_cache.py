@@ -1,4 +1,6 @@
-"""Pre-warm the prediction cache for every film TMDB currently lists as now-playing.
+"""Pre-warm the prediction cache for every film now playing: TMDB's list plus
+priced films TMDB dropped mid-run (showing_now), so their weekly grosses keep
+updating until the run settles.
 
 Why: a cold /api/predict scrapes Box Office Mojo live, which is slow and prone to
 IP-blocks from a server. Running this on a schedule (or once after deploy) means
@@ -24,7 +26,7 @@ from datetime import datetime, timezone
 # Relative paths in app.py (model + data) assume flask-api is the cwd.
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-from app import predict_for, get_now_playing  # noqa: E402  (after chdir)
+from app import predict_for, showing_now  # noqa: E402  (after chdir)
 
 LOG_FILE = 'logs/pipeline.log'
 DELAY = float(os.getenv('WARM_DELAY_SECONDS', '2.0'))
@@ -41,7 +43,7 @@ def log(msg):
 
 def main():
     log("=== warm_cache run start ===")
-    movies = get_now_playing()
+    movies = showing_now()
     if not movies:
         log("warm_cache: TMDB returned no now-playing films (upstream down?) — nothing to do")
         log("=== warm_cache run end ===")
