@@ -9,7 +9,7 @@ import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 import { ForecastChart } from "./ForecastChart";
-import { Typed, typeOut } from "./Typed";
+import { typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
 
 const fmt = fmtMoney;
@@ -143,9 +143,9 @@ export function MovieDetail({
   const root = useRef<HTMLElement>(null);
 
   // When the numbers land they are typed up like a filed dispatch: the rule
-  // draws, the label types its dateline, the carriage returns to the grid and
-  // each figure is struck in turn, then the decay chart inks its line and
-  // plots each weekend. A failed prediction just slides its notice in.
+  // draws, the dateline fades in beneath it, then each figure in the grid is
+  // struck in turn, then the decay chart inks its line and plots each
+  // weekend. A failed prediction just slides its notice in.
   useGSAP(() => {
     if (!prediction) return;
     motion(() => {
@@ -158,9 +158,9 @@ export function MovieDetail({
 
       const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
       const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
-      typeOut(tl, root.current!.querySelector('[data-ledger-label]')!, { pace: 0.25 });
-      typeOut(tl, root.current!.querySelector('[data-ledger-basis]')!, { pace: 0.25 });
-      tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '+=0.1');
+      // The dateline just fades in under the rule, so the figures come sooner.
+      tl.from('[data-ledger-label], [data-ledger-basis]', { opacity: 0, duration: 0.3 }, '-=0.3');
+      tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '-=0.1');
       figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
 
       tl.from('[data-ledger-follow]', { y: 12, opacity: 0, duration: 0.5, stagger: 0.1 }, '-=0.2');
@@ -350,11 +350,9 @@ export function MovieDetail({
               out from (why the chart and the errors speak of the US) */}
           <div className="flex flex-wrap justify-between gap-x-6 gap-y-1.5 font-mono text-[0.6rem] tracking-[0.18em] text-ink3 uppercase mt-3 mb-5">
             <p data-ledger-label className="m-0">
-              <Typed text={`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`} />
+              {`The Prediction \u00b7 Filed ${new Date(now).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
             </p>
-            <p data-ledger-basis className="m-0">
-              <Typed text="Predicted from the US opening weekend" />
-            </p>
+            <p data-ledger-basis className="m-0">Predicted from the US opening weekend</p>
           </div>
 
           {/* The prediction's range sits right after it, as its margin. A
