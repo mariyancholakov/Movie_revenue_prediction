@@ -343,9 +343,11 @@ export default function HowItWorksPage() {
                 mostly says how long it will hold, and how far it will travel abroad.
               </p>
               <p className={PROSE}>
-                The model, a gradient-boosted tree ensemble (XGBoost) trained on 5,000+ past
-                releases, starts from the multiplier of a typical film and lets each part
-                of the file push it up or down.
+                It answers those two questions separately, with two gradient-boosted tree
+                ensembles (XGBoost) trained on 5,389 past releases: how many times its
+                opening the film will make in the US, and how much bigger the world makes
+                that. Together they start from the multiplier of a typical film and let
+                each part of the file push it up or down.
                 {up && down && data && (
                   <> For {data.title}, the biggest push came from {LABELS[up[0]].toLowerCase()} (×{x2(up[1])}),
                   and the biggest pull from {LABELS[down[0]].toLowerCase()} (×{x2(down[1])}).</>
@@ -398,8 +400,9 @@ export default function HowItWorksPage() {
             <Step n={4} id="total" title="Multiply it back out">
               <p className={PROSE}>
                 Opening weekend times multiplier is the predicted total. It&rsquo;s a
-                worldwide figure, even though the opening is US-only: from past films, the
-                model has learned how a US opening translates into a global run.
+                worldwide figure, even though the opening is US-only: from past films, and
+                from what this one opened to abroad, the model has learned how a US opening
+                translates into a global run.
               </p>
               <Exhibit ready={!!data}>
                 {data && (
