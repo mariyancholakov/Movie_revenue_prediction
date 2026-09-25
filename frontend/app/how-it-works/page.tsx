@@ -452,7 +452,9 @@ export default function HowItWorksPage() {
                 theaters, is at least 12 weeks past release and TMDB has its final worldwide
                 gross, the run is settled on{' '}
                 <Link href="/finished" className="text-ink underline decoration-red underline-offset-4 hover:text-red">The Ledger</Link>:
-                predicted against actual, misses included.
+                predicted against actual, misses included. The call it&rsquo;s held to is
+                the one made on opening weekend, not the late forecast, which by then has
+                most of the run in hand.
               </p>
               <Exhibit ready={record !== null || status === 'error'}>
                 {record && (
