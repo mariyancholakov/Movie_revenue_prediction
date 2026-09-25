@@ -28,7 +28,8 @@ app = Flask(__name__)
 # (e.g. the Vercel URL) can be whitelisted without a code change. Comma-separated;
 # defaults to local dev.
 ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if o.strip()
+    # A browser's Origin never ends in '/', so a pasted URL with one would never match.
+    o.strip().rstrip('/') for o in os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if o.strip()
 ]
 CORS(app, origins=ALLOWED_ORIGINS)
 
