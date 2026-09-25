@@ -402,7 +402,7 @@ export default function HowItWorksPage() {
                 Opening weekend times multiplier is the predicted total. It&rsquo;s a
                 worldwide figure, even though the opening is US-only: from past films, and
                 from what this one opened to abroad, the model has learned how a US opening
-                translates into a global run. Beside it the film page prints a likely range,
+                translates into a global run. Beside it the film page prints the prediction&rsquo;s range,
                 read off the model&rsquo;s own misses on films it never saw: half of films
                 like it finished inside, a quarter above and a quarter below. It is wide
                 for a small opening and narrows as the weekends come in.

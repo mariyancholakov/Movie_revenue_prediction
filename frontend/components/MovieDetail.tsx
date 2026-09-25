@@ -337,21 +337,19 @@ export function MovieDetail({
             </p>
           </div>
 
-          {/* A settled run adds its final gross and the miss, making two rows
+          {/* The prediction's range sits right after it, as its margin. A
+              settled run adds its final gross and the miss, making two rows
               of three; otherwise the four figures share one row. */}
           <div className={`grid grid-cols-2 ${settled != null ? "sm:grid-cols-3" : "sm:grid-cols-4"} border-t border-l border-ink/20`}>
             {[
               <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)} />,
               <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} headline />,
+              // Where half of films like it finished (ranges.py).
+              <StatCard key="rg" label="Prediction Range" breakAfter={"\u2013"}
+                value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
               settled != null && (
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
               ),
-              // Where half of films like it finished (ranges.py).
-              <StatCard key="rg" label="Likely Range" breakAfter={"\u2013"}
-                value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
-              profit != null
-                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} />
-                : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
               settled != null && (() => {
                 // Actual minus predicted, as on The Ledger: red when the film
                 // fell short of the call.
@@ -361,6 +359,9 @@ export function MovieDetail({
                     value={(diff > 0 ? "+" : "") + fmt(diff)} />
                 );
               })(),
+              profit != null
+                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} />
+                : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
             ].filter(Boolean).map((cell, i) => (
               <div key={i} data-cell className="border-r border-b border-ink/20">
                 {cell}
@@ -414,8 +415,8 @@ export function MovieDetail({
               <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
                 After every US weekend the model predicts the worldwide total again, now
                 knowing how the film is actually selling. Each step of the line is the
-                prediction it made after that weekend, and the shaded band around it the
-                likely range. The hatched area is what the film had taken in the US by then
+                prediction it made after that weekend, and the shaded band around it that
+                prediction&rsquo;s range. The hatched area is what the film had taken in the US by then
                 {settled != null ? "; the dashed line is where it finally finished." : "."}
               </p>
               <ForecastChart history={prediction.forecast_history!} final={settled} />

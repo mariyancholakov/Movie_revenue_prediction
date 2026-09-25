@@ -59,7 +59,7 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
   // Legend entries right-aligned above the plot, each as wide as its label.
   const legend = [
     { key: 'forecast', label: 'FORECAST', width: 90 },
-    ...(banded ? [{ key: 'range', label: 'LIKELY RANGE', width: 124 }] : []),
+    ...(banded ? [{ key: 'range', label: 'PREDICTION RANGE', width: 152 }] : []),
     { key: 'us', label: 'US TO DATE', width: 104 },
     ...(final != null && final > 0 ? [{ key: 'final', label: 'FINAL', width: 62 }] : []),
   ];
