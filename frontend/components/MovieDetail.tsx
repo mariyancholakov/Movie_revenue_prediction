@@ -33,6 +33,30 @@ const fmtDate = (d: string) => {
     : t.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
+// Why each missing chart is missing, one sentence apiece. The decay chart
+// needs three US weekends and the forecast chart two; `weekends` is how many
+// the API sent. None at all, days after the opening, means the weekly figures
+// aren't on record rather than not in yet.
+function chartGaps(
+  hasDecay: boolean, hasForecast: boolean, weekends: number, settled: boolean, daysSinceRelease: number,
+): string[] {
+  if (hasDecay && hasForecast) return [];
+  if (weekends === 0 && daysSinceRelease >= 4)
+    return ["No weekly US grosses are on record for this film, so there are no charts to draw."];
+  if (!hasDecay && !hasForecast)
+    return [settled
+      ? "This run was too short to chart its weekends."
+      : "The charts start after the film’s second US weekend."];
+  if (!hasDecay)
+    return [weekends < 3
+      ? settled
+        ? "No decay chart: the run was too short to fit one."
+        : `The decay chart starts after the third US weekend; ${weekends} ${weekends === 1 ? "is" : "are"} in so far.`
+      : "No decay chart: the weekly US grosses for this film aren’t on record."];
+  // The decay chart is up, so there were weekends: the snapshot just lacks them.
+  return ["No forecast chart: the weekend-by-weekend calls can’t be rebuilt for this film."];
+}
+
 // Reader-facing copy for each failure the API reports: a short headline and
 // one or two sentences saying why, and what happens next.
 const RETRYABLE = new Set<Prediction["code"]>(["tmdb_unavailable", "box_office_unavailable", "network", "internal"]);
@@ -340,6 +364,13 @@ export function MovieDetail({
         const lam = prediction.decay_curve?.decay_rate ?? null;
         const profit = (selected.budget ?? 0) > 0 ? estProfit(prediction.predicted_revenue, selected.budget!) : null;
         const settled = (prediction.actual_revenue ?? 0) > 0 ? prediction.actual_revenue! : null;
+        const hasDecay = (prediction.decay_curve?.weeks.length ?? 0) > 2;
+        const hasForecast = (prediction.forecast_history?.length ?? 0) > 1;
+        const chartNotes = chartGaps(
+          hasDecay, hasForecast,
+          Math.max(prediction.decay_curve?.weeks.length ?? 0, prediction.forecast_history?.length ?? 0),
+          settled != null, daysSinceRelease,
+        );
         return (
         <div className="mt-11">
           <div data-ledger-rule className="rule-double mb-5" />
@@ -386,7 +417,7 @@ export function MovieDetail({
           )}
           </div>
 
-          {prediction.decay_curve && prediction.decay_curve.weeks.length > 2 && (
+          {hasDecay && prediction.decay_curve && (
             <div data-ledger-follow className="mb-11">
               <div className="flex items-end justify-between mb-5">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
@@ -403,17 +434,14 @@ export function MovieDetail({
             </div>
           )}
 
-          {/* With no chart to show yet, say why rather than leaving the space empty. */}
-          {!(prediction.decay_curve && prediction.decay_curve.weeks.length > 2)
-            && (prediction.forecast_history?.length ?? 0) <= 1 && (
-            <p data-ledger-follow className="text-ink2 text-[0.85rem] italic mb-11">
-              {settled != null
-                ? "This run was too short to chart its weekends."
-                : "The charts start after the film\u2019s second US weekend."}
+          {/* A missing chart says why rather than leaving the space empty. */}
+          {chartNotes.map((note) => (
+            <p key={note} data-ledger-follow className="text-ink2 text-[0.85rem] italic mb-11">
+              {note}
             </p>
-          )}
+          ))}
 
-          {(prediction.forecast_history?.length ?? 0) > 1 && (
+          {hasForecast && (
             <div data-ledger-follow>
               <div className="flex items-end justify-between mb-3">
                 <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">The Forecast, Weekend by Weekend</h3>
