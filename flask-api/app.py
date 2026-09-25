@@ -113,6 +113,17 @@ GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
 # is retried on a much shorter TTL so a transient failure doesn't stick.
 FULL_TTL = timedelta(days=7)
 DECAY_RETRY_TTL = timedelta(hours=6)
+# Box Office Mojo posts a weekend's actuals on the Monday after; they're in
+# by Tuesday 00:00 UTC. A run in theaters is refreshed once each new weekend
+# is posted, so its forecast moves weekly instead of whenever FULL_TTL lapses.
+WEEKEND_POSTED_WEEKDAY = 1  # Tuesday
+
+
+def weekend_posted_since(then, now):
+    """Whether a US weekend's actuals have been posted between `then` and `now`."""
+    days_back = (now.weekday() - WEEKEND_POSTED_WEEKDAY) % 7
+    posted = (now - timedelta(days=days_back)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return then < posted
 
 # A run must be at least this old before it can be settled as finished. By
 # week 12 nearly all of a typical theatrical gross is in.
@@ -567,7 +578,8 @@ def predict_for(tmdb_id):
             }, 200
 
         # Fresh + complete → serve straight from cache.
-        if has_decay and age < FULL_TTL:
+        new_weekend = movie.get('is_in_theaters') is True and weekend_posted_since(last_scraped, now)
+        if has_decay and age < FULL_TTL and not new_weekend:
             return {
                 **base,
                 'decay_curve': decay_curve_from_db(weekly_rows, movie['decay_rate'], movie.get('half_life')),

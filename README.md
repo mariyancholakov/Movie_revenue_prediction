@@ -36,8 +36,9 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   US weekends so far. There is one model pair per stage, from the opening
   weekend to US weekend 8, so the forecast is redone as each weekend comes
   in; the live number never sits below the worldwide gross to date. Results
-  are cached in Supabase for 7 days, and films in theaters are re-scored
-  with the current model on every read.
+  are cached in Supabase; a film in theaters is re-scraped once each new US
+  weekend is posted (Mondays; 7 days at most otherwise) and re-scored with
+  the current model on every read.
 - **Accuracy** (films from 2017 on, trained on earlier ones, vs the cleaned
   worldwide total): median miss 27% at the opening weekend (the previous
   model: 37%), 21% after US weekend 2, 16% after weekend 4, 13% after weekend 8.
