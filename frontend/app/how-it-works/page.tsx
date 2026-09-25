@@ -246,8 +246,8 @@ export default function HowItWorksPage() {
 
         {/* The worked example: every figure on the page below is this film's. */}
         <div className="rule-double" />
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 py-4">
-          <label htmlFor="film" className="text-ink2 text-[0.95rem]">Worked through with</label>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
+          <label htmlFor="film" className="text-ink2 text-[0.95rem]">Example</label>
           {films.length > 0 ? (
             <select
               id="film"
@@ -261,8 +261,8 @@ export default function HowItWorksPage() {
             <span className="paper-skeleton inline-block h-6 w-48" />
           ) : null}
           {data && (
-            <Link href={`/movie/${data.tmdb_id}`} className="text-ink2 text-[0.95rem] underline decoration-ink/30 underline-offset-4 hover:text-red">
-              see its page →
+            <Link href={`/movie/${data.tmdb_id}`} className="inline-flex items-center gap-2 border border-ink/60 text-ink text-[0.88rem] no-underline px-4 py-1.5 transition-colors hover:bg-ink hover:text-paper hover:border-ink">
+              Open film page <span aria-hidden>→</span>
             </Link>
           )}
         </div>
