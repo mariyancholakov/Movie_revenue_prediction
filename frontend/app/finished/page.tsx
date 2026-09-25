@@ -150,9 +150,8 @@ export default function FinishedPage() {
             </p>
             <dl className="grid grid-cols-4 gap-x-6 sm:gap-x-10 m-0 shrink-0">
               {byWeekend.map(w => (
-                <div key={w.week} className="text-center">
-                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase">Weekend {w.week}</dt>
-                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mt-1 mb-2">{w.films} films</dt>
+                <div key={w.week} className="text-center" title={`${w.films} films`}>
+                  <dt className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-2">Weekend {w.week}</dt>
                   <dd className="font-mono text-ink text-[1.1rem] tabular-nums leading-none m-0">
                     {w.median != null ? `${w.median.toFixed(1)}%` : '\u2014'}
                   </dd>
