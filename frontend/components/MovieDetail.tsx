@@ -403,8 +403,9 @@ export function MovieDetail({
                     value={(diff > 0 ? "+" : "") + fmt(diff)} />
                 );
               })(),
+              // In the red when it's predicted to lose money, as on Rankings.
               profit != null
-                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} />
+                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0} />
                 : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
             ].filter(Boolean).map((cell, i) => (
               <div key={i} data-cell className="border-r border-b border-ink/20">
