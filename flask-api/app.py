@@ -573,30 +573,15 @@ def predict_for(tmdb_id):
                 'decay_curve': decay_curve_from_db(weekly_rows, movie['decay_rate'], movie.get('half_life')),
             }, 200
 
-        # Prediction cached without a decay curve is *partial*. Don't serve a
-        # stuck N/A for a week — retry just the weekly-grossing scrape on a
-        # short TTL (the opening weekend and model output are still valid).
-        if not has_decay and age < FULL_TTL:
-            if age < DECAY_RETRY_TTL:
-                # Retried recently — avoid hammering Box Office Mojo on reloads.
-                return {**base, 'decay_curve': None}, 200
+        # Cached without a decay curve (fewer than two weekends so far, or a
+        # run the fit can't describe) is refreshed on a short TTL instead, and
+        # in full: the snapshot's weekends are what the forecast is re-made
+        # from, so refreshing only the chart would freeze the forecast.
+        if not has_decay and age < DECAY_RETRY_TTL:
+            return {**base, 'decay_curve': None}, 200
 
-            decay_data = None
-            if imdb_id:
-                weekly_data = get_weekly_grossing(imdb_id)
-                decay_data = parse_and_fit_decay(weekly_data) if weekly_data is not None else None
-
-            update = {'last_scraped': now.isoformat()}
-            if decay_data:
-                update['decay_rate'] = decay_data['decay_rate']
-                update['half_life'] = decay_data['half_life']
-                store_weekly(imdb_id, decay_data)
-            supabase.table('movies').update(update).eq('tmdb_id', tmdb_id).execute()
-
-            return {**base, 'decay_curve': decay_data}, 200
-
-        # else: stale beyond FULL_TTL → fall through to a full re-scrape below,
-        # keeping the old result to serve if the refresh fails.
+        # else: stale → fall through to a full re-scrape below, keeping the
+        # old result to serve if the refresh fails.
         stale = {
             **base,
             'decay_curve': decay_curve_from_db(weekly_rows, movie['decay_rate'], movie.get('half_life'))
