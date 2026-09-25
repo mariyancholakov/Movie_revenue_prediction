@@ -403,9 +403,9 @@ export default function HowItWorksPage() {
                 worldwide figure, even though the opening is US-only: from past films, and
                 from what this one opened to abroad, the model has learned how a US opening
                 translates into a global run. Beside it the film page prints a likely range,
-                read off the model&rsquo;s own misses on films it never saw: eight in ten
-                films like it finished inside. It is wide for a small opening and narrows
-                as the weekends come in.
+                read off the model&rsquo;s own misses on films it never saw: half of films
+                like it finished inside, a quarter above and a quarter below. It is wide
+                for a small opening and narrows as the weekends come in.
               </p>
               <Exhibit ready={!!data}>
                 {data && (

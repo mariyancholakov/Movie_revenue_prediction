@@ -4,8 +4,9 @@ A range is read off the model's own record, not assumed. A RunModel trained
 only on films before retrain.HOLDOUT_FROM_YEAR prices the ~1,100 films released
 since, and for each stage (US weekends reported, 1..MAX_STAGE) and size of
 opening we keep the spread of log(final / call). The range for a new call is
-that call times the 10th and 90th percentiles of its group: eight in ten films
-like it finished inside.
+that call times the 25th and 75th percentiles of its group: half of films like
+it finished inside. (The 10th-90th band was about twice as wide: honest, but too
+wide to read as a forecast.)
 
     python ranges.py   # recalibrate and write models/forecast_ranges.json
 """
@@ -18,7 +19,7 @@ import dataset
 from model_lib import MAX_STAGE
 
 RANGES_PATH = os.path.join(os.path.dirname(__file__), 'models', 'forecast_ranges.json')
-QUANTILES = (0.1, 0.9)
+QUANTILES = (0.25, 0.75)
 # US opening sizes: a small release can grow many times over or vanish, a
 # big one is pinned down far better.
 OPENING_BINS = [0, 1e6, 4e6, 10e6, 30e6]

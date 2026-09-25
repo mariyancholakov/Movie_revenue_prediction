@@ -360,7 +360,7 @@ def forecast_history(feats, latest=None):
 
 
 def call_range(feats, call, stage, floored=False):
-    """(low, high) where eight in ten films like this one finished, around a
+    """(low, high) where half of films like this one finished, around a
     call made after `stage` US weekends (ranges.py). The live call is floored
     at the worldwide gross to date, and so is its range. None without one."""
     span = ranges.forecast_range(RANGES, call, stage, feats.get('opening_weekend'))

@@ -15,7 +15,7 @@ const MONO = 'var(--font-courier), monospace';
 
 // The forecast as it stood after each US weekend, printed as a step line: a
 // call holds until the next weekend's figures remake it. The tinted band is
-// where eight in ten films like it finished; the hatched area is the US gross
+// where half of films like it finished; the hatched area is the US gross
 // banked by then; a settled run adds its final total, dashed.
 export function ForecastChart({ history, final }: ForecastChartProps) {
   const n = history.length;
@@ -59,7 +59,7 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
   // Legend entries right-aligned above the plot, each as wide as its label.
   const legend = [
     { key: 'forecast', label: 'FORECAST', width: 90 },
-    ...(banded ? [{ key: 'range', label: '8 IN 10 FINISHED', width: 140 }] : []),
+    ...(banded ? [{ key: 'range', label: 'LIKELY RANGE', width: 124 }] : []),
     { key: 'us', label: 'US TO DATE', width: 104 },
     ...(final != null && final > 0 ? [{ key: 'final', label: 'FINAL', width: 62 }] : []),
   ];

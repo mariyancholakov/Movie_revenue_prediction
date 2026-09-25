@@ -346,7 +346,7 @@ export function MovieDetail({
               settled != null && (
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
               ),
-              // Where eight in ten films like it finished (ranges.py).
+              // Where half of films like it finished (ranges.py).
               <StatCard key="rg" label="Likely Range"
                 value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
               profit != null
@@ -379,7 +379,7 @@ export function MovieDetail({
             {profit != null
               ? `Profit: studio\u2019s ~50% of the gross, minus the ${fmt(selected.budget!)} budget`
               : "Profit needs a reported budget"}
-            {prediction.forecast_range && " \u00b7 Range: where 8 in 10 films like it finished"}
+            {prediction.forecast_range && " \u00b7 Range: where half of films like it finished"}
           </p>
 
           {(prediction.forecast_history?.length ?? 0) > 1 && (
