@@ -8,6 +8,9 @@ from io import StringIO
 
 import pandas as pd
 
+from model_lib import MAX_STAGE
+
+
 def _money(text):
     text = (text or '').replace('$', '').replace(',', '').strip()
     return int(text) if text.isdigit() else None
@@ -51,7 +54,7 @@ def market_rows(soup):
     return out
 
 
-def international_openings(markets, us_date, weeks=range(1, 9)):
+def international_openings(markets, us_date, weeks=range(1, MAX_STAGE + 1)):
     """International opening weekends known when US weekend k is reported:
     summed over markets that opened before that weekend's Friday. Overseas
     figures come in days late, so a market opening the same weekend as the
