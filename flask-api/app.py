@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, TMDB_API_KEY, _tmdb_get
 from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RunModel, credit_ids, track_records
-from mojo_parse import film_facts, original_group_path, weekend_table
+from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
@@ -726,11 +726,11 @@ def later_calls(feats):
 def capture_finished_runs():
     """Detect movies whose run has ended and capture their real revenue.
 
-    A predicted movie is 'finished' once it drops out of TMDB now-playing AND
-    TMDB has populated its total `revenue`. We store that revenue as the ground
-    truth (matching the training label's unit) plus a feature snapshot, building
-    the labeled dataset a future retrain will learn from. Safe to call repeatedly
-    (e.g. from a weekly job); movies awaiting a TMDB revenue update stay pending.
+    A predicted movie is 'finished' once it drops out of TMDB now-playing and
+    is at least MIN_RUN_DAYS old. We store its settled_total() as the ground
+    truth (the training label itself) plus a feature snapshot, building the
+    labeled dataset a future retrain will learn from. Safe to call repeatedly
+    (e.g. from a weekly job); movies with no total on record yet stay pending.
 
     Returns a summary dict (with an 'error' key on failure). Standalone-safe:
     used by both the HTTP endpoint and the scheduled capture_finished.py job."""
@@ -755,7 +755,7 @@ def capture_finished_runs():
             details = get_movie_details(tid)
         except Exception:
             continue
-        revenue = details.get('revenue') or 0
+        revenue = settled_total(details, movie.get('imdb_id'))
 
         # Leaving the now-playing pages isn't proof the run is over (a film can
         # slide off page 2 mid-run), and TMDB's `revenue` fills in *during* the
@@ -813,13 +813,30 @@ def run_age_days(details):
     return (datetime.now(timezone.utc) - released).days
 
 
+def settled_total(details, imdb_id):
+    """The worldwide total a run is settled at: the same label the model
+    trains on (dataset.clean_total), Box Office Mojo's worldwide figure for
+    the original release when Mojo has real foreign grosses, else TMDB's
+    `revenue`, which sometimes holds only the US gross. TMDB alone when Mojo
+    can't be reached."""
+    tmdb = details.get('revenue') or 0
+    page = get_title_page(imdb_id) if imdb_id else None
+    if page is None:
+        return int(tmdb)
+    totals = original_release_totals(page)
+    dom, intl, ww = totals[:3] if totals else performance_totals(page)
+    na = lambda v: np.nan if v is None else v
+    return int(dataset.clean_total(tmdb, na(dom), na(intl), na(ww)))
+
+
 def refresh_settled_revenue():
-    """TMDB keeps revising `revenue` after a run ends (late territories,
-    corrections). Pull settled films' ground truth up to TMDB's latest figure
-    so the Ledger and retraining labels don't freeze a partial total. Only ever
-    raises a figure, and only within a year of release. Returns titles updated."""
+    """Grosses keep being revised after a run ends (late territories,
+    corrections). Pull settled films' ground truth up to the latest settled
+    total so the Ledger and retraining labels don't freeze a partial figure.
+    Only ever raises a figure, and only within a year of release. Returns
+    titles updated."""
     try:
-        rows = supabase.table('movies').select('tmdb_id,title,actual_revenue') \
+        rows = supabase.table('movies').select('tmdb_id,imdb_id,title,actual_revenue') \
             .eq('is_in_theaters', False).execute().data or []
     except Exception as e:
         print(f"[capture] revenue refresh skipped: {e}")
@@ -827,8 +844,10 @@ def refresh_settled_revenue():
     updated = []
     for movie in rows:
         details = get_movie_details(movie['tmdb_id'])
-        latest = details.get('revenue') or 0
-        if not details or run_age_days(details) > 365 or latest <= (movie.get('actual_revenue') or 0):
+        if not details or run_age_days(details) > 365:
+            continue
+        latest = settled_total(details, movie.get('imdb_id'))
+        if latest <= (movie.get('actual_revenue') or 0):
             continue
         try:
             supabase.table('movies').update({'actual_revenue': int(latest)}) \
