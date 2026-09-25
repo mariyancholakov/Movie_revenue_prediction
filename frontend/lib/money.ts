@@ -25,11 +25,17 @@ export function fmtRange(low: number, high: number): string {
     : `$${fig(low, lo)}${lo[1]}\u2013${fig(high, hi)}${hi[1]}`;
 }
 
+/** The top of a chart's value axis: four gridline steps of a round size
+ *  (1, 1.5, 2, 2.5, 3, 4, 5, 6 or 7.5 × a power of ten) that reach `peak`. */
+export function axisTop(peak: number): number {
+  const unit = 10 ** Math.floor(Math.log10(peak / 4));
+  return 4 * [1, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 10].map(m => m * unit).find(v => v * 4 >= peak)!;
+}
+
 /** Chart-axis labels, all in one unit chosen from the axis's top value `max`
- *  ($125M · $1.4M · $250K), so a scale never mixes M and K. */
+ *  ($1.5B · $125M · $250K), so a scale never mixes units, with the places a
+ *  gridline needs ($2.5M, $7.5M), so no label rounds away from its line. */
 export function fmtAxis(n: number, max: number): string {
-  if (max >= 1e7) return '$' + (n / 1e6).toFixed(0) + 'M';
-  if (max >= 1e6) return '$' + (n / 1e6).toFixed(n === 0 ? 0 : 1) + 'M';
-  if (max >= 1e4) return '$' + (n / 1e3).toFixed(0) + 'K';
-  return '$' + Math.round(n);
+  const [div, unit] = max >= 1e9 ? [1e9, 'B'] : max >= 1e6 ? [1e6, 'M'] : max >= 1e3 ? [1e3, 'K'] : [1, ''];
+  return '$' + Number((n / div).toPrecision(3)) + unit;
 }

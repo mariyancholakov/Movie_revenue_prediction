@@ -1,5 +1,5 @@
 import type { ForecastPoint } from './types';
-import { fmtAxis } from '@/lib/money';
+import { axisTop, fmtAxis } from '@/lib/money';
 
 interface ForecastChartProps {
   history: ForecastPoint[];
@@ -22,10 +22,7 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
   const banded = history.every(h => h.low != null && h.high != null);
   const peak = Math.max(...history.map(h => (banded ? h.high! : h.forecast)), final ?? 0);
   if (n < 2 || peak <= 0) return null;
-  // Four gridline steps of a round size (1, 1.5, 2, 2.5, 3, 4, 5, 6 or 7.5 × a power of ten).
-  const unit = 10 ** Math.floor(Math.log10(peak / 4));
-  const step = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 7.5, 10].map(m => m * unit).find(v => v * 4 >= peak)!;
-  const top = step * 4;
+  const top = axisTop(peak);
 
   const width = 640;
   const height = 280;

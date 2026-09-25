@@ -1,5 +1,5 @@
 import type { DecayCurveData } from './types';
-import { fmtAxis } from '@/lib/money';
+import { axisTop, fmtAxis } from '@/lib/money';
 
 interface DecayCurveProps {
   data: DecayCurveData;
@@ -20,6 +20,8 @@ export function DecayCurve({ data }: DecayCurveProps) {
   const maxWeek = Math.max(...weeks, ...(fitted_weeks.length ? fitted_weeks : [0]));
 
   if (maxGross === 0 || maxWeek === 0) return null;
+  // Round gridlines, as on the forecast chart below it.
+  const top = axisTop(maxGross);
 
   const width = 640;
   const height = 280;
@@ -28,7 +30,7 @@ export function DecayCurve({ data }: DecayCurveProps) {
   const innerH = height - pad.top - pad.bottom;
 
   const xScale = (w: number) => (w / maxWeek) * innerW;
-  const yScale = (g: number) => innerH - (g / maxGross) * innerH;
+  const yScale = (g: number) => innerH - (g / top) * innerH;
 
   const actualLinePath = weeks
     .map((w, i) => `${i === 0 ? 'M' : 'L'}${xScale(w)},${yScale(actual_gross[i])}`)
@@ -59,9 +61,9 @@ export function DecayCurve({ data }: DecayCurveProps) {
           <line
             key={`grid-${t}`}
             x1={0}
-            y1={yScale(maxGross * t)}
+            y1={yScale(top * t)}
             x2={innerW}
-            y2={yScale(maxGross * t)}
+            y2={yScale(top * t)}
             stroke={RULE}
             strokeWidth={1}
           />
@@ -142,16 +144,16 @@ export function DecayCurve({ data }: DecayCurveProps) {
         {/* Y ticks + labels */}
         {yTicks.map((t, i) => (
           <g key={`ytick-${i}`}>
-            <line x1={-5} y1={yScale(maxGross * t)} x2={0} y2={yScale(maxGross * t)} stroke={INK} strokeWidth={1} />
+            <line x1={-5} y1={yScale(top * t)} x2={0} y2={yScale(top * t)} stroke={INK} strokeWidth={1} />
             <text
               x={-10}
-              y={yScale(maxGross * t) + 3.5}
+              y={yScale(top * t) + 3.5}
               textAnchor="end"
               fill={INK2}
               fontSize={10}
               fontFamily={MONO}
             >
-              {fmtAxis(maxGross * t, maxGross)}
+              {fmtAxis(top * t, top)}
             </text>
           </g>
         ))}
