@@ -340,6 +340,28 @@ def movie(tmdb_id):
     page['us_release_date'] = get_us_theatrical_date(tmdb_id) or ''
     return jsonify(page)
 
+def store_weekly(imdb_id, decay_data):
+    """Replace a film's stored US weekends with a fresh parse_and_fit_decay()."""
+    supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
+    supabase.table('weekly_gross').insert([
+        {'imdb_id': imdb_id, 'week': w, 'gross': int(g)}
+        for w, g in zip(decay_data['weeks'], decay_data['actual_gross'])
+    ]).execute()
+
+
+def final_run(imdb_id):
+    """Store a settled film's complete US run and refit its decay; returns
+    the movie-row fields to update ({} if Mojo can't supply it). A settled run
+    is never re-scraped afterwards, and its stored weekends are otherwise only
+    as fresh as the last time someone opened its page."""
+    weekly = get_weekly_grossing(imdb_id) if imdb_id else None
+    decay_data = parse_and_fit_decay(weekly) if weekly is not None else None
+    if not decay_data:
+        return {}
+    store_weekly(imdb_id, decay_data)
+    return {'decay_rate': decay_data['decay_rate'], 'half_life': decay_data['half_life']}
+
+
 def forecast_history(feats, latest=None):
     """The forecast as it stood after each US weekend, 1..MAX_STAGE, rebuilt
     from the snapshot: each stage sees only the weekends and openings abroad
@@ -475,11 +497,7 @@ def predict_for(tmdb_id):
             if decay_data:
                 update['decay_rate'] = decay_data['decay_rate']
                 update['half_life'] = decay_data['half_life']
-                supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
-                supabase.table('weekly_gross').insert([
-                    {'imdb_id': imdb_id, 'week': w, 'gross': int(g)}
-                    for w, g in zip(decay_data['weeks'], decay_data['actual_gross'])
-                ]).execute()
+                store_weekly(imdb_id, decay_data)
             supabase.table('movies').update(update).eq('tmdb_id', tmdb_id).execute()
 
             return {**base, 'decay_curve': decay_data}, 200
@@ -561,12 +579,7 @@ def predict_for(tmdb_id):
     store_features(tmdb_id, feats)
 
     if decay_data:
-        weekly_records = [
-            {'imdb_id': imdb_id, 'week': w, 'gross': int(g)}
-            for w, g in zip(decay_data['weeks'], decay_data['actual_gross'])
-        ]
-        supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
-        supabase.table('weekly_gross').insert(weekly_records).execute()
+        store_weekly(imdb_id, decay_data)
 
     return {
         'title': details.get('title'),
@@ -810,6 +823,10 @@ def capture_finished_runs():
             'finished_at': now.isoformat(),
             'predicted_revenue': predicted,
         }
+        try:
+            update.update(final_run(movie.get('imdb_id')))
+        except Exception as e:
+            print(f"[capture] final run not stored for {movie.get('title')}: {e}")
         # Backfill a feature snapshot if the prediction predates feature capture.
         if not movie.get('features') and movie.get('opening_weekend'):
             try:
