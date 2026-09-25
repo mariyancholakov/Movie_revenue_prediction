@@ -75,8 +75,6 @@ export function MovieGrid({
         activeGenres={activeGenres}
         onToggleGenre={onToggleGenre}
         onClearGenres={onClearGenres}
-        resultCount={filteredMovies.length}
-        totalCount={totalCount}
       />
 
       {/* Section head */}
@@ -85,8 +83,13 @@ export function MovieGrid({
           {isFiltering ? 'Search Results' : 'Now in Theaters'}
         </h2>
         {status !== 'error' && (
-          <span className="font-mono text-ink2 text-[0.66rem] tracking-[0.1em] pb-1 whitespace-nowrap">
-            {loading ? 'FILING…' : `${totalCount} FILMS`}
+          <span className={`font-mono text-[0.66rem] tracking-[0.1em] pb-1 whitespace-nowrap ${
+            isFiltering && filteredMovies.length === 0 ? 'text-red' : 'text-ink2'
+          }`}>
+            {loading ? 'FILING…'
+              : !isFiltering ? `${totalCount} FILMS`
+              : filteredMovies.length === 0 ? 'NO ENTRIES MATCH'
+              : `${filteredMovies.length} OF ${totalCount} FILMS`}
           </span>
         )}
       </div>

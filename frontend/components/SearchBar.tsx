@@ -5,8 +5,6 @@ interface SearchBarProps {
   activeGenres: string[];
   onToggleGenre: (genre: string) => void;
   onClearGenres: () => void;
-  resultCount: number;
-  totalCount: number;
 }
 
 export function SearchBar({
@@ -16,11 +14,7 @@ export function SearchBar({
   activeGenres,
   onToggleGenre,
   onClearGenres,
-  resultCount,
-  totalCount,
 }: SearchBarProps) {
-  const isFiltering = query.trim() !== '' || activeGenres.length > 0;
-
   return (
     <div>
       {/* Search field */}
@@ -69,19 +63,6 @@ export function SearchBar({
             </button>
           ))}
         </div>
-      )}
-
-      {/* Live result count */}
-      {isFiltering && (
-        <p
-          className={`mt-4 mb-0 font-mono text-[0.7rem] tracking-[0.1em] ${
-            resultCount === 0 ? 'text-red' : 'text-ink2'
-          }`}
-        >
-          {resultCount === 0
-            ? 'NO ENTRIES MATCH'
-            : `${resultCount} OF ${totalCount} FILMS`}
-        </p>
       )}
     </div>
   );
