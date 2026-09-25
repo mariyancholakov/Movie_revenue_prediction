@@ -101,7 +101,7 @@ def main():
 
     new = pd.DataFrame(rows)
     # Seed-file columns only; the franchise flags and release_year are
-    # re-derived at training time (retrain.load_seed).
+    # re-derived at training time (dataset.load_seed).
     new = new.reindex(columns=seed.columns)
     for c in ('release_season_Fall', 'release_season_Spring', 'release_season_Summer', 'release_season_Winter'):
         new[c] = new[c].astype(bool)

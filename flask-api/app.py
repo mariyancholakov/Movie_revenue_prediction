@@ -81,7 +81,8 @@ except Exception as e:
 model = joblib.load(os.getenv('MODEL_PATH', 'models/box_office_model_final.pkl'))
 # A feature snapshot keeps every column any model has used (so a later model
 # can be retrained on it); each model reads the subset it was trained on.
-# Models before MultiplierModel don't carry their list and use the original 26.
+# The original 26 TMDB columns are the fallback for a model that doesn't list
+# its own.
 BASE_FEATURES = joblib.load('models/feature_columns_final.pkl')
 SNAPSHOT_COLUMNS = BASE_FEATURES + FRANCHISE_FEATURES
 IS_RUN_MODEL = isinstance(model, RunModel)
@@ -965,7 +966,7 @@ def capture_finished_runs():
         try:
             supabase.table('movies').update(update).eq('tmdb_id', tid).execute()
         except Exception as e:
-            return {'error': f'update failed (did you run the migration?): {e}'}
+            return {'error': f'update failed: {e}'}
 
         finished.append({
             'tmdb_id': tid,

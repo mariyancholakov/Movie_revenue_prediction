@@ -1,8 +1,10 @@
 """The box-office model and the features it shares between training and serving.
 
-Kept in its own module because the pickled model artifact refers to
-MultiplierModel by import path: retrain.py, app.py and the scheduled jobs must
-all be able to import it as `model_lib.MultiplierModel`.
+Kept in its own module because a pickled model refers to its class by import
+path: the production artifact is `model_lib.RunModel` (older ones and
+retrain.py's reference are `model_lib.MultiplierModel`), so app.py, retrain.py
+and the scheduled jobs must all import them from here. Only the class is
+pickled, not its methods, so changing a method changes the loaded model too.
 """
 from datetime import date
 

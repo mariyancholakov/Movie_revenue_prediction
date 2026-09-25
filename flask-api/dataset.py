@@ -8,9 +8,12 @@ credits (data/credits.csv) + leak-free director/cast track records.
 Labels:
   us_total  Mojo's domestic total for the original release
   total     worldwide total: Mojo's when Mojo reports international grosses,
-            else TMDB `revenue`. TMDB sometimes stores only the US gross (The
-            Secret Life of Pets 2: $155M vs $431M worldwide); Mojo lacks
-            international figures for most pre-2000 films, where TMDB is right.
+            else the larger of TMDB `revenue` and Mojo's US total. TMDB
+            sometimes stores only the US gross (The Secret Life of Pets 2:
+            $155M vs $431M worldwide). Mojo lacks international figures for
+            most pre-2000 films, and for about three in four of those (872 of
+            1,151 seed films) TMDB has only the US gross too, so their label
+            is in effect a US total.
 """
 import numpy as np
 import pandas as pd

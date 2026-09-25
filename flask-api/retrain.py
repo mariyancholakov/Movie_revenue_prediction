@@ -253,7 +253,8 @@ def run_retrain(promote=False):
     result['promoted'] = True
     result['backup_path'] = backup
     print(f"\nPROMOTED. Backed up previous model -> {backup}")
-    print("Restart the Flask app to load the new model.")
+    print("Commit models/box_office_model_final.pkl and models/forecast_ranges.json, "
+          "then redeploy the API (or restart it locally) to load the new model.")
     return result
 
 
