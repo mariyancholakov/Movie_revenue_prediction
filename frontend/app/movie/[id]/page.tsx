@@ -8,10 +8,16 @@ type Props = { params: Promise<{ id: string }> };
 // Server-side lookup shared by generateMetadata and the page. Next memoizes the
 // identical fetch, so the API is hit once per render. 'missing' = the API said
 // 404; null = it couldn't be reached, and the client retries on its own.
+// INTERNAL_API_KEY (server-only) has the API rate-limit these fetches apart
+// from visitors, since the host's servers share a few addresses.
 async function loadMovie(id: string): Promise<Movie | 'missing' | null> {
   if (!/^\d+$/.test(id)) return 'missing';
+  const key = process.env.INTERNAL_API_KEY;
   try {
-    const res = await fetch(`${API_URL}/api/movie/${id}`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${API_URL}/api/movie/${id}`, {
+      headers: key ? { 'X-Internal-Key': key } : undefined,
+      next: { revalidate: 3600 },
+    });
     if (res.status === 404) return 'missing';
     if (!res.ok) return null;
     return (await res.json()) as Movie;

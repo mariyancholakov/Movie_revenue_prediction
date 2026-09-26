@@ -15,6 +15,8 @@ from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
 import time
+import hmac
+import ipaddress
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -49,14 +51,47 @@ def client_ip():
     return get_remote_address()
 
 
+# The frontend's server (Vercel) fetches film pages for their link previews
+# from a few shared addresses, so counted per IP it would share one visitor's
+# allowance with every other site there. It sends INTERNAL_API_KEY in
+# X-Internal-Key and is counted on its own, with a higher limit. Unset (local
+# dev), no request is internal.
+INTERNAL_API_KEY = os.getenv('INTERNAL_API_KEY', '').strip()
+VISITOR_LIMIT = '120 per minute'
+INTERNAL_LIMIT = '1200 per minute'
+
+
+def is_internal():
+    key = request.headers.get('X-Internal-Key', '')
+    return bool(INTERNAL_API_KEY) and hmac.compare_digest(key.encode(), INTERNAL_API_KEY.encode())
+
+
+def rate_key():
+    """Who a request counts against. An IPv6 address is counted by its /64:
+    one connection is handed a whole /64, so each address in it would
+    otherwise get its own allowance."""
+    if is_internal():
+        return 'internal'
+    ip = client_ip()
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return ip
+    if addr.version == 6:
+        if addr.ipv4_mapped:
+            return str(addr.ipv4_mapped)
+        return str(ipaddress.ip_network(f'{addr}/64', strict=False))
+    return ip
+
+
 # Per-client request limits. A prediction for a film not yet cached scrapes
 # TMDB and Box Office Mojo, and a flood of those could get the server's IP
 # blocked by Mojo, so /api/predict is held tighter than the reads. Counters
 # live in memory, per gunicorn worker (hence one worker in the Procfile).
 limiter = Limiter(
-    client_ip,
+    rate_key,
     app=app,
-    default_limits=['120 per minute'],
+    default_limits=[lambda: INTERNAL_LIMIT if is_internal() else VISITOR_LIMIT],
     storage_uri='memory://',
     headers_enabled=True,
 )
