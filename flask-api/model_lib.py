@@ -176,8 +176,9 @@ RUN_FACTS = (['open_theaters', 'mpaa', 'distributor']
              + [f'intl_markets_w{k}' for k in range(1, MAX_STAGE + 1)]
              + TRACK_FEATURES)
 
+# RunModel doesn't read budget or runtime (retrain.RUN_FEATURES).
 RUN_EXPLAIN_GROUPS = {
-    **EXPLAIN_GROUPS,
+    **{g: f for g, f in EXPLAIN_GROUPS.items() if g not in ('budget', 'runtime')},
     'opening': lambda f: f in ('opening_weekend', 'log_open_theaters', 'per_theater'),
     'origin': lambda f: f in ('is_major_studio', 'is_us_production', 'is_english',
                               'dist_code', 'is_streamer'),
@@ -198,9 +199,9 @@ def _num(v):
 
 def run_weeks(raw):
     """The US weekends in a snapshot, one per weekend number. Box Office Mojo
-    repeats a number for holiday long weekends; mojo_parse.weekend_table
-    keeps the first of each, as training did, but snapshots stored before it
-    did still carry the repeats."""
+    lists holiday long weekends several times; mojo_parse.weekend_table keeps
+    one row per weekend, but snapshots stored before it did still carry the
+    repeats (the Friday-Sunday row first)."""
     weeks = raw.get('weeks') if isinstance(raw.get('weeks'), (list, tuple)) else []
     seen, out = set(), []
     for w in weeks:

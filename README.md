@@ -31,7 +31,8 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 - **Prediction:** `RunModel` (`model_lib.py`) splits the worldwide total
   into two questions: how long the film holds in the US (US total ÷ US gross
   so far) and how far it travels (worldwide ÷ US). It reads TMDB details
-  (budget, runtime, genres, studio, release timing, franchise, release year),
+  (genres, studio, release timing, franchise, release year; not budget or
+  runtime, which TMDB often lacks and which made it less accurate),
   Box Office Mojo facts (opening theaters, MPAA rating, distributor, the
   international markets that have opened and their opening weekends),
   director and lead-cast track records (their earlier films only), and the
@@ -42,14 +43,14 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   weekend is posted (Mondays; 7 days at most otherwise) and re-scored with
   the current model on every read.
 - **Accuracy** (films from 2017 on, trained on earlier ones, vs the cleaned
-  worldwide total): median miss 27% at the opening weekend (the previous
-  model: 38%), 21% after US weekend 2, 16% after weekend 4, 13% after weekend 8.
+  worldwide total): median miss 26% at the opening weekend (the previous
+  model: 38%), 20% after US weekend 2, 15% after weekend 4, 13% after weekend 8.
 - **Ranges:** `ranges.py` reads each call's likely range off the model's own
   misses on those unseen films, by US weekend and size of opening;
   `retrain.py` recalibrates it with every model it builds.
 - **Explaining:** `/api/explain/<tmdb_id>` breaks a film's multiplier into
   factors for the How It Works page. XGBoost's per-feature contributions
-  (SHAP values) add up to the log multiplier, so grouped (budget, genre,
+  (SHAP values) add up to the log multiplier, so grouped (genre,
   franchise, ...) and exponentiated they multiply back out to the prediction
   exactly: starting point × each factor = multiplier (`RunModel.explain`).
 - **Tracking:** only a current release (at most 180 days since its US

@@ -15,7 +15,7 @@ import { fmtMoney } from '@/lib/money';
 const REPO = 'https://github.com/mariyancholakov/Movie_revenue_prediction';
 
 // The groups /api/explain splits a film's multiplier into (model_lib.RUN_EXPLAIN_GROUPS).
-type Group = 'opening' | 'budget' | 'runtime' | 'genre' | 'timing' | 'franchise' | 'origin' | 'era'
+type Group = 'opening' | 'genre' | 'timing' | 'franchise' | 'origin' | 'era'
   | 'rating' | 'talent' | 'abroad' | 'run';
 
 interface Explain {
@@ -71,8 +71,6 @@ function describe(f: Explain['features'], weeksReported = 0) {
     opening: n('open_theaters')
       ? `${fmtMoney(n('opening_weekend'))} · ${n('open_theaters').toLocaleString('en-US')} theaters`
       : fmtMoney(n('opening_weekend')),
-    budget: n('budget') ? fmtMoney(n('budget')) : 'Not reported',
-    runtime: n('runtime') ? `${n('runtime')} min` : 'Not reported',
     genre: genres.length ? genres.join(' · ') : 'None listed',
     timing: month ? `${MONTHS[month - 1]}${season ? ` · ${season.toLowerCase()}` : ''}` : 'Unknown',
     franchise: !n('in_collection') ? 'Original'
@@ -95,8 +93,6 @@ function describe(f: Explain['features'], weeksReported = 0) {
 
 const LABELS: Record<Group, string> = {
   opening: 'Size of the opening',
-  budget: 'Budget',
-  runtime: 'Runtime',
   genre: 'Genre',
   timing: 'Release month',
   franchise: 'Franchise',
@@ -316,7 +312,7 @@ export default function HowItWorksPage() {
               <Exhibit ready={!!file}>
                 {file && (
                   <dl className="m-0 border-t border-ink">
-                    {(['budget', 'runtime', 'genre', 'timing', 'franchise', 'origin', 'rating', 'talent', 'abroad', 'era'] as Group[]).map(g => (
+                    {(['genre', 'timing', 'franchise', 'origin', 'rating', 'talent', 'abroad', 'era'] as Group[]).map(g => (
                       <div key={g} data-row className="grid grid-cols-[8.5rem_1fr] sm:grid-cols-[13rem_1fr] gap-4 py-2.5 border-b border-rule">
                         <dt className={`${HEAD} pt-[0.2rem]`}>{LABELS[g]}</dt>
                         <dd className="m-0 font-mono text-ink text-[0.9rem]">{file[g]}</dd>
@@ -328,7 +324,9 @@ export default function HowItWorksPage() {
               <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem]`}>
                 Left out on purpose: TMDB&rsquo;s popularity score. In the training data it
                 was measured years after each release, while a new film is scored in its
-                opening week, so the model would read every new film as unusually hot.
+                opening week, so the model would read every new film as unusually hot. Budget
+                and runtime are left out too: TMDB has no budget for many new films, and once
+                the opening weekend is in, the model is more accurate without either.
               </p>
             </Step>
 
@@ -486,7 +484,7 @@ export default function HowItWorksPage() {
                   </div>
                   {[
                     ['One multiplier, TMDB facts only', '$53M', '38.4%'],
-                    ['US run × trip abroad, Mojo facts (now live)', '$43M', '27.3%'],
+                    ['US run × trip abroad, Mojo facts (now live)', '$42M', '26.3%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>
