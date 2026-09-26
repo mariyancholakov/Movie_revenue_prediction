@@ -76,10 +76,12 @@ RUN_FEATURES = [c for c in FEATURES if c not in ('budget', 'runtime')]
 PROD_METRICS = f'{MODELS_DIR}/production_metrics.json'
 HOLDOUT_FROM_YEAR = 2017
 # How much worse than production a candidate may score and still be
-# promoted: the exam is deterministic, but a retrain on new data shouldn't be
-# blocked by a rounding-sized wobble.
-MAE_TOLERANCE = 0.02  # 2% of production's MAE
-MEDIAN_APE_TOLERANCE = 0.5  # percentage points
+# promoted. The exam is deterministic for one fit, but refitting the same
+# model with another random seed moves it by about 1 point of median APE and
+# 2-3% of MAE (26.5-27.4% / $42.1-43.6M over three seeds), so a retrain that
+# is as good as production must not be blocked by that noise.
+MAE_TOLERANCE = 0.05  # 5% of production's MAE
+MEDIAN_APE_TOLERANCE = 1.5  # percentage points
 
 # The reference's hyperparameters (the previous production model's).
 PARAMS = dict(
