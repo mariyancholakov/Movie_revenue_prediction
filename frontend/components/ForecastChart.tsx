@@ -28,7 +28,11 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
 
   const width = 640;
   const height = 280;
-  const pad = { top: 26, right: 20, bottom: 54, left: 66 };
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+  // Left margin just fits the widest y label (mono 10px ≈ 6 units a character),
+  // so the labels, not empty space, start at the chart's left edge
+  const labelChars = Math.max(...yTicks.map(t => fmtAxis(top * t, top).length));
+  const pad = { top: 26, right: 0, bottom: 54, left: 10 + labelChars * 6 + 2 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
 
@@ -54,15 +58,16 @@ export function ForecastChart({ history, final }: ForecastChartProps) {
       }).join('') + ' Z'
     : '';
 
-  const yTicks = [0, 0.25, 0.5, 0.75, 1];
-  // Legend entries right-aligned above the plot, each as wide as its label.
+  // Legend entries right-aligned above the plot, each as wide as its swatch
+  // and label (mono 10px ≈ 6 units a character) plus a gap before the next,
+  // so the last label ends flush with the plot's right edge.
   const legend = [
-    { key: 'forecast', label: 'FORECAST', width: 90 },
-    ...(banded ? [{ key: 'range', label: 'PREDICTION RANGE', width: 152 }] : []),
-    { key: 'us', label: 'US TO DATE', width: 104 },
-    ...(final != null && final > 0 ? [{ key: 'final', label: 'FINAL', width: 62 }] : []),
-  ];
-  const legendWidth = legend.reduce((w, e) => w + e.width, 0);
+    { key: 'forecast', label: 'FORECAST' },
+    ...(banded ? [{ key: 'range', label: 'PREDICTION RANGE' }] : []),
+    { key: 'us', label: 'US TO DATE' },
+    ...(final != null && final > 0 ? [{ key: 'final', label: 'FINAL' }] : []),
+  ].map(e => ({ ...e, width: 22 + e.label.length * 6 + 18 }));
+  const legendWidth = legend.reduce((w, e) => w + e.width, 0) - 18;
 
   return (
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}

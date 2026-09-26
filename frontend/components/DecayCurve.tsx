@@ -27,7 +27,11 @@ export function DecayCurve({ data }: DecayCurveProps) {
 
   const width = 640;
   const height = 280;
-  const pad = { top: 26, right: 20, bottom: 54, left: 66 };
+  const yTicks = [0, 0.25, 0.5, 0.75, 1];
+  // Left margin just fits the widest y label (mono 10px ≈ 6 units a character),
+  // so the labels, not empty space, start at the chart's left edge
+  const labelChars = Math.max(...yTicks.map(t => fmtAxis(top * t, top).length));
+  const pad = { top: 26, right: 0, bottom: 54, left: 10 + labelChars * 6 + 2 };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
 
@@ -46,8 +50,6 @@ export function DecayCurve({ data }: DecayCurveProps) {
   const fittedPath = fitted_weeks
     .map((w, i) => `${i === 0 ? 'M' : 'L'}${xScale(w)},${yScale(fitted_gross[i])}`)
     .join(' ');
-
-  const yTicks = [0, 0.25, 0.5, 0.75, 1];
 
   return (
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}
@@ -161,8 +163,8 @@ export function DecayCurve({ data }: DecayCurveProps) {
           </g>
         ))}
 
-        {/* Legend */}
-        <g transform={`translate(${innerW - 150}, -16)`}>
+        {/* Legend, its MODEL label ending flush with the plot's right edge */}
+        <g transform={`translate(${innerW - 130}, -16)`}>
           <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />
           <text x={22} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>ACTUAL</text>
           <line x1={78} y1={6} x2={94} y2={6} stroke={RED} strokeWidth={2} strokeDasharray="5 4" />
