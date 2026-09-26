@@ -523,12 +523,18 @@ def movie(tmdb_id):
     return jsonify(page)
 
 def store_weekly(imdb_id, decay_data):
-    """Replace a film's stored US weekends with a fresh parse_and_fit_decay()."""
-    supabase.table('weekly_gross').delete().eq('imdb_id', imdb_id).execute()
+    """Replace a film's stored US weekends with a fresh parse_and_fit_decay().
+    The new rows go in before the old ones come out, so a failure between the
+    two calls leaves the film with its old weekends (stored_weeks reads the
+    earliest row per weekend), never with none; the next refresh clears the
+    leftovers, since it removes every row that was there before it."""
+    old = supabase.table('weekly_gross').select('id').eq('imdb_id', imdb_id).execute().data or []
     supabase.table('weekly_gross').insert([
         {'imdb_id': imdb_id, 'week': w, 'gross': int(g)}
         for w, g in zip(decay_data['weeks'], decay_data['actual_gross'])
     ]).execute()
+    if old:
+        supabase.table('weekly_gross').delete().in_('id', [r['id'] for r in old]).execute()
 
 
 def final_run(imdb_id):
