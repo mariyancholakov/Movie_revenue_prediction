@@ -9,6 +9,7 @@ from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, 
 from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RUN_FACTS, RunModel, credit_ids, run_weeks, track_records
 from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
+from ttl_cache import MISSING, TTLCache
 import ranges
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
@@ -427,12 +428,12 @@ def health():
 # offered as a dead end. In-process only, so it resets on deploy.
 UNPRICEABLE_TTL = 24 * 60 * 60
 OPENING_GRACE_DAYS = 10  # past this, a missing opening weekend won't appear
-_unpriceable = {}  # tmdb id -> marked at
+_unpriceable = TTLCache(UNPRICEABLE_TTL, max_size=2000)  # tmdb id -> True
 
 
 def mark_unpriceable(tmdb_id, code):
     if code == 'no_us_release':
-        _unpriceable[tmdb_id] = time.time()
+        _unpriceable.set(tmdb_id, True)
     elif code == 'no_opening_weekend':
         us_date = get_us_theatrical_date(tmdb_id)
         try:
@@ -440,12 +441,11 @@ def mark_unpriceable(tmdb_id, code):
         except ValueError:
             return
         if (datetime.now(timezone.utc) - opened).days > OPENING_GRACE_DAYS:
-            _unpriceable[tmdb_id] = time.time()
+            _unpriceable.set(tmdb_id, True)
 
 
 def is_unpriceable(tmdb_id):
-    marked = _unpriceable.get(tmdb_id)
-    return marked is not None and time.time() - marked < UNPRICEABLE_TTL
+    return _unpriceable.get(tmdb_id, False)
 
 
 _showing_cache = {'at': 0.0, 'movies': None}
@@ -877,8 +877,8 @@ def explain(tmdb_id):
 # Poster + genres for finished films, which aren't in now-playing so they
 # need a TMDB lookup each. They never change once a run is settled, so keep them
 # in-process for a day instead of refetching the whole Ledger on every request.
-ART_TTL = timedelta(hours=24)
-_art_cache = {}  # tmdb_id -> (fetched_at, (poster, genres))
+ART_TTL = 24 * 60 * 60
+_art_cache = TTLCache(ART_TTL, max_size=2000)  # tmdb_id -> (poster, genres)
 
 
 def _fetch_art(tid):
@@ -890,12 +890,11 @@ def _fetch_art(tid):
 
 def finished_art(tmdb_ids):
     """{tmdb_id: (poster, genres)}, from cache or fetched in parallel."""
-    now = datetime.now(timezone.utc)
     out, missing = {}, []
     for tid in tmdb_ids:
         hit = _art_cache.get(tid)
-        if hit and now - hit[0] < ART_TTL:
-            out[tid] = hit[1]
+        if hit is not MISSING:
+            out[tid] = hit
         else:
             missing.append(tid)
     if missing:
@@ -903,7 +902,7 @@ def finished_art(tmdb_ids):
             for tid, (poster, genres, ok) in zip(missing, pool.map(_fetch_art, missing)):
                 out[tid] = (poster, genres)
                 if ok:  # don't cache a TMDB failure for a day
-                    _art_cache[tid] = (now, (poster, genres))
+                    _art_cache.set(tid, (poster, genres))
     return out
 
 

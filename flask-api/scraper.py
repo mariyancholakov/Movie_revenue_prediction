@@ -13,6 +13,7 @@ import os
 
 from model_lib import franchise_row
 from mojo_parse import weekend_table
+from ttl_cache import MISSING, TTLCache
 
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'}
 load_dotenv()
@@ -78,7 +79,7 @@ def _is_current_release(release_date):
 
 
 US_RELEASE_TTL = 24 * 60 * 60  # seconds; release schedules rarely change day to day
-_us_release_cache = {}  # tmdb id -> (fetched_at, date)
+_us_release_cache = TTLCache(US_RELEASE_TTL, max_size=5000)  # tmdb id -> date
 
 
 def get_us_theatrical_date(tmdb_id):
@@ -86,8 +87,8 @@ def get_us_theatrical_date(tmdb_id):
     'YYYY-MM-DD', '' if it has none (a streaming premiere, or a release
     outside the US), or None if TMDB couldn't be reached."""
     hit = _us_release_cache.get(tmdb_id)
-    if hit and time.time() - hit[0] < US_RELEASE_TTL:
-        return hit[1]
+    if hit is not MISSING:
+        return hit
     data, status = _tmdb_fetch(f"https://api.themoviedb.org/3/movie/{tmdb_id}/release_dates?api_key={TMDB_API_KEY}")
     if not data:
         return '' if status == 404 else None
@@ -96,7 +97,7 @@ def get_us_theatrical_date(tmdb_id):
              for country in data.get('results', []) if country.get('iso_3166_1') == 'US'
              for r in country.get('release_dates', []) if r.get('type') in (2, 3)]
     date = min((d for d in dates if d), default='')
-    _us_release_cache[tmdb_id] = (time.time(), date)
+    _us_release_cache.set(tmdb_id, date)
     return date
 
 
@@ -157,7 +158,7 @@ def get_movie_details(tmdb_id, with_status=False):
     return (data or {}, status) if with_status else (data or {})
 
 COLLECTION_TTL = 24 * 60 * 60  # seconds; a collection gains a part a few times a decade
-_collection_cache = {}  # collection id -> (fetched_at, parts)
+_collection_cache = TTLCache(COLLECTION_TTL, max_size=2000)  # collection id -> parts
 
 
 def get_collection_parts(collection_id):
@@ -165,8 +166,8 @@ def get_collection_parts(collection_id):
     None if TMDB couldn't be reached (so callers don't mistake an outage for
     "no earlier parts")."""
     hit = _collection_cache.get(collection_id)
-    if hit and time.time() - hit[0] < COLLECTION_TTL:
-        return hit[1]
+    if hit is not MISSING:
+        return hit
     data, status = _tmdb_fetch(f"https://api.themoviedb.org/3/collection/{collection_id}?api_key={TMDB_API_KEY}")
     if status == 404:
         parts = []  # collection deleted on TMDB: treat as a standalone film
@@ -174,7 +175,7 @@ def get_collection_parts(collection_id):
         return None
     else:
         parts = [(p.get('id'), p.get('release_date')) for p in data.get('parts', [])]
-    _collection_cache[collection_id] = (time.time(), parts)
+    _collection_cache.set(collection_id, parts)
     return parts
 
 def get_movie_page(tmdb_id, cast_limit=6):
