@@ -124,6 +124,14 @@ body {
 @keyframes leaderSweep { to { stroke-dashoffset: 0; } }
 .leader-sweep { animation: leaderSweep 1s linear infinite; }
 
+/* The retraining loop (how-it-works Cycle): each step's node fills red in
+   turn, clockwise, holding it for a quarter of the turn. */
+@keyframes cycleLight {
+  0%, 20%   { fill: var(--color-red); }
+  25%, 100% { fill: transparent; }
+}
+.cycle-node { animation: cycleLight 8s ease-in-out infinite; }
+
 /* Newsprint placeholder shimmer (loading). */
 @keyframes paperShimmer {
   0%   { background-position: -600px 0; }

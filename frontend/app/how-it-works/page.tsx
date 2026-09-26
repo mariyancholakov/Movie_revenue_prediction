@@ -226,7 +226,6 @@ export default function HowItWorksPage() {
             pinned low on the screen that the steps scroll over */}
         <GhostReel posters={films.map(f => f.poster).filter(Boolean)} fixed top="64%" tilt={-8} size={1.6} ink={0.045} />
         <div>
-          <p className={`${HEAD} mb-3`}>How it works</p>
           <h1 className="font-display text-ink text-[2.2rem] sm:text-[3.2rem] font-bold leading-[1.02] m-0 mb-4 max-w-3xl">
             How a number gets made
           </h1>
@@ -240,23 +239,31 @@ export default function HowItWorksPage() {
 
         {/* The worked example: every figure on the page below is this film's. */}
         <div className="rule-double" />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 py-4">
-          <label htmlFor="film" className="text-ink2 text-[0.95rem]">Example</label>
+        {/* One ruled line: the film and its link sit on the same bottom rule */}
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 py-4">
           {films.length > 0 ? (
-            <select
-              id="film"
-              value={filmId ?? ''}
-              onChange={e => setFilmId(Number(e.target.value))}
-              className="search-field bg-transparent font-mono text-ink text-[0.95rem] sm:text-[1.05rem] border-0 border-b border-ink/40 py-1 pl-1 pr-6 cursor-pointer max-w-full"
-            >
-              {films.map(f => <option key={f.tmdb_id} value={f.tmdb_id}>{f.title}</option>)}
-            </select>
+            // Sized to the chosen title, not the longest one, with its own chevron beside it
+            <span className="relative inline-flex max-w-full">
+              <select
+                id="film"
+                aria-label="Example film"
+                value={filmId ?? ''}
+                onChange={e => setFilmId(Number(e.target.value))}
+                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-[0.95rem] sm:text-[1.05rem] leading-6 border-0 border-b border-ink/40 rounded-none pt-1 pb-1.5 pl-1 pr-6 cursor-pointer"
+              >
+                {films.map(f => <option key={f.tmdb_id} value={f.tmdb_id}>{f.title}</option>)}
+              </select>
+              <svg aria-hidden viewBox="0 0 10 6" className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-1.5 text-ink2">
+                <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.3" />
+              </svg>
+            </span>
           ) : status === 'loading' ? (
             <span className="paper-skeleton inline-block h-6 w-48" />
           ) : null}
           {data && (
-            <Link href={`/movie/${data.tmdb_id}`} className="inline-flex items-center gap-2 border border-ink/60 text-ink text-[0.88rem] no-underline px-4 py-1.5 transition-colors hover:bg-ink hover:text-paper hover:border-ink">
-              Open film page <span aria-hidden>→</span>
+            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex items-center gap-2 text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-0.5 pb-2 transition-colors hover:border-red hover:text-red">
+              Open film page
+              <span aria-hidden className="text-red transition-transform group-hover:translate-x-1">→</span>
             </Link>
           )}
         </div>
@@ -435,7 +442,8 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={!!data}>
                 {data && (curve && curve.weeks.length > 1 ? (
-                  <DecayCurve data={curve} />
+                  // Held to the prose's measure, so the chart lines up with the text above
+                  <div className="max-w-[40rem]"><DecayCurve data={curve} /></div>
                 ) : (
                   <p className="text-ink2 text-[0.88rem] m-0">
                     Not enough weekends are in yet to fit a curve for {data.title}.
@@ -458,7 +466,7 @@ export default function HowItWorksPage() {
               </p>
               <Exhibit ready={record !== undefined}>
                 {record && (
-                  <div className="grid grid-cols-2 gap-5">
+                  <div className="flex flex-wrap items-end gap-x-10 sm:gap-x-14 gap-y-4">
                     <Figure label="Runs settled so far" value={String(record.runs)} />
                     <Figure label="Median miss" value={`${record.median.toFixed(1)}%`} />
                   </div>
@@ -493,9 +501,6 @@ export default function HowItWorksPage() {
                     </div>
                   ))}
                 </div>
-                <p className={`${HEAD} normal-case tracking-[0.04em] mt-2 mb-0`}>
-                  Opening-weekend calls, scored on films released 2017 and later, unseen in training.
-                </p>
               </Exhibit>
               <Cycle />
             </Step>
@@ -585,17 +590,56 @@ function Figure({ label, value }: { label: string; value: string }) {
   );
 }
 
-// The loop the whole product runs on, set as one line of type.
+// The loop the whole product runs on: four steps round a ring, clockwise
+// from the top, drawn in the seal's pair of rules. The nodes light red one by
+// one (plain CSS, so the global reduced-motion rule leaves them all unlit).
 function Cycle() {
-  const parts = ['Predict', 'Settle', 'Retrain', 'Promote if it wins'];
+  const R = 80; // the ring the steps sit on, in viewBox units
+  const at = (deg: number) => {
+    const a = (deg * Math.PI) / 180;
+    return [100 + R * Math.sin(a), 100 - R * Math.cos(a)] as const;
+  };
+  const label = 'text-ink text-[0.9rem] sm:text-[0.98rem] leading-snug m-0';
   return (
-    <p className="font-mono text-ink2 text-[0.72rem] sm:text-[0.78rem] tracking-[0.12em] uppercase m-0 flex flex-wrap items-center gap-x-3 gap-y-1 max-w-[46rem]">
-      {parts.map(p => (
-        <span key={p} className="flex items-center gap-3">
-          <span className="text-ink">{p}</span><span aria-hidden className="text-ink3">→</span>
-        </span>
-      ))}
-      <span className="text-ink3">back to predict</span>
-    </p>
+    <figure className="m-0 mt-8 max-w-[46rem] grid grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-2">
+      <figcaption className="sr-only">
+        The loop: predict, settle, retrain, promote the new model if it wins, and round again.
+      </figcaption>
+      <p className={`${label} col-start-2 text-center`}>Predict</p>
+      <p className={`${label} row-start-2 col-start-1 text-right`}>Promote</p>
+      <svg aria-hidden viewBox="12 12 176 176" className="row-start-2 col-start-2 w-[8.5rem] sm:w-[11rem] overflow-visible">
+        {/* The ring stops short of each node, so an unlit node is hollow: just the paper behind it */}
+        <mask id="cycle-gaps">
+          <rect x="0" y="0" width="200" height="200" fill="white" />
+          {[0, 90, 180, 270].map(deg => {
+            const [x, y] = at(deg);
+            return <circle key={deg} cx={x} cy={y} r="5.5" fill="black" />;
+          })}
+        </mask>
+        <g mask="url(#cycle-gaps)">
+          <circle cx="100" cy="100" r={R} fill="none" stroke="var(--color-ink)" strokeWidth="1.4" />
+          <circle cx="100" cy="100" r={R - 10} fill="none" stroke="var(--color-ink)" strokeWidth="0.5" />
+        </g>
+        {/* Which way round: a chevron on the ring between each pair of steps */}
+        {[45, 135, 225, 315].map(deg => {
+          const [x, y] = at(deg);
+          return (
+            <path key={deg} d="M-3.5,-5 L2.5,0 L-3.5,5" fill="none" stroke="var(--color-ink)" strokeWidth="1.6"
+              strokeLinecap="round" strokeLinejoin="round" transform={`translate(${x} ${y}) rotate(${deg})`} />
+          );
+        })}
+        {/* Lit in turn: a negative delay starts each node partway through the
+            turn, so step i lights 2i seconds in and none waits unlit */}
+        {[0, 90, 180, 270].map((deg, i) => {
+          const [x, y] = at(deg);
+          return (
+            <circle key={deg} cx={x} cy={y} r="5.5" fill="transparent" stroke="var(--color-ink)" strokeWidth="1.4"
+              className="cycle-node" style={{ animationDelay: `${i * 2 - 8}s` }} />
+          );
+        })}
+      </svg>
+      <p className={`${label} row-start-2 col-start-3 text-left`}>Settle</p>
+      <p className={`${label} row-start-3 col-start-2 text-center`}>Retrain</p>
+    </figure>
   );
 }
