@@ -114,26 +114,83 @@ def performance_totals(soup):
     return vals.get('domestic'), vals.get('international'), vals.get('worldwide')
 
 
+_MONTHS = {m: i for i, m in enumerate(
+    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], 1)}
+_DATES = re.compile(r'^([A-Z][a-z]{2}) (\d{1,2})(?:-(?:([A-Z][a-z]{2}) )?(\d{1,2}))?')
+
+
+def _span(text):
+    """(start, end) of a weekend-table date cell such as 'Nov 26-28',
+    'Nov 27-Dec 1Thanksgiving 5-Day' or 'Dec 31-Jan 2, 2011', as dates in a
+    fixed leap year (the cells rarely carry a year). None if unreadable."""
+    m = _DATES.match(str(text))
+    if not m or m.group(1) not in _MONTHS or (m.group(3) and m.group(3) not in _MONTHS):
+        return None
+    start_m, start_d = _MONTHS[m.group(1)], int(m.group(2))
+    end_m = _MONTHS[m.group(3)] if m.group(3) else start_m
+    end_d = int(m.group(4) or start_d)
+    try:
+        start, end = pd.Timestamp(2000, start_m, start_d), pd.Timestamp(2000, end_m, end_d)
+    except ValueError:
+        return None
+    if end < start:  # crosses New Year
+        end += pd.DateOffset(years=1)
+    return start, end
+
+
+def weekend_numbers(dates):
+    """Each row's weekend number, counted from the first row by its end date.
+
+    Mojo's own number goes wrong around holidays: Thanksgiving is listed as
+    5-Day, 4-Day and 3-Day rows that all repeat the previous weekend's number
+    (Harry Potter and the Deathly Hallows: Part 1's Thanksgiving is numbered
+    1, and its next weekend 3), so that film's real weekend 2 would be lost.
+    Every variant of a weekend ends on the same Sunday, so the date gives the
+    true number. Rows are in date order; a step back in the calendar is a new
+    year. None for an unreadable row."""
+    out, prev, days = [], None, 0
+    for text in dates:
+        span = _span(text)
+        if span is None:
+            out.append(None)
+            continue
+        end = span[1]
+        if prev is not None:
+            step = (end - prev).days
+            days += step if step >= 0 else step + 366
+        prev = end
+        # Rounded: the fixed leap year can be a day off across a February.
+        out.append(int(round(days / 7)) + 1)
+    return out
+
+
 def weekend_table(df):
     """Mojo's raw weekend table (pd.read_html) as clean numbers: week,
     weekend_gross, theaters, to_date (domestic gross to date, weekdays
-    included), sorted by week, one row per weekend number. The table has two
+    included), sorted by week, one row per weekend. The table has two
     "Weekend" headers: pandas names the gross column 'Weekend' and the
     weekend-number column 'Weekend.1'.
 
-    Mojo also lists holiday long weekends ("Thanksgiving 4-Day", "Presidents'
-    Day wknd") as extra rows that repeat a weekend number, usually 1. Only the
-    first row of each number is kept, exactly as the training weeks have
-    always been (dataset.weeks_by_film)."""
+    Holiday long weekends are listed several times ("Thanksgiving 5-Day",
+    "4-Day", "3-Day"); weekends are numbered by date (weekend_numbers) and
+    the shortest span of each, the Friday-Sunday one every other weekend is
+    measured over, is kept. Rows before the first one Mojo numbers are sneak
+    previews (Aquaman's, a week before it opened) and are dropped: the opening
+    weekend is weekend 1."""
+    numbered = pd.to_numeric(df.get('Weekend.1'), errors='coerce').notna().values
+    df = df.iloc[numbered.argmax():] if numbered.any() else df.iloc[:0]
+    numbers = weekend_numbers(df['Date'])
+    spans = [_span(t) for t in df['Date']]
     out = pd.DataFrame({
-        'week': pd.to_numeric(df.get('Weekend.1'), errors='coerce'),
+        'week': pd.to_numeric(pd.Series(numbers, index=df.index, dtype=object), errors='coerce'),
         'weekend_gross': df['Weekend'].map(_money),
         'theaters': df['Theaters'].map(_int),
         'to_date': df['To Date'].map(_money),
         'dates': df['Date'],
+        'span_days': [(s[1] - s[0]).days if s else 99 for s in spans],
     })
-    return out.dropna(subset=['week', 'weekend_gross']).sort_values('week') \
-        .drop_duplicates('week').reset_index(drop=True)
+    return out.dropna(subset=['week', 'weekend_gross']).sort_values(['week', 'span_days'], kind='stable') \
+        .drop_duplicates('week').drop(columns='span_days').reset_index(drop=True)
 
 
 def film_facts(title, market_page, weeks):
