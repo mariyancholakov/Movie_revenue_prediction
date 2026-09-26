@@ -855,7 +855,7 @@ def finished():
     same worldwide label the model is trained on. Sorted by largest absolute
     miss first."""
     try:
-        cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue,features') \
+        cached = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue,later_calls') \
             .eq('is_in_theaters', False).execute()
     except Exception as e:
         print(f"[finished] settled runs unavailable: {e}")
@@ -875,7 +875,7 @@ def finished():
             'genres': genres,
             'predicted_revenue': movie['predicted_revenue'],
             'actual_revenue': int(movie['actual_revenue']),
-            'later_calls': later_calls(movie.get('features') or {}),
+            'later_calls': movie.get('later_calls') or {},
         })
 
     results.sort(key=lambda x: abs(x['predicted_revenue'] - x['actual_revenue']), reverse=True)
@@ -888,7 +888,10 @@ LATER_CALLS = (2, 4, 8)
 
 def later_calls(feats):
     """A settled film's forecast as it stood after each of LATER_CALLS US
-    weekends, for the weekends its run reached. Empty if it can't be scored."""
+    weekends, for the weekends its run reached. Empty if it can't be scored.
+    Made once, when the film settles, and stored (movies.later_calls): after
+    the next retrain the model has learned this film's outcome, so scoring
+    them on read would grade it on its own training data."""
     weeks = len(run_weeks(feats))
     if not IS_RUN_MODEL:
         return {}
@@ -957,6 +960,8 @@ def capture_finished_runs():
             'actual_revenue': int(revenue),
             'finished_at': now.isoformat(),
             'predicted_revenue': predicted,
+            # By the same model, which hasn't trained on this film yet.
+            'later_calls': later_calls(model_snapshot(movie)),
         }
         try:
             update.update(final_run(movie.get('imdb_id')))
