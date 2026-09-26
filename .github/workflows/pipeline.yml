@@ -6,9 +6,11 @@
 #   TMDB_API_KEY, SUPABASE_URL, SUPABASE_KEY (the sb_secret_… key)
 #
 # Retraining is deliberately manual: run the "retrain" job from the Actions
-# tab and download the candidate-model artifact. If its holdout numbers win,
-# commit the model as flask-api/models/box_office_model_final.pkl and its
-# ranges file as flask-api/models/forecast_ranges.json, then redeploy.
+# tab and download the candidate-model artifact. If the report says it holds up
+# against production, commit the model as
+# flask-api/models/box_office_model_final.pkl, its ranges file as
+# flask-api/models/forecast_ranges.json and its metrics file as
+# flask-api/models/production_metrics.json, then redeploy.
 name: data-pipeline
 
 on:
@@ -88,5 +90,6 @@ jobs:
           path: |
             flask-api/models/candidate_*.pkl
             flask-api/models/candidate_*_ranges.json
+            flask-api/models/candidate_*_metrics.json
             flask-api/retrain-report.txt
           if-no-files-found: warn
