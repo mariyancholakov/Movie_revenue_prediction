@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bodoni_Moda, Libre_Franklin, Courier_Prime } from "next/font/google";
 import { Footer } from "@/components/Footer";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // Display — trade-paper Didone. Masthead + headlines.
@@ -27,6 +28,11 @@ const courier = Courier_Prime({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  // Google Search Console's HTML-tag ownership check (the tag's content value).
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
   title: {
     default: "MOVIEGROSS — The Box-Office Ledger",
     template: "%s · MOVIEGROSS",
