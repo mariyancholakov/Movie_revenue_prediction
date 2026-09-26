@@ -80,7 +80,7 @@ def history():
     """Films with known outcomes, for track records of films priced live."""
     d = load_seed().merge(pd.read_csv(CREDITS_CSV), on='tmdb_id', how='left')
     d = add_mojo(d, pd.read_csv(MOJO_CSV))
-    return d[['release_date', 'director_ids', 'cast_ids', 'total', 'opening_weekend']]
+    return d[['tmdb_id', 'release_date', 'director_ids', 'cast_ids', 'total', 'opening_weekend']]
 
 
 def raw_rows(d):

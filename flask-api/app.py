@@ -15,6 +15,7 @@ from supabase import create_client
 import os
 import time
 import json
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
 
@@ -243,15 +244,70 @@ def _json_safe(v):
     return v
 
 
-_history = None
+# The films whose outcomes director/cast track records draw on: the seed
+# data plus the runs settled onto the Ledger since, reloaded now and then so
+# a newly settled run counts. The seed part never changes.
+HISTORY_TTL = 6 * 60 * 60
+CREDIT_KEYS = ('release_date', 'director_ids', 'cast_ids')
+_seed_history = None
+_history = {'at': 0.0, 'frame': None}
+_history_lock = threading.Lock()
+
+
+def film_credits(tmdb_id, details):
+    """A film's TMDB release date and director / lead-cast ids, as the
+    track records read them. Raises ConnectionError if TMDB is down."""
+    credits = _tmdb_get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}")
+    if credits is None:
+        raise ConnectionError(f"TMDB credits unavailable for {tmdb_id}")
+    directors, cast = credit_ids(credits)
+    return {'release_date': details.get('release_date'), 'director_ids': directors, 'cast_ids': cast}
+
+
+def settled_history(seed_ids):
+    """Runs settled onto the Ledger, as history rows. Their credits live in
+    the feature snapshot; one taken before snapshots kept them is filled in
+    from TMDB and stored, or left out this time if TMDB can't be reached."""
+    rows = supabase.table('movies').select('tmdb_id,features,actual_revenue,opening_weekend') \
+        .eq('is_in_theaters', False).not_.is_('actual_revenue', 'null').execute().data or []
+    out = []
+    for r in rows:
+        feats = r.get('features') or {}
+        if int(r['tmdb_id']) in seed_ids or not r.get('opening_weekend'):
+            continue
+        if any(k not in feats for k in CREDIT_KEYS):
+            details = get_movie_details(r['tmdb_id'])
+            try:
+                if not details:
+                    raise ConnectionError(f"TMDB details unavailable for {r['tmdb_id']}")
+                feats = {**feats, **film_credits(r['tmdb_id'], details)}
+            except ConnectionError as e:
+                print(f"[history] {e}")
+                continue
+            supabase.table('movies').update({'features': feats}).eq('tmdb_id', r['tmdb_id']).execute()
+        out.append({'tmdb_id': int(r['tmdb_id']), **{k: feats.get(k) for k in CREDIT_KEYS},
+                    'total': r['actual_revenue'], 'opening_weekend': r['opening_weekend']})
+    return pd.DataFrame(out, columns=['tmdb_id', *CREDIT_KEYS, 'total', 'opening_weekend'])
 
 
 def track_history():
-    """Settled films (seed data) the director/cast track records draw on."""
-    global _history
-    if _history is None:
-        _history = dataset.history()
-    return _history
+    """Settled films the director/cast track records draw on: the seed data
+    and the Ledger's settled runs. If Supabase can't be read, the seed alone
+    until the next reload."""
+    global _seed_history
+    with _history_lock:
+        if _history['frame'] is not None and time.time() - _history['at'] < HISTORY_TTL:
+            return _history['frame']
+        if _seed_history is None:
+            _seed_history = dataset.history()
+        try:
+            settled = settled_history(set(_seed_history['tmdb_id']))
+            frame = pd.concat([_seed_history, settled], ignore_index=True)
+        except Exception as e:
+            print(f"[history] settled runs unavailable: {e}")
+            frame = _seed_history
+        _history.update(at=time.time(), frame=frame)
+        return frame
 
 
 class MojoUnavailable(ConnectionError):
@@ -279,13 +335,10 @@ def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
         snap[f'intl_markets_w{k}'] = facts.get(f'intl_markets_w{k}')
     snap['weeks'] = weeks[dataset.WEEK_COLUMNS].to_dict('records') if weeks is not None else []
 
-    credits = _tmdb_get(f"https://api.themoviedb.org/3/movie/{tmdb_id}/credits?api_key={TMDB_API_KEY}")
-    if credits is None:
-        raise ConnectionError(f"TMDB credits unavailable for {tmdb_id}")
-    directors, cast = credit_ids(credits)
-    film = pd.DataFrame([{'release_date': details.get('release_date'),
-                          'director_ids': directors, 'cast_ids': cast}])
-    snap.update(track_records(film, track_history()).iloc[0].to_dict())
+    # Kept in the snapshot so the run, once settled, joins the track records.
+    credits = film_credits(tmdb_id, details)
+    snap.update(credits)
+    snap.update(track_records(pd.DataFrame([credits]), track_history()).iloc[0].to_dict())
     return snap
 
 
