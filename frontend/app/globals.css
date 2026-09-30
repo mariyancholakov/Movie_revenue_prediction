@@ -60,15 +60,17 @@ body {
 /* <main> takes focus from the skip link; the ring would box the whole page */
 main:focus { outline: none; }
 
-/* The search field shows focus on its own underline, which turns red, over
-   a faint red wash, instead of the global outline box. It sits 0.5rem left
-   of the column with matching padding, so the text stays aligned. */
+/* The search field shows focus on its own underline, which turns red and
+   thickens to 2px (a shadow, so the layout doesn't move), over a red wash,
+   instead of the global outline box. It sits 0.5rem left of the column with
+   matching padding, so the text stays aligned. */
 .search-field { transition: border-color 0.2s ease, background-color 0.2s ease; }
 .search-field:focus,
 .search-field:focus-visible {
   outline: none;
   border-bottom-color: var(--color-red);
-  background-color: color-mix(in srgb, var(--color-red) 7%, transparent);
+  box-shadow: 0 1px 0 0 var(--color-red);
+  background-color: color-mix(in srgb, var(--color-red) 10%, transparent);
 }
 
 /* ─── Newspaper rules ─────────────────────────────────────────────────────── */
