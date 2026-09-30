@@ -229,10 +229,8 @@ export default function HowItWorksPage() {
             How a number gets made
           </h1>
           <p className={`${PROSE} pb-8`}>
-            MOVIEGROSS takes one hard fact, what a film made in its US opening weekend,
-            and asks how many times over it will earn that back around the world. Below
-            is the whole process, step by step, worked through with the real figures for
-            a film in theaters now.
+            Here is the whole process, step by step, worked through with the real
+            figures for a film in theaters now.
           </p>
         </div>
 
