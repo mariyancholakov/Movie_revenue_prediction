@@ -44,7 +44,8 @@ export function SearchBar({
       {/* Genre index */}
       {allGenres.length > 0 && (
         <div className="flex items-center gap-x-4 gap-y-1.5 mt-5
-                        max-sm:-mx-4 max-sm:px-4 max-sm:pr-10 max-sm:overflow-x-auto max-sm:[scrollbar-width:none]
+                        max-sm:-mx-4 max-sm:px-4 max-sm:pr-10 max-sm:overflow-x-auto max-sm:overflow-y-hidden max-sm:touch-pan-x max-sm:[scrollbar-width:none]
+                        max-sm:mt-2 max-sm:-mb-3 max-sm:py-3
                         max-sm:[&::-webkit-scrollbar]:hidden max-sm:[mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent)]
                         sm:flex-wrap">
           <button
