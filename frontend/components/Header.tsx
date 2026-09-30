@@ -6,11 +6,12 @@ import { useTrackRecord } from '@/lib/useTrackRecord';
 
 const NAMEPLATE = 'MOVIEGROSS';
 
+// `short` is what a phone shows, so all four tabs stay on one line.
 const TABS = [
-  { href: '/', label: 'NOW PLAYING', active: true },
-  { href: '/leaderboard', label: 'RANKINGS', active: false },
-  { href: '/finished', label: 'THE LEDGER', active: false },
-  { href: '/how-it-works', label: 'HOW IT WORKS', active: false },
+  { href: '/', label: 'NOW PLAYING', short: 'PLAYING', active: true },
+  { href: '/leaderboard', label: 'RANKINGS', short: 'RANKINGS', active: false },
+  { href: '/finished', label: 'THE LEDGER', short: 'LEDGER', active: false },
+  { href: '/how-it-works', label: 'HOW IT WORKS', short: 'HOW IT WORKS', active: false },
 ];
 
 // The masthead edition date is client-only on purpose: rendering it during SSR
@@ -35,16 +36,17 @@ const getServerEditionSnapshot = () => '';
 
 function SectionTabs({ className }: { className: string }) {
   return (
-    <nav aria-label="Sections" data-follow className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 ${className}`}>
-      {TABS.map(({ href, label, active }) => (
+    <nav aria-label="Sections" data-follow className={`flex items-center justify-between gap-x-2 sm:flex-wrap sm:justify-center sm:gap-x-9 sm:gap-y-2 ${className}`}>
+      {TABS.map(({ href, label, short, active }) => (
         <Link
           key={href}
           href={href}
           data-active={active}
           aria-current={active ? 'page' : undefined}
-          className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
+          className="tab whitespace-nowrap font-sans max-sm:text-[0.72rem] sm:text-[0.75rem] tracking-[0.06em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
         >
-          {label}
+          <span className="sm:hidden">{short}</span>
+          <span className="max-sm:hidden">{label}</span>
         </Link>
       ))}
     </nav>
