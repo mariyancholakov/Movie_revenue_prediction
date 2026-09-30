@@ -72,12 +72,11 @@ export default function LeaderboardPage() {
       .catch(() => {});
   }, []);
 
-  // Films listed as playing that aren't ranked: either their run has closed
-  // (they sit on The Ledger) or their opening weekend isn't in yet.
+  // Films listed as playing that aren't ranked: those whose run has closed sit
+  // on The Ledger and go unmentioned; the rest wait on their opening weekend.
   const ranked = new Set(entries.map(e => e.tmdb_id));
   const unranked = status === 'ok' ? playing.filter(id => !ranked.has(id)) : [];
-  const closed = unranked.filter(id => settled.has(id)).length;
-  const waiting = unranked.length - closed;
+  const waiting = unranked.filter(id => !settled.has(id)).length;
   const films = (n: number) => `${n} ${n === 1 ? 'film' : 'films'}`;
 
   const maxRevenue = entries[0]?.predicted_revenue ?? 1;
@@ -94,12 +93,8 @@ export default function LeaderboardPage() {
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-6">
           Every film now playing that the model has priced, ranked by its predicted worldwide total. Profit is
           estimated as the studio&rsquo;s roughly half of that gross, minus the budget.
-          {entries.length > 0 && unranked.length > 0 && (
-            <> Not ranked: {[
-              closed > 0 && <span key="closed">{films(closed)} still listed as playing {closed === 1 ? 'has closed its run' : 'have closed their run'}
-                and moved to <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">The Ledger</Link></span>,
-              waiting > 0 && <span key="waiting">{films(waiting)} {waiting === 1 ? 'is' : 'are'} waiting on opening-weekend figures</span>,
-            ].filter(Boolean).flatMap((part, i) => (i ? ['; ', part] : [part]))}.</>
+          {entries.length > 0 && waiting > 0 && (
+            <> Not ranked: {films(waiting)} {waiting === 1 ? 'is' : 'are'} waiting on opening-weekend figures.</>
           )}
         </p>
 
