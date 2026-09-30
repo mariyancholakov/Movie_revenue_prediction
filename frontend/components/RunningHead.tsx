@@ -24,7 +24,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
       {stamp && <Seal
         size={320}
         spin={120}
-        className="absolute -right-24 sm:-right-16 top-20 w-[220px] h-[220px] sm:w-[320px] sm:h-[320px] rotate-[-14deg] opacity-[0.08] mix-blend-multiply pointer-events-none select-none"
+        className="hidden sm:block absolute -right-16 top-20 w-[320px] h-[320px] rotate-[-14deg] opacity-[0.08] mix-blend-multiply pointer-events-none select-none"
       />}
       <div className="flex items-baseline justify-between gap-4 flex-wrap pb-3">
         <Link href="/" className="no-underline group">
