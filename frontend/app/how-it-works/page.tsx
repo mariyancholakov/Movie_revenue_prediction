@@ -217,7 +217,7 @@ export default function HowItWorksPage() {
   const lam = curve?.decay_rate;
 
   return (
-    <main className="min-h-screen text-ink font-sans">
+    <main id="main" tabIndex={-1} className="min-h-screen text-ink font-sans">
       <RunningHead active="how" stamp={false} />
 
       <div ref={root} className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">

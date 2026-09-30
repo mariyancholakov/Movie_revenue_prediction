@@ -57,6 +57,8 @@ body {
   outline: 2px solid var(--color-red);
   outline-offset: 2px;
 }
+/* <main> takes focus from the skip link; the ring would box the whole page */
+main:focus { outline: none; }
 
 /* The search field shows focus on its own underline, which turns red, over
    a faint red wash, instead of the global outline box. It sits 0.5rem left

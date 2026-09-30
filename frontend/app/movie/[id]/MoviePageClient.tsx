@@ -81,7 +81,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
   }, [allMovies, movie, tmdbId]);
 
   return (
-    <main className="min-h-screen text-ink font-sans">
+    <main id="main" tabIndex={-1} className="min-h-screen text-ink font-sans">
       <RunningHead active="none" />
 
       {!movie && !notFound && !unreachable && <MovieDetailSkeleton />}

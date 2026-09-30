@@ -40,7 +40,7 @@ export default function Home() {
   }, [movies, searchQuery, activeGenres]);
 
   return (
-    <main className="flex-1 flex flex-col text-ink font-sans w-full min-w-0 overflow-x-clip">
+    <main id="main" tabIndex={-1} className="flex-1 flex flex-col text-ink font-sans w-full min-w-0 overflow-x-clip">
       <Header />
       <MovieGrid
         posters={posters}
