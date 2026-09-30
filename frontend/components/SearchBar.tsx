@@ -43,12 +43,15 @@ export function SearchBar({
 
       {/* Genre index */}
       {allGenres.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-5">
+        <div className="flex items-center gap-x-4 gap-y-1.5 mt-5
+                        max-sm:-mx-4 max-sm:px-4 max-sm:pr-10 max-sm:overflow-x-auto max-sm:[scrollbar-width:none]
+                        max-sm:[&::-webkit-scrollbar]:hidden max-sm:[mask-image:linear-gradient(to_right,black_calc(100%_-_2.5rem),transparent)]
+                        sm:flex-wrap">
           <button
             onClick={onClearGenres}
             data-active={activeGenres.length === 0}
             aria-pressed={activeGenres.length === 0}
-            className="tab font-sans text-[0.66rem] tracking-[0.14em] font-semibold pb-0.5
+            className="tab shrink-0 relative after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] font-sans text-[0.66rem] tracking-[0.14em] font-semibold pb-0.5
                        data-[active=true]:text-ink text-ink2"
           >
             ALL
@@ -59,7 +62,7 @@ export function SearchBar({
               onClick={() => onToggleGenre(genre)}
               data-active={activeGenres.includes(genre)}
               aria-pressed={activeGenres.includes(genre)}
-              className="tab font-sans text-[0.66rem] tracking-[0.14em] font-medium pb-0.5
+              className="tab shrink-0 relative after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] font-sans text-[0.66rem] tracking-[0.14em] font-medium pb-0.5
                          data-[active=true]:text-ink data-[active=true]:font-semibold text-ink2"
             >
               {genre.toUpperCase()}
