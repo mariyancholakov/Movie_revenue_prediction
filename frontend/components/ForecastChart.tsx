@@ -1,7 +1,8 @@
 import type { ForecastPoint } from './types';
-import { axisTop, fmtAxis } from '@/lib/money';
+import { axisTop, fmtAxis, fmtMoney, fmtRange } from '@/lib/money';
 import { useWidth } from '@/lib/useWidth';
 import { AXIS_CHAR, AXIS_FONT, chartHeight } from './chartFrame';
+import { ChartTable } from './ChartTable';
 
 interface ForecastChartProps {
   history: ForecastPoint[];
@@ -89,7 +90,7 @@ export function ForecastChart({ history, final, width: measured }: ForecastChart
         ))}
       </div>
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible', display: 'block' }}
-        role="img" aria-label="The worldwide forecast after each US weekend, with its range and the US gross to date">
+        aria-hidden>
         <defs>
           <pattern id="fc-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />
@@ -149,6 +150,16 @@ export function ForecastChart({ history, final, width: measured }: ForecastChart
           ))}
         </g>
       </svg>
+      <ChartTable
+        caption={`The worldwide forecast after each US weekend, with its range and the US gross to date${final != null && final > 0 ? `. The run finished at ${fmtMoney(final)}` : ''}`}
+        heads={['After US weekend', 'Worldwide forecast', 'Range', 'US gross to date']}
+        rows={history.map(h => [
+          h.week,
+          fmtMoney(h.forecast),
+          h.low != null && h.high != null ? fmtRange(h.low, h.high) : 'none',
+          fmtMoney(h.us_to_date),
+        ])}
+      />
     </div>
   );
 }

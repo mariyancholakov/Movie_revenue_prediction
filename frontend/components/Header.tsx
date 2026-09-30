@@ -125,7 +125,7 @@ export function Header() {
       </p>
 
       {/* Ledger tabs */}
-      <nav data-follow className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 mt-4">
+      <nav aria-label="Sections" data-follow className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 mt-4">
         {TABS.map(({ href, label, active }) => (
           <Link
             key={href}

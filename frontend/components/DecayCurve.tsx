@@ -1,7 +1,8 @@
 import type { DecayCurveData } from './types';
-import { axisTop, fmtAxis } from '@/lib/money';
+import { axisTop, fmtAxis, fmtMoney } from '@/lib/money';
 import { useWidth } from '@/lib/useWidth';
 import { AXIS_CHAR, AXIS_FONT, chartHeight } from './chartFrame';
+import { ChartTable } from './ChartTable';
 
 interface DecayCurveProps {
   data: DecayCurveData;
@@ -71,7 +72,7 @@ export function DecayCurve({ data, width: measured }: DecayCurveProps) {
         </span>
       </div>
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible', display: 'block' }}
-        role="img" aria-label="US weekend grosses by weekend, with the fitted decay curve">
+        aria-hidden>
         <defs>
           <pattern id="ink-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />
@@ -135,6 +136,16 @@ export function DecayCurve({ data, width: measured }: DecayCurveProps) {
           ))}
         </g>
       </svg>
+      <ChartTable
+        caption="US weekend grosses by weekend, with the fitted decay curve"
+        heads={['Weekend', 'Actual gross', 'Model fit']}
+        rows={weeks.map((w, i) => {
+          // The fit is sampled finely; take its point nearest this weekend.
+          let k = 0;
+          fitted_weeks.forEach((fw, j) => { if (Math.abs(fw - w) < Math.abs(fitted_weeks[k] - w)) k = j; });
+          return [w + 1, fmtMoney(actual_gross[i]), fitted_gross.length ? fmtMoney(fitted_gross[k]) : 'none'];
+        })}
+      />
     </div>
   );
 }

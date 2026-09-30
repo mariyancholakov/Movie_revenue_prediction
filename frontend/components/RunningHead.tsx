@@ -33,7 +33,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
           </span>
         </Link>
 
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-7">
+        <nav aria-label="Sections" className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-7">
           {TABS.map(({ href, label, key }) => (
             <Link
               key={href}

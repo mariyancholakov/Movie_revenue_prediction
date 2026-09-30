@@ -254,7 +254,7 @@ export function MovieDetail({
         <button
           onClick={onBack}
           className="font-sans text-[0.75rem] tracking-[0.1em] font-semibold text-ink2
-                     hover:text-red transition-colors bg-transparent border-0 py-3 -my-3 px-0"
+                     hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
         >
           ‹ ALL FILMS
         </button>
@@ -263,7 +263,7 @@ export function MovieDetail({
           title="Copy a link to this film’s page"
           aria-live="polite"
           className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
-                     text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3 -my-3 px-0"
+                     text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
         >
           <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
@@ -313,7 +313,7 @@ export function MovieDetail({
 
           {/* The answer comes first: the button, then the predicted total in
               its place, under the title and above everything about the film. */}
-          <div className="mt-6">
+          <div className="mt-6" aria-live="polite" aria-busy={predicting}>
             {notReleased && (
               <div className="border-t border-ink/25 pt-3">
                 <p className="font-display text-ink text-[1.05rem] font-bold mb-1">Not yet in theaters</p>
@@ -467,7 +467,7 @@ export function MovieDetail({
           {hasDecay && prediction.decay_curve && (
             <div data-ledger-follow className="mb-11">
               <div className="flex items-end justify-between mb-5">
-                <h3 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h3>
+                <h2 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h2>
                 {/* decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
                     weekend keeps e^(−λ) of the one before. */}
                 {lam != null && (
@@ -490,7 +490,7 @@ export function MovieDetail({
 
           {hasForecast && (
             <div data-ledger-follow>
-              <h3 className="font-display text-ink text-[1.25rem] font-bold m-0 mb-3">The Forecast, Weekend by Weekend</h3>
+              <h2 className="font-display text-ink text-[1.25rem] font-bold m-0 mb-3">The Forecast, Weekend by Weekend</h2>
               <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
                 The worldwide prediction after each US weekend, with its range shaded.
               </p>
@@ -517,7 +517,7 @@ export function MovieDetail({
                   onClick={onPredict}
                   disabled={predicting}
                   className="font-sans text-[0.75rem] tracking-[0.1em] font-semibold text-red
-                             bg-transparent border-0 py-3 -my-3 px-0 hover:text-ink transition-colors disabled:opacity-50"
+                             bg-transparent border-0 py-3.5 -my-3.5 px-0 hover:text-ink transition-colors disabled:opacity-50"
                 >
                   {predicting ? "TRYING…" : "TRY AGAIN"}
                 </button>
