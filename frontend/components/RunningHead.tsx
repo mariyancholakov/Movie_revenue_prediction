@@ -28,7 +28,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
       />}
       <div className="px-4 sm:px-8 lg:px-14 max-w-[74rem] mx-auto w-full">
         <div className="flex items-baseline justify-between gap-4 flex-wrap pb-3">
-          <Link href="/" className="no-underline group">
+          <Link href="/" className="no-underline group relative after:absolute after:-inset-y-3 after:inset-x-0 after:content-['']">
             <span className="font-display text-ink text-[1.15rem] sm:text-[1.35rem] font-black tracking-[0.02em] leading-none">
               MOVIEGROSS
             </span>

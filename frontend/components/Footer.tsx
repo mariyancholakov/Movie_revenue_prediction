@@ -25,7 +25,7 @@ export function Footer() {
                 href="https://www.themoviedb.org/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative after:absolute after:-inset-y-3 after:inset-x-0 after:content-[''] text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors"
+                className="relative after:absolute after:-inset-y-3.5 after:inset-x-0 after:content-[''] text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors"
               >
                 TMDB
               </a>
