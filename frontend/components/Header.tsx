@@ -61,7 +61,7 @@ export function Header() {
   }, { scope: root });
 
   return (
-    <header ref={root} data-intro className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10 text-center max-w-[74rem] mx-auto w-full">
+    <header ref={root} data-intro className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10 text-center">
       <div>
         {/* Folio: byline at left, today's edition date at right */}
         <div data-rule className="rule-hair mb-2.5" />
