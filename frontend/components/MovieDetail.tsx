@@ -9,8 +9,10 @@ import type { Movie, Prediction } from "./types";
 import { StatCard } from "./StatCard";
 import { DecayCurve } from "./DecayCurve";
 import { ForecastChart } from "./ForecastChart";
-import { typeOut } from "./Typed";
+import { Typed, typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
+import { useTrackRecord } from "@/lib/useTrackRecord";
+import Link from "next/link";
 
 const fmt = fmtMoney;
 
@@ -145,9 +147,10 @@ interface MovieDetailProps {
 }
 
 // One ruled row of the particulars ledger.
-function Particular({ label, children }: { label: string; children: React.ReactNode }) {
+// `minor` rows drop out on phones, where the page leads with the answer.
+function Particular({ label, children, minor = false }: { label: string; children: React.ReactNode; minor?: boolean }) {
   return (
-    <div className="flex items-baseline gap-4 py-2 border-b border-rule">
+    <div className={`${minor ? "hidden sm:flex" : "flex"} items-baseline gap-4 py-2 border-b border-rule`}>
       <span className="font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase w-24 shrink-0">
         {label}
       </span>
@@ -169,6 +172,7 @@ export function MovieDetail({
   // these release-timing flags only need a single stable reading.
   const [now] = useState(() => Date.now());
   const root = useRef<HTMLElement>(null);
+  const record = useTrackRecord();
 
   // When the numbers land they are typed up like a filed dispatch: the rule
   // draws, then each figure in the grid is
@@ -182,11 +186,11 @@ export function MovieDetail({
         return;
       }
       const tl = gsap.timeline({ defaults: { ease: EASE } })
-        .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' });
+        .from('[data-ledger-rule]', { scaleX: 0, transformOrigin: 'left center', duration: 0.6, ease: 'power2.inOut' }, 0);
 
       const cells = gsap.utils.toArray<HTMLElement>('[data-cell]');
       const figures = cells.map(c => c.querySelector<HTMLElement>('[data-figure]')!);
-      tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, '-=0.1');
+      tl.from(cells, { opacity: 0, duration: 0.25, stagger: 0.04 }, 0);
       figures.forEach((fig, i) => typeOut(tl, fig, { pace: 0.75, keepCaret: i === figures.length - 1 }));
 
       tl.from('[data-ledger-follow]', { y: 12, opacity: 0, duration: 0.5, stagger: 0.1 }, '-=0.2');
@@ -302,39 +306,8 @@ export function MovieDetail({
             </p>
           )}
 
-          {selected.overview && (
-            <p className="text-ink2 text-[0.9rem] leading-[1.65] mt-4 mb-5 max-w-prose">
-              {selected.overview}
-            </p>
-          )}
-
-          {/* Particulars ledger */}
-          <div className="border-t border-ink/25">
-            <Particular label="Released">{fmtDate(selected.release_date)}</Particular>
-            {laterInUS && (
-              <Particular label="In the US">{fmtDate(selected.us_release_date!)}</Particular>
-            )}
-            {(selected.runtime ?? 0) > 0 && (
-              <Particular label="Runtime">{fmtRuntime(selected.runtime!)}</Particular>
-            )}
-            {selected.vote_average != null && (
-              <Particular label="TMDB">
-                <span className="font-mono tabular-nums">{selected.vote_average.toFixed(1)}</span>
-                <span className="text-ink3"> / 10</span>
-              </Particular>
-            )}
-            {selected.director && <Particular label="Directed by">{selected.director}</Particular>}
-            {selected.cast && selected.cast.length > 0 && (
-              <Particular label="Starring">{selected.cast.join(", ")}</Particular>
-            )}
-            {(selected.budget ?? 0) > 0 && (
-              <Particular label="Budget">
-                <span className="font-mono tabular-nums">{fmt(selected.budget!)}</span>
-              </Particular>
-            )}
-          </div>
-
-          {/* Action */}
+          {/* The answer comes first: the button, then the predicted total in
+              its place, under the title and above everything about the film. */}
           <div className="mt-6">
             {notReleased && (
               <div className="border-l-2 border-red pl-4 py-1">
@@ -360,6 +333,69 @@ export function MovieDetail({
                 <FilmLeader />
               </div>
             )}
+
+            {prediction && !prediction.error && (
+              <div data-cell>
+                <p className="font-sans text-ink2 text-[0.9rem] font-semibold m-0 mb-2">
+                  Predicted worldwide total
+                </p>
+                <p
+                  data-figure
+                  className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-[2.9rem] min-[360px]:text-[3.3rem] sm:text-[4.4rem]"
+                >
+                  <Typed text={fmt(prediction.predicted_revenue)} />
+                </p>
+                {/* Struck beneath the figure like the total line in a ledger. */}
+                <div data-ledger-rule className="rule-double mt-4" />
+                {record && (
+                  <p data-ledger-follow className="text-ink2 text-[0.85rem] leading-[1.55] mt-3 mb-0 max-w-prose">
+                    On the {record.films} films already settled, the model missed the final gross by a median of{" "}
+                    <span className="font-mono tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
+                    {record.later && (
+                      <>
+                        {" "}and <span className="font-mono tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
+                      </>
+                    )}
+                    .{" "}
+                    <Link href="/finished" className="text-red underline underline-offset-2 hover:no-underline">
+                      See The Ledger
+                    </Link>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {selected.overview && (
+            <p className="text-ink2 text-[0.9rem] leading-[1.65] mt-7 mb-5 max-w-prose">
+              {selected.overview}
+            </p>
+          )}
+
+          {/* Particulars ledger */}
+          <div className={`border-t border-ink/25 ${selected.overview ? "" : "mt-7"}`}>
+            <Particular label="Released">{fmtDate(selected.release_date)}</Particular>
+            {laterInUS && (
+              <Particular label="In the US">{fmtDate(selected.us_release_date!)}</Particular>
+            )}
+            {(selected.runtime ?? 0) > 0 && (
+              <Particular label="Runtime">{fmtRuntime(selected.runtime!)}</Particular>
+            )}
+            {selected.vote_average != null && (
+              <Particular label="TMDB" minor>
+                <span className="font-mono tabular-nums">{selected.vote_average.toFixed(1)}</span>
+                <span className="text-ink3"> / 10</span>
+              </Particular>
+            )}
+            {selected.director && <Particular label="Directed by">{selected.director}</Particular>}
+            {selected.cast && selected.cast.length > 0 && (
+              <Particular label="Starring" minor>{selected.cast.join(", ")}</Particular>
+            )}
+            {(selected.budget ?? 0) > 0 && (
+              <Particular label="Budget" minor>
+                <span className="font-mono tabular-nums">{fmt(selected.budget!)}</span>
+              </Particular>
+            )}
           </div>
         </div>
       </div>
@@ -378,19 +414,23 @@ export function MovieDetail({
         );
         return (
         <div className="mt-11">
-          <div data-ledger-rule className="rule-double mb-5" />
           <div className="mb-11">
-          {/* The prediction's range sits right after it, as its margin. A
-              settled run adds its final gross and the miss, making two rows
-              of three; otherwise the four figures share one row. Narrower
-              screens set them two by two, so no figure outgrows its cell. */}
-          <div className={`grid grid-cols-2 ${settled != null ? "md:grid-cols-3" : "lg:grid-cols-4"} border-t border-l border-ink/20`}>
+          {/* What stands behind the total above: the opening it grew from and
+              the range around it. A settled run adds a second row: its final gross and
+              the miss. Narrower screens set them two by two, the odd one out
+              spanning the row, so no figure outgrows its cell. */}
+          <div className={`grid grid-cols-2 border-t border-l border-ink/20 max-md:[&>*:last-child:nth-child(odd)]:col-span-2 ${settled != null
+            ? "md:grid-cols-6 md:[&>*]:col-span-2 md:[&>*:nth-child(n+4)]:col-span-3"
+            : "md:grid-cols-3"}`}>
             {[
               <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)} />,
-              <StatCard key="pt" label="Predicted Worldwide" value={fmt(prediction.predicted_revenue)} headline />,
               // Where half of films like it finished (ranges.py).
               <StatCard key="rg" label="Prediction Range"
                 value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
+              // In the red when it's predicted to lose money, as on Rankings.
+              profit != null
+                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0} />
+                : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
               settled != null && (
                 <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
               ),
@@ -403,10 +443,6 @@ export function MovieDetail({
                     value={(diff > 0 ? "+" : "") + fmt(diff)} />
                 );
               })(),
-              // In the red when it's predicted to lose money, as on Rankings.
-              profit != null
-                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0} />
-                : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
             ].filter(Boolean).map((cell, i) => (
               <div key={i} data-cell className="border-r border-b border-ink/20">
                 {cell}

@@ -6,7 +6,7 @@ import { Poster } from '@/components/Poster';
 import { RunningHead } from '@/components/RunningHead';
 import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
-import { medianMiss } from '@/lib/ledger';
+import { medianMiss, missByWeekend } from '@/lib/ledger';
 import { fmtMoney } from '@/lib/money';
 
 const fmt = fmtMoney;
@@ -39,9 +39,6 @@ interface FinishedEntry {
   later_calls?: Record<string, number>;
 }
 
-// The weekends whose calls the scorecard row scores (1 is the opening call).
-const CALL_WEEKENDS = [1, 2, 4, 8];
-
 export default function FinishedPage() {
   const [entries, setEntries] = useState<FinishedEntry[]>([]);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
@@ -73,13 +70,7 @@ export default function FinishedPage() {
 
   // The same median for the call made after each later weekend, over the
   // films whose run reached it.
-  const byWeekend = useMemo(() => CALL_WEEKENDS.map(week => {
-    const calls = entries.flatMap(e => {
-      const call = week === 1 ? e.predicted_revenue : e.later_calls?.[week];
-      return call != null ? [{ call, actual: e.actual_revenue }] : [];
-    });
-    return { week, films: calls.length, median: medianMiss(calls) };
-  }).filter(w => w.films > 0), [entries]);
+  const byWeekend = useMemo(() => missByWeekend(entries), [entries]);
   const later = byWeekend.filter(w => w.week > 1 && w.median != null);
   const latestCall = later.length ? later[later.length - 1] : null;
   const byWeekendHint = byWeekend.length > 1
