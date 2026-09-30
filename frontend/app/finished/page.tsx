@@ -15,7 +15,7 @@ const fmt = fmtMoney;
 const fmtDiff = (n: number) => (n > 0 ? '+' : n < 0 ? '\u2212' : '') + fmt(Math.abs(n));
 
 // Shared by the column heads and every row, so the two can never drift apart.
-const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
+const ROW = 'flex items-center gap-2.5 sm:gap-5 px-2 sm:px-3';
 const COL = {
   poster: 'w-12 shrink-0',
   title: 'min-w-0 flex-1 sm:flex-none sm:w-60',
@@ -183,11 +183,17 @@ export default function FinishedPage() {
                       <Poster src={entry.poster} alt={entry.title} width={46} height={69} className="object-cover block" />
                     </div>
                     <div className={COL.title}>
-                      <p className="text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold truncate leading-tight m-0 group-hover:text-red transition-colors">
+                      <p className="text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold line-clamp-2 sm:line-clamp-1 leading-tight m-0 group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
+                      {/* Phones have no columns for the two grosses: each is named here */}
+                      <p className="sm:hidden m-0 mt-1.5 text-ink2 text-[0.78rem] leading-[1.5]">
+                        Predicted <span className="font-mono tabular-nums text-ink">{fmt(entry.predicted_revenue)}</span>
+                        <br />
+                        Actual <span className="font-mono tabular-nums text-ink">{fmt(entry.actual_revenue)}</span>
+                      </p>
                       {entry.genres.length > 0 && (
-                        <p className="font-mono text-ink3 text-[0.64rem] tracking-[0.06em] truncate mt-1 uppercase">
+                        <p className="hidden sm:block font-mono text-ink3 text-[0.64rem] tracking-[0.06em] truncate mt-1 uppercase">
                           {entry.genres.slice(0, 2).join(' · ')}
                         </p>
                       )}
