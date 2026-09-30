@@ -93,7 +93,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
       )}
 
       {movie && (
-        <div className="max-w-[62rem] mx-auto w-full">
+        <div className="max-w-[74rem] mx-auto w-full">
           <MovieDetail
             selected={movie}
             prediction={prediction}
@@ -146,7 +146,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
 
 function MovieDetailSkeleton() {
   return (
-    <div className="px-4 sm:px-8 lg:px-14 py-10 max-w-[62rem] mx-auto">
+    <div className="px-4 sm:px-8 lg:px-14 py-10 max-w-[74rem] mx-auto">
       <div className="paper-skeleton h-3 w-24 mb-8" />
       <div className="flex flex-col sm:flex-row gap-7 sm:gap-10">
         <div className="paper-skeleton w-52 sm:w-60 md:w-72 aspect-[2/3] border border-ink/15 shrink-0 mx-auto sm:mx-0" />
