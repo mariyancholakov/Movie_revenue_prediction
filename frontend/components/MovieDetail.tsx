@@ -12,6 +12,7 @@ import { ForecastChart } from "./ForecastChart";
 import { Typed, typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
 import { useTrackRecord } from "@/lib/useTrackRecord";
+import { useWidth } from "@/lib/useWidth";
 import Link from "next/link";
 
 const fmt = fmtMoney;
@@ -151,7 +152,7 @@ interface MovieDetailProps {
 function Particular({ label, children, minor = false }: { label: string; children: React.ReactNode; minor?: boolean }) {
   return (
     <div className={`${minor ? "hidden sm:flex" : "flex"} items-baseline gap-4 py-2 border-b border-rule`}>
-      <span className="font-mono text-[0.58rem] tracking-[0.14em] text-ink3 uppercase w-24 shrink-0">
+      <span className="font-sans text-[0.8rem] font-medium text-ink2 w-24 shrink-0">
         {label}
       </span>
       <span className="font-sans text-[0.85rem] text-ink leading-snug">{children}</span>
@@ -173,6 +174,9 @@ export function MovieDetail({
   const [now] = useState(() => Date.now());
   const root = useRef<HTMLElement>(null);
   const record = useTrackRecord();
+  // The charts are drawn at the width of this column, measured before any
+  // prediction exists, so their line-drawing starts from the right length.
+  const [measure, chartWidth] = useWidth();
 
   // When the numbers land they are typed up like a filed dispatch: the rule
   // draws, then each figure in the grid is
@@ -244,12 +248,13 @@ export function MovieDetail({
 
   return (
     <section ref={root} className="px-4 sm:px-8 lg:px-14 py-7 sm:py-10">
+      <div ref={measure} aria-hidden className="h-0" />
       {/* Controls */}
       <div className="flex items-center justify-between gap-3 mb-7">
         <button
           onClick={onBack}
-          className="font-sans text-[0.68rem] tracking-[0.14em] font-semibold text-ink2
-                     hover:text-red transition-colors bg-transparent border-0 p-0"
+          className="font-sans text-[0.75rem] tracking-[0.1em] font-semibold text-ink2
+                     hover:text-red transition-colors bg-transparent border-0 py-3 -my-3 px-0"
         >
           ‹ ALL FILMS
         </button>
@@ -257,8 +262,8 @@ export function MovieDetail({
           onClick={handleShare}
           title="Copy a link to this film’s page"
           aria-live="polite"
-          className="inline-flex items-center gap-1.5 font-sans text-[0.68rem] tracking-[0.14em] font-semibold
-                     text-ink2 hover:text-red transition-colors bg-transparent border-0 p-0"
+          className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
+                     text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3 -my-3 px-0"
         >
           <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
@@ -301,7 +306,7 @@ export function MovieDetail({
           </h1>
 
           {selected.genres && selected.genres.length > 0 && (
-            <p className="font-mono text-[0.66rem] tracking-[0.12em] text-ink2 uppercase mt-3 mb-0">
+            <p className="font-sans text-[0.85rem] text-ink2 mt-2 mb-0">
               {selected.genres.join("  ·  ")}
             </p>
           )}
@@ -423,16 +428,16 @@ export function MovieDetail({
             ? "md:grid-cols-6 md:[&>*]:col-span-2 md:[&>*:nth-child(n+4)]:col-span-3"
             : "md:grid-cols-3"}`}>
             {[
-              <StatCard key="ow" label="US Opening Weekend" value={fmt(prediction.opening_weekend)} />,
+              <StatCard key="ow" label="US opening weekend" value={fmt(prediction.opening_weekend)} />,
               // Where half of films like it finished (ranges.py).
-              <StatCard key="rg" label="Prediction Range"
+              <StatCard key="rg" label="Prediction range"
                 value={prediction.forecast_range ? fmtRange(...prediction.forecast_range) : "\u2014"} />,
               // In the red when it's predicted to lose money, as on Rankings.
               profit != null
-                ? <StatCard key="pf" label="Est. Profit" value={fmt(profit)} accent={profit < 0} />
-                : <StatCard key="pf" label="Est. Profit" value={"\u2014"} />,
+                ? <StatCard key="pf" label="Est. profit" value={fmt(profit)} accent={profit < 0} />
+                : <StatCard key="pf" label="Est. profit" value={"\u2014"} />,
               settled != null && (
-                <StatCard key="fg" label="Final Worldwide" value={fmt(settled)} />
+                <StatCard key="fg" label="Final worldwide" value={fmt(settled)} />
               ),
               settled != null && (() => {
                 // Actual minus predicted, as on The Ledger: red when the film
@@ -453,8 +458,8 @@ export function MovieDetail({
           {/* The model learned from wide releases; from a tiny opening it
               can't tell whether a film will expand or vanish. */}
           {prediction.opening_weekend < LIMITED_OPENING && (
-            <p data-ledger-follow className="font-mono text-[0.6rem] tracking-[0.12em] text-ink2 uppercase mt-3 mb-0 leading-relaxed">
-              Limited release: an opening this small makes the prediction rough
+            <p data-ledger-follow className="font-sans text-[0.85rem] text-ink2 mt-3 mb-0 leading-relaxed">
+              Limited release: an opening this small makes the prediction rough.
             </p>
           )}
           </div>
@@ -467,12 +472,12 @@ export function MovieDetail({
                     weekend keeps e^(−λ) of the one before. */}
                 {lam != null && (
                   <p className="m-0 text-right">
-                    <span className="block font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase mb-1 whitespace-nowrap">Drop per weekend</span>
+                    <span className="block font-sans text-[0.8rem] font-medium text-ink2 mb-1 whitespace-nowrap">Drop per weekend</span>
                     <span className="font-mono text-ink text-[1.1rem] tabular-nums">{`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}</span>
                   </p>
                 )}
               </div>
-              <DecayCurve data={prediction.decay_curve} />
+              <DecayCurve data={prediction.decay_curve} width={chartWidth ?? undefined} />
             </div>
           )}
 
@@ -489,7 +494,7 @@ export function MovieDetail({
               <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
                 The worldwide prediction after each US weekend, with its range shaded.
               </p>
-              <ForecastChart history={prediction.forecast_history!} final={settled} />
+              <ForecastChart history={prediction.forecast_history!} final={settled} width={chartWidth ?? undefined} />
             </div>
           )}
         </div>
@@ -511,8 +516,8 @@ export function MovieDetail({
                 <button
                   onClick={onPredict}
                   disabled={predicting}
-                  className="font-sans text-[0.66rem] tracking-[0.14em] font-semibold text-red
-                             bg-transparent border-0 p-0 hover:text-ink transition-colors disabled:opacity-50"
+                  className="font-sans text-[0.75rem] tracking-[0.1em] font-semibold text-red
+                             bg-transparent border-0 py-3 -my-3 px-0 hover:text-ink transition-colors disabled:opacity-50"
                 >
                   {predicting ? "TRYING…" : "TRY AGAIN"}
                 </button>

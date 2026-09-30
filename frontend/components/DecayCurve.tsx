@@ -1,21 +1,27 @@
 import type { DecayCurveData } from './types';
 import { axisTop, fmtAxis } from '@/lib/money';
+import { useWidth } from '@/lib/useWidth';
+import { AXIS_CHAR, AXIS_FONT, chartHeight } from './chartFrame';
 
 interface DecayCurveProps {
   data: DecayCurveData;
+  /** the width to draw at, when the caller has measured it already */
+  width?: number;
 }
 
 // The theme's tokens (globals.css), so the chart follows them.
 const INK = 'var(--color-ink)';
 const RULE = 'var(--color-rule)';
 const INK2 = 'var(--color-ink2)';
-const INK3 = 'var(--color-ink3)';
 const PAPER = 'var(--color-paper)';
 const MONO = 'var(--font-courier), monospace';
+const SANS = 'var(--font-franklin), sans-serif';
 
 // A printed weekend-gross chart: ink line + hatched fill for the actual run,
 // a dashed grey line for the model's fit, ruled gridlines, Courier labels.
-export function DecayCurve({ data }: DecayCurveProps) {
+export function DecayCurve({ data, width: measured }: DecayCurveProps) {
+  const [frame, ownWidth] = useWidth();
+  const width = measured ?? ownWidth ?? 640;
   const { weeks, actual_gross, fitted_weeks = [], fitted_gross = [] } = data;
   const maxGross = Math.max(...actual_gross, ...(fitted_gross.length ? fitted_gross : [0]));
   const maxWeek = Math.max(...weeks, ...(fitted_weeks.length ? fitted_weeks : [0]));
@@ -24,13 +30,12 @@ export function DecayCurve({ data }: DecayCurveProps) {
   // Round gridlines, as on the forecast chart below it.
   const top = axisTop(maxGross);
 
-  const width = 640;
-  const height = 280;
+  const height = chartHeight(width);
   const yTicks = [0, 0.25, 0.5, 0.75, 1];
-  // Left margin just fits the widest y label (mono 10px ≈ 6 units a character),
-  // so the labels, not empty space, start at the chart's left edge
+  // Left margin just fits the widest y label, so the labels, not empty
+  // space, start at the chart's left edge
   const labelChars = Math.max(...yTicks.map(t => fmtAxis(top * t, top).length));
-  const pad = { top: 26, right: 0, bottom: 54, left: 10 + labelChars * 6 + 2 };
+  const pad = { top: 8, right: 0, bottom: 54, left: 12 + labelChars * AXIS_CHAR };
   const innerW = width - pad.left - pad.right;
   const innerH = height - pad.top - pad.bottom;
 
@@ -50,126 +55,86 @@ export function DecayCurve({ data }: DecayCurveProps) {
     .map((w, i) => `${i === 0 ? 'M' : 'L'}${xScale(w)},${yScale(fitted_gross[i])}`)
     .join(' ');
 
+  // Week labels thin out when the plot is too narrow for each to have room.
+  const every = innerW / weeks.length < AXIS_CHAR * 4 ? 2 : 1;
+
   return (
-    <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}
-      role="img" aria-label="US weekend grosses by weekend, with the fitted decay curve">
-      <defs>
-        <pattern id="ink-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />
-        </pattern>
-      </defs>
+    <div ref={frame}>
+      <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 mb-2 font-sans text-[0.75rem] text-ink2">
+        <span className="inline-flex items-center gap-1.5">
+          <svg aria-hidden width="16" height="12"><line x1="0" y1="6" x2="16" y2="6" stroke={INK} strokeWidth={2.25} /></svg>
+          Actual
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <svg aria-hidden width="16" height="12"><line x1="0" y1="6" x2="16" y2="6" stroke={INK2} strokeWidth={2.75} strokeDasharray="5 4" /></svg>
+          Model
+        </span>
+      </div>
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible', display: 'block' }}
+        role="img" aria-label="US weekend grosses by weekend, with the fitted decay curve">
+        <defs>
+          <pattern id="ink-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke={INK} strokeWidth="1" opacity="0.14" />
+          </pattern>
+        </defs>
 
-      <g transform={`translate(${pad.left},${pad.top})`}>
-        {/* Horizontal gridlines */}
-        {yTicks.slice(1).map(t => (
-          <line
-            key={`grid-${t}`}
-            x1={0}
-            y1={yScale(top * t)}
-            x2={innerW}
-            y2={yScale(top * t)}
-            stroke={RULE}
-            strokeWidth={1}
-          />
-        ))}
+        <g transform={`translate(${pad.left},${pad.top})`}>
+          {/* Horizontal gridlines */}
+          {yTicks.slice(1).map(t => (
+            <line key={`grid-${t}`} x1={0} y1={yScale(top * t)} x2={innerW} y2={yScale(top * t)}
+              stroke={RULE} strokeWidth={1} />
+          ))}
 
-        {/* Axes */}
-        <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke={INK} strokeWidth={1.5} />
-        <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
+          {/* Axes */}
+          <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke={INK} strokeWidth={1.5} />
+          <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
 
-        {/* Hatched area under the actual run */}
-        <path data-area d={areaPath} fill="url(#ink-hatch)" />
+          {/* Hatched area under the actual run */}
+          <path data-area d={areaPath} fill="url(#ink-hatch)" />
 
-        {/* Model fit — dashed, under the actual line so the two read apart */}
-        <path
-          data-fit
-          d={fittedPath}
-          fill="none"
-          stroke={INK2}
-          strokeWidth={2.75}
-          strokeDasharray="5 4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+          {/* Model fit — dashed, under the actual line so the two read apart */}
+          <path data-fit d={fittedPath} fill="none" stroke={INK2} strokeWidth={2.75}
+            strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* Actual gross — solid ink */}
-        <path
-          data-line
-          d={actualLinePath}
-          fill="none"
-          stroke={INK}
-          strokeWidth={2.25}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
+          {/* Actual gross — solid ink */}
+          <path data-line d={actualLinePath} fill="none" stroke={INK} strokeWidth={2.25}
+            strokeLinejoin="round" strokeLinecap="round" />
 
-        {/* Data points */}
-        {weeks.map((w, i) => (
-          <circle
-            data-dot
-            key={`dot-${i}`}
-            cx={xScale(w)}
-            cy={yScale(actual_gross[i])}
-            r={3.5}
-            fill={INK}
-            stroke={PAPER}
-            strokeWidth={1.5}
-          />
-        ))}
+          {/* Data points */}
+          {weeks.map((w, i) => (
+            <circle data-dot key={`dot-${i}`} cx={xScale(w)} cy={yScale(actual_gross[i])} r={3.5}
+              fill={INK} stroke={PAPER} strokeWidth={1.5} />
+          ))}
 
-        {/* X ticks + labels */}
-        {weeks.map((w, i) => (
-          <g key={`xtick-${i}`}>
-            <line x1={xScale(w)} y1={innerH} x2={xScale(w)} y2={innerH + 5} stroke={INK} strokeWidth={1} />
-            <text
-              x={xScale(w)}
-              y={innerH + 20}
-              textAnchor="middle"
-              fill={INK2}
-              fontSize={10}
-              fontFamily={MONO}
-            >
-              {w + 1}
-            </text>
-          </g>
-        ))}
-        <text
-          x={innerW / 2}
-          y={innerH + 44}
-          textAnchor="middle"
-          fill={INK3}
-          fontSize={9}
-          letterSpacing="0.18em"
-          fontFamily={MONO}
-        >
-          WEEKEND
-        </text>
+          {/* X ticks + labels */}
+          {weeks.map((w, i) => (
+            <g key={`xtick-${i}`}>
+              <line x1={xScale(w)} y1={innerH} x2={xScale(w)} y2={innerH + 5} stroke={INK} strokeWidth={1} />
+              {i % every === 0 && (
+                <text x={xScale(w)} y={innerH + 22} textAnchor="middle" fill={INK2}
+                  fontSize={AXIS_FONT} fontFamily={MONO}>
+                  {w + 1}
+                </text>
+              )}
+            </g>
+          ))}
+          <text x={innerW / 2} y={innerH + 46} textAnchor="middle" fill={INK2}
+            fontSize={AXIS_FONT} fontFamily={SANS}>
+            Weekend
+          </text>
 
-        {/* Y ticks + labels */}
-        {yTicks.map((t, i) => (
-          <g key={`ytick-${i}`}>
-            <line x1={-5} y1={yScale(top * t)} x2={0} y2={yScale(top * t)} stroke={INK} strokeWidth={1} />
-            <text
-              x={-10}
-              y={yScale(top * t) + 3.5}
-              textAnchor="end"
-              fill={INK2}
-              fontSize={10}
-              fontFamily={MONO}
-            >
-              {fmtAxis(top * t, top)}
-            </text>
-          </g>
-        ))}
-
-        {/* Legend, its MODEL label ending flush with the plot's right edge */}
-        <g transform={`translate(${innerW - 130}, -16)`}>
-          <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />
-          <text x={22} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>ACTUAL</text>
-          <line x1={78} y1={6} x2={94} y2={6} stroke={INK2} strokeWidth={2.75} strokeDasharray="5 4" />
-          <text x={100} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>MODEL</text>
+          {/* Y ticks + labels */}
+          {yTicks.map((t, i) => (
+            <g key={`ytick-${i}`}>
+              <line x1={-5} y1={yScale(top * t)} x2={0} y2={yScale(top * t)} stroke={INK} strokeWidth={1} />
+              <text x={-10} y={yScale(top * t) + 4} textAnchor="end" fill={INK2}
+                fontSize={AXIS_FONT} fontFamily={MONO}>
+                {fmtAxis(top * t, top)}
+              </text>
+            </g>
+          ))}
         </g>
-      </g>
-    </svg>
+      </svg>
+    </div>
   );
 }
