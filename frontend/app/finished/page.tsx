@@ -65,10 +65,8 @@ export default function FinishedPage() {
   );
 
   // The same median for the call made after each later weekend, over the
-  // films whose run reached it.
+  // films whose run reached it (shown as the median miss's hint).
   const byWeekend = useMemo(() => missByWeekend(entries), [entries]);
-  const later = byWeekend.filter(w => w.week > 1 && w.median != null);
-  const latestCall = later.length ? later[later.length - 1] : null;
   const byWeekendHint = byWeekend.length > 1
     ? 'After weekend ' + byWeekend
         .map(w => `${w.week}: ${w.median != null ? `${w.median.toFixed(1)}%` : '—'} (${w.films} films)`)
@@ -104,11 +102,6 @@ export default function FinishedPage() {
           <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
             Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
             to the final gross. When a film fell short of the prediction, the gap posts in&nbsp;the&nbsp;red.
-            {/* The bars below score the opening call; later calls land closer. */}
-            {status === 'ok' && latestCall && (
-              <> Calls made later in a run land closer: after weekend {latestCall.week}, the median
-                miss is {latestCall.median!.toFixed(1)}%.</>
-            )}
           </p>
 
           {status === 'ok' && entries.length > 0 && medianError != null && (
