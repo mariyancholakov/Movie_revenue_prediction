@@ -33,6 +33,24 @@ const getShortEditionSnapshot = () =>
     .toUpperCase();
 const getServerEditionSnapshot = () => '';
 
+function SectionTabs({ className }: { className: string }) {
+  return (
+    <nav aria-label="Sections" data-follow className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 ${className}`}>
+      {TABS.map(({ href, label, active }) => (
+        <Link
+          key={href}
+          href={href}
+          data-active={active}
+          aria-current={active ? 'page' : undefined}
+          className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
+        >
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 export function Header() {
   const record = useTrackRecord();
   const edition = useSyncExternalStore(
@@ -62,22 +80,10 @@ export function Header() {
     <header ref={root} data-intro className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10 text-center">
       <div>
         {/* Folio: byline at left, the section tabs in the middle, today's edition date at right.
-            Below xl there's no room for all three, so the tabs drop to a row of their own. */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3 xl:grid xl:grid-cols-[1fr_auto_1fr] font-sans text-ink2 text-[0.75rem] tracking-[0.08em] sm:tracking-[0.12em] uppercase mb-8 sm:mb-14 min-h-[1em]">
+            Below xl there's no room for all three, so the tabs move under the dek. */}
+        <div className="flex items-baseline justify-between gap-4 xl:grid xl:grid-cols-[1fr_auto_1fr] font-sans text-ink2 text-[0.75rem] tracking-[0.08em] sm:tracking-[0.12em] uppercase mb-8 sm:mb-14 min-h-[1em]">
           <span className="xl:justify-self-start">Made by Mariyan Cholakov</span>
-          <nav aria-label="Sections" data-follow className="order-last xl:order-none w-full xl:w-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 xl:gap-8">
-            {TABS.map(({ href, label, active }) => (
-              <Link
-                key={href}
-                href={href}
-                data-active={active}
-                aria-current={active ? 'page' : undefined}
-                className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
+          <SectionTabs className="hidden xl:flex xl:gap-8" />
           <span className="tabular-nums text-right xl:justify-self-end">
             <span className="max-sm:hidden">{edition}</span>
             <span className="sm:hidden">{shortEdition}</span>
@@ -103,21 +109,23 @@ export function Header() {
 
       {/* Dek, and the record in the same breath: how the calls below have fared
           once their runs closed. Space is kept while it loads so the page doesn't drop. */}
-      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[8.6rem] sm:min-h-[5.4rem]">
-        Every film now playing, priced to its finish by a model trained on 5,400&nbsp;past releases.
+      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[4.3rem] sm:min-h-[5.4rem]">
+        Every film now playing, priced to its finish by a model trained on 5,400&nbsp;<span className="max-sm:hidden">past </span>releases.
         {record && (
           <>
             {' '}On {record.films} settled films, its median miss was{' '}
-            <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
+            <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after <span className="max-sm:hidden">the </span>opening weekend
             {record.later && (
-              <>
+              <span className="max-sm:hidden">
                 , <span className="tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
-              </>
+              </span>
             )}
             .
           </>
         )}
       </p>
+
+      <SectionTabs className="xl:hidden mt-3 sm:mt-5" />
     </header>
   );
 }
