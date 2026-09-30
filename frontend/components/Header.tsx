@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRef, useSyncExternalStore } from 'react';
 import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
 import { Seal } from './Seal';
+import { useTrackRecord } from '@/lib/useTrackRecord';
 
 const NAMEPLATE = 'MOVIEGROSS';
 
@@ -29,8 +30,8 @@ const getEditionSnapshot = () =>
     .toUpperCase();
 const getServerEditionSnapshot = () => '';
 
-/** `filmCount`: films now playing, for the edition ear (0 while loading). */
-export function Header({ filmCount = 0 }: { filmCount?: number }) {
+export function Header() {
+  const record = useTrackRecord();
   const edition = useSyncExternalStore(
     subscribeToNothing,
     getEditionSnapshot,
@@ -65,8 +66,7 @@ export function Header({ filmCount = 0 }: { filmCount?: number }) {
           <Seal size={64} className="w-12 h-12 sm:w-16 sm:h-16" />
         </div>
 
-        {/* Nameplate, flanked on wide screens by its ears: the paper's seal at
-            left, the edition box at right */}
+        {/* Nameplate, flanked on wide screens by the paper's seal at left */}
         <div className="xl:grid xl:grid-cols-[1fr_auto_1fr] xl:items-center xl:gap-10">
           <div data-follow className="hidden xl:flex justify-start">
             <Seal size={108} />
@@ -83,13 +83,6 @@ export function Header({ filmCount = 0 }: { filmCount?: number }) {
               </span>
             ))}
           </h1>
-          <div data-follow className="hidden xl:flex justify-end">
-            <div className="border-y border-ink/60 py-2.5 px-1 font-mono text-ink2 text-[0.58rem] tracking-[0.16em] uppercase leading-[1.9] text-center whitespace-nowrap">
-              <p className="m-0 text-ink font-bold">Late edition</p>
-              <p className="m-0 tabular-nums">{filmCount ? `${filmCount} films playing` : 'Every film playing'}</p>
-              <p className="m-0">Priced worldwide</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -99,8 +92,28 @@ export function Header({ filmCount = 0 }: { filmCount?: number }) {
         predicted by a model trained on 5,400&nbsp;past releases.
       </p>
 
+      {/* The record, in one line: how the calls below have fared once their
+          runs closed. Space is kept while it loads so the page doesn't drop. */}
+      <p data-follow className="text-ink2 text-[0.85rem] leading-[1.55] max-w-[46rem] mx-auto mt-3 mb-0 min-h-[3.9rem] sm:min-h-[1.3rem]">
+        {record && (
+          <>
+            On {record.films} films already settled, the model&rsquo;s median miss was{' '}
+            <span className="font-mono tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
+            {record.later && (
+              <>
+                {' '}and <span className="font-mono tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
+              </>
+            )}
+            .{' '}
+            <Link href="/finished" className="text-red underline underline-offset-2 hover:no-underline whitespace-nowrap">
+              See The Ledger
+            </Link>
+          </>
+        )}
+      </p>
+
       {/* Ledger tabs */}
-      <nav data-follow className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 mt-6">
+      <nav data-follow className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 mt-4">
         {TABS.map(({ href, label, active }) => (
           <Link
             key={href}
