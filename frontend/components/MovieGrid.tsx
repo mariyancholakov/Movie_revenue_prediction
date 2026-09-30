@@ -66,7 +66,7 @@ export function MovieGrid({
   useEffect(() => { ScrollTrigger.refresh(); }, [filteredMovies]);
 
   return (
-    <section className="w-full px-4 sm:px-8 lg:px-14 pt-9 sm:pt-12 pb-4">
+    <section className="w-full max-w-[74rem] mx-auto px-4 sm:px-8 lg:px-14 pt-9 sm:pt-12 pb-4">
       <SearchBar
         query={query}
         onQueryChange={onQueryChange}

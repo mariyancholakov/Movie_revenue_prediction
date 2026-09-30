@@ -20,34 +20,36 @@ export function RunningHead({ active = 'none', stamp = true }: {
   stamp?: boolean;
 }) {
   return (
-    <header className="relative px-4 sm:px-8 lg:px-14 pt-5 sm:pt-7">
+    <header className="relative pt-5 sm:pt-7">
       {stamp && <Seal
         size={320}
         spin={120}
         className="hidden sm:block absolute -right-16 top-20 w-[320px] h-[320px] rotate-[-14deg] opacity-[0.08] mix-blend-multiply pointer-events-none select-none"
       />}
-      <div className="flex items-baseline justify-between gap-4 flex-wrap pb-3">
-        <Link href="/" className="no-underline group">
-          <span className="font-display text-ink text-[1.15rem] sm:text-[1.35rem] font-black tracking-[0.02em] leading-none">
-            MOVIEGROSS
-          </span>
-        </Link>
+      <div className="px-4 sm:px-8 lg:px-14 max-w-[74rem] mx-auto w-full">
+        <div className="flex items-baseline justify-between gap-4 flex-wrap pb-3">
+          <Link href="/" className="no-underline group">
+            <span className="font-display text-ink text-[1.15rem] sm:text-[1.35rem] font-black tracking-[0.02em] leading-none">
+              MOVIEGROSS
+            </span>
+          </Link>
 
-        <nav aria-label="Sections" className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-7">
-          {TABS.map(({ href, label, key }) => (
-            <Link
-              key={href}
-              href={href}
-              data-active={active === key}
-              aria-current={active === key ? 'page' : undefined}
-              className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.14em] font-semibold text-ink2 no-underline pb-1"
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+          <nav aria-label="Sections" className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-7">
+            {TABS.map(({ href, label, key }) => (
+              <Link
+                key={href}
+                href={href}
+                data-active={active === key}
+                aria-current={active === key ? 'page' : undefined}
+                className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.14em] font-semibold text-ink2 no-underline pb-1"
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+        <div className="rule-double" />
       </div>
-      <div className="rule-double" />
     </header>
   );
 }
