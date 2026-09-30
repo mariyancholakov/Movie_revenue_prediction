@@ -98,28 +98,20 @@ export function Header() {
         </div>
       </div>
 
-      {/* Dek */}
-      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[38rem] mx-auto mt-5 mb-0">
-        Every film now playing, priced to its finish — the worldwide theatrical run,
-        predicted by a model trained on 5,400&nbsp;past releases.
-      </p>
-
-      {/* The record, in one line: how the calls below have fared once their
-          runs closed. Space is kept while it loads so the page doesn't drop. */}
-      <p data-follow className="text-ink2 text-[0.85rem] leading-[1.55] max-w-[46rem] mx-auto mt-3 mb-0 min-h-[3.9rem] sm:min-h-[1.3rem]">
+      {/* Dek, and the record in the same breath: how the calls below have fared
+          once their runs closed. Space is kept while it loads so the page doesn't drop. */}
+      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[42rem] mx-auto mt-5 mb-0 min-h-[5.7rem] sm:min-h-[3.6rem]">
+        Every film now playing, priced to its finish.
         {record && (
           <>
-            On {record.films} films already settled, the model&rsquo;s median miss was{' '}
-            <span className="font-mono tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
+            {' '}On {record.films} settled films, the model&rsquo;s median miss was{' '}
+            <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
             {record.later && (
               <>
-                {' '}and <span className="font-mono tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
+                , <span className="tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
               </>
             )}
-            .{' '}
-            <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink whitespace-nowrap">
-              See The Ledger
-            </Link>
+            .
           </>
         )}
       </p>
