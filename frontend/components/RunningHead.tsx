@@ -12,7 +12,7 @@ const TABS: { href: string; label: string; key: Section }[] = [
 
 // The running head that sits atop every interior page — a newspaper folio:
 // small nameplate at left, section tabs at right, a hairline underneath.
-// Below it, off the right edge, the paper's seal is stamped faintly and
+// On the movie page, below it and off the right edge, the paper's seal is stamped faintly and
 // crooked, the way a ledger page gets stamped, its ring turning slowly.
 export function RunningHead({ active = 'none', stamp = true }: {
   active?: Section;
@@ -24,7 +24,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
       {stamp && <Seal
         size={320}
         spin={120}
-        className="hidden sm:block absolute -right-16 top-20 w-[320px] h-[320px] rotate-[-14deg] opacity-[0.08] mix-blend-multiply pointer-events-none select-none"
+        className="hidden sm:block absolute -right-4 top-20 w-[320px] h-[320px] rotate-[-14deg] opacity-[0.08] mix-blend-multiply pointer-events-none select-none"
       />}
       <div className="px-4 sm:px-8 lg:px-14 max-w-[74rem] mx-auto w-full">
         <div className="flex items-baseline justify-between gap-4 flex-wrap pb-3">

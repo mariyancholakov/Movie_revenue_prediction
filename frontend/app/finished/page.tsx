@@ -91,10 +91,10 @@ export default function FinishedPage() {
 
   return (
     <main id="main" tabIndex={-1} className="min-h-screen text-ink font-sans">
-      <RunningHead active="finished" />
+      <RunningHead active="finished" stamp={false} />
 
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
-        {/* Heading, intro and scorecard in one column; the page's stamp keeps the right edge */}
+        {/* Heading, intro and scorecard in one column */}
         <div className="max-w-xl mb-7">
           <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
             The Ledger
