@@ -3,11 +3,12 @@ import { Seal } from './Seal';
 
 type Section = 'now-playing' | 'rankings' | 'finished' | 'how' | 'none';
 
-const TABS: { href: string; label: string; key: Section }[] = [
-  { href: '/', label: 'NOW PLAYING', key: 'now-playing' },
-  { href: '/leaderboard', label: 'RANKINGS', key: 'rankings' },
-  { href: '/finished', label: 'THE LEDGER', key: 'finished' },
-  { href: '/how-it-works', label: 'HOW IT WORKS', key: 'how' },
+// `short` is what a phone shows, so all four tabs stay on one line.
+const TABS: { href: string; label: string; short: string; key: Section }[] = [
+  { href: '/', label: 'NOW PLAYING', short: 'PLAYING', key: 'now-playing' },
+  { href: '/leaderboard', label: 'RANKINGS', short: 'RANKINGS', key: 'rankings' },
+  { href: '/finished', label: 'THE LEDGER', short: 'LEDGER', key: 'finished' },
+  { href: '/how-it-works', label: 'HOW IT WORKS', short: 'HOW IT WORKS', key: 'how' },
 ];
 
 // The running head that sits atop every interior page — a newspaper folio:
@@ -34,16 +35,17 @@ export function RunningHead({ active = 'none', stamp = true }: {
             </span>
           </Link>
 
-          <nav aria-label="Sections" className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-7">
-            {TABS.map(({ href, label, key }) => (
+          <nav aria-label="Sections" className="flex w-full items-center justify-between gap-x-2 sm:w-auto sm:flex-wrap sm:justify-start sm:gap-x-7 sm:gap-y-2">
+            {TABS.map(({ href, label, short, key }) => (
               <Link
                 key={href}
                 href={href}
                 data-active={active === key}
                 aria-current={active === key ? 'page' : undefined}
-                className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.14em] font-semibold text-ink2 no-underline pb-1"
+                className="tab whitespace-nowrap font-sans max-sm:text-[0.72rem] sm:text-[0.75rem] tracking-[0.06em] sm:tracking-[0.14em] font-semibold text-ink2 no-underline pb-1"
               >
-                {label}
+                <span className="sm:hidden">{short}</span>
+                <span className="max-sm:hidden">{label}</span>
               </Link>
             ))}
           </nav>
