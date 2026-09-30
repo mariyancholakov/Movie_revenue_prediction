@@ -8,11 +8,11 @@ import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
 import { estProfit } from '@/lib/profit';
 import { fmtMoney } from '@/lib/money';
+import { HEAD, NUM, ROW, TINT } from '@/components/ledgerTable';
 
 const fmt = fmtMoney;
 
 // Shared by the column heads and every row, so the two can never drift apart.
-const ROW = 'flex items-center gap-2.5 sm:gap-5 px-2 sm:px-3';
 const COL = {
   rank: 'w-5 sm:w-7 shrink-0',
   poster: 'hidden sm:block w-12 shrink-0',
@@ -21,9 +21,6 @@ const COL = {
   num: 'w-[4.6rem] sm:w-28 shrink-0',
   profit: 'w-[5.25rem] sm:w-28 shrink-0',
 };
-const HEAD = 'font-sans text-[0.75rem] font-medium text-ink2';
-const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
-const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
 
 interface LeaderboardEntry {
   tmdb_id: number;

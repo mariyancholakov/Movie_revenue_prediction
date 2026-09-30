@@ -8,6 +8,7 @@ import { WireDown } from '@/components/WireDown';
 import { API_URL } from '@/lib/api';
 import { medianMiss, missByWeekend } from '@/lib/ledger';
 import { fmtMoney } from '@/lib/money';
+import { HEAD, NUM, ROW, TINT } from '@/components/ledgerTable';
 
 const fmt = fmtMoney;
 // Signed, actual minus predicted: \u2212 (in the red) when the film fell short
@@ -15,7 +16,6 @@ const fmt = fmtMoney;
 const fmtDiff = (n: number) => (n > 0 ? '+' : n < 0 ? '\u2212' : '') + fmt(Math.abs(n));
 
 // Shared by the column heads and every row, so the two can never drift apart.
-const ROW = 'flex items-center gap-2.5 sm:gap-5 px-2 sm:px-3';
 const COL = {
   poster: 'w-12 shrink-0',
   title: 'min-w-0 flex-1 sm:flex-none sm:w-60',
@@ -23,10 +23,6 @@ const COL = {
   num: 'hidden sm:block w-28 shrink-0',
   diff: 'w-[6.5rem] sm:w-32 shrink-0',
 };
-const HEAD = 'font-sans text-[0.75rem] font-medium text-ink2';
-const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
-// The same two tones as Rankings: solid for real grosses, tint for the model.
-const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
 
 interface FinishedEntry {
   tmdb_id: number;

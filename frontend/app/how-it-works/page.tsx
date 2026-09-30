@@ -11,6 +11,7 @@ import type { DecayCurveData } from '@/components/types';
 import { API_URL } from '@/lib/api';
 import { medianMiss } from '@/lib/ledger';
 import { fmtMoney } from '@/lib/money';
+import { HEAD, NUM } from '@/components/ledgerTable';
 
 const REPO = 'https://github.com/mariyancholakov/Movie_revenue_prediction';
 
@@ -53,8 +54,6 @@ const GENRES: [string, string][] = [
   ['science_fiction', 'Science Fiction'], ['thriller', 'Thriller'],
 ];
 
-const HEAD = 'font-sans text-[0.75rem] font-medium text-ink2';
-const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
 const PROSE = 'text-ink2 text-[0.95rem] sm:text-[1.02rem] leading-[1.7] m-0 max-w-[40rem]';
 const x2 = (n: number) => n.toFixed(2);
 
