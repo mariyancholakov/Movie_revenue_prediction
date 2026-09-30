@@ -507,18 +507,33 @@ def _tracked_entry(tmdb_id):
     }
 
 
+def _settled_ids(tmdb_ids):
+    """Which of these films have a settled run, already on the Ledger."""
+    try:
+        rows = supabase.table('movies').select('tmdb_id') \
+            .eq('is_in_theaters', False).in_('tmdb_id', tmdb_ids).execute().data or []
+    except Exception as e:
+        print(f"[now-playing] settled films unavailable: {e}")
+        return set()
+    return {r['tmdb_id'] for r in rows}
+
+
 def showing_now():
-    """TMDB's now-playing list, plus every priced film whose run hasn't
-    settled. TMDB lists only about six weeks of releases, so a long run (a
-    summer tentpole) drops off it mid-run; a priced film stays up until
-    capture_finished_runs settles it onto the Ledger. Leaving TMDB's list is
-    that job's settling signal, so it reads get_now_playing() directly."""
+    """TMDB's now-playing list, minus films whose run has settled, plus every
+    priced film whose run hasn't. TMDB lists only about six weeks of releases,
+    so a long run (a summer tentpole) drops off it mid-run; a priced film
+    stays up until capture_finished_runs settles it onto the Ledger. Leaving
+    TMDB's list is that job's settling signal, so it reads get_now_playing()
+    directly. TMDB can also keep listing a film after it settled; that one
+    belongs on the Ledger, not here."""
     if _showing_cache['movies'] is not None and time.time() - _showing_cache['at'] < NOW_PLAYING_TTL:
         return _showing_cache['movies']
     movies = get_now_playing()
     if not movies:
         return []
     listed = {m['tmdb_id'] for m in movies}
+    settled = _settled_ids(list(listed))
+    movies = [m for m in movies if m['tmdb_id'] not in settled]
     try:
         tracked = supabase.table('movies').select('tmdb_id') \
             .eq('is_in_theaters', True).not_.is_('predicted_revenue', 'null').execute().data or []
