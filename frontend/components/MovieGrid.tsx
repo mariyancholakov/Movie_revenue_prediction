@@ -23,10 +23,6 @@ interface MovieGridProps {
   onClearGenres: () => void;
 }
 
-// Read off the 'YYYY-MM-DD' string: parsed as a Date it's UTC midnight, which
-// puts a 1 January release in the year before for readers west of UTC.
-const year = (d: string) => /^\d{4}/.exec(d ?? '')?.[0] ?? '';
-
 export function MovieGrid({
   posters,
   filteredMovies,
@@ -135,11 +131,6 @@ export function MovieGrid({
                 <p className="m-0 font-sans text-[0.8rem] font-semibold leading-[1.25] text-ink group-hover:text-red transition-colors">
                   {movie.title}
                 </p>
-                {year(movie.release_date) && (
-                  <p className="m-0 mt-0.5 font-mono text-[0.8rem] tabular-nums text-ink2">
-                    {year(movie.release_date)}
-                  </p>
-                )}
               </div>
             </Link>
           ))}
