@@ -12,13 +12,14 @@ import { fmtMoney } from '@/lib/money';
 const fmt = fmtMoney;
 
 // Shared by the column heads and every row, so the two can never drift apart.
-const ROW = 'flex items-center gap-3 sm:gap-5 px-2 sm:px-3';
+const ROW = 'flex items-center gap-2.5 sm:gap-5 px-2 sm:px-3';
 const COL = {
   rank: 'w-5 sm:w-7 shrink-0',
-  poster: 'w-12 shrink-0',
+  poster: 'hidden sm:block w-12 shrink-0',
   title: 'min-w-0 flex-1 sm:flex-none sm:w-60',
   bar: 'hidden sm:flex flex-1 min-w-0',
-  num: 'w-[5.25rem] sm:w-28 shrink-0',
+  num: 'w-[4.6rem] sm:w-28 shrink-0',
+  profit: 'w-[5.25rem] sm:w-28 shrink-0',
 };
 const HEAD = 'font-mono text-[0.62rem] tracking-[0.14em] text-ink3 uppercase';
 const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
@@ -121,7 +122,7 @@ export default function LeaderboardPage() {
                 </span>
               </span>
               <span className={`${COL.num} text-right`}>Predicted</span>
-              <span className={`${COL.num} text-right`}>Est. profit</span>
+              <span className={`${COL.profit} text-right`}>Est. profit</span>
             </div>
 
             {entries.map((entry, i) => {
@@ -144,7 +145,7 @@ export default function LeaderboardPage() {
                     </div>
 
                     <div className={COL.title}>
-                      <p className="truncate leading-tight m-0 text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold group-hover:text-red transition-colors">
+                      <p className="line-clamp-2 sm:line-clamp-1 leading-tight m-0 text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
                       {entry.genres.length > 0 && (
@@ -167,7 +168,7 @@ export default function LeaderboardPage() {
 
                     {/* Red when the film is predicted to lose money */}
                     <p
-                      className={`${COL.num} ${NUM} text-right m-0 ${profit != null && profit < 0 ? 'text-red' : 'text-ink'}`}
+                      className={`${COL.profit} ${NUM} text-right m-0 ${profit != null && profit < 0 ? 'text-red' : 'text-ink'}`}
                       title={profit == null ? 'No budget reported' : undefined}
                     >
                       {profit == null ? '\u2014' : fmt(profit)}
