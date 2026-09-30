@@ -28,6 +28,10 @@ const getEditionSnapshot = () =>
       year: 'numeric',
     })
     .toUpperCase();
+const getShortEditionSnapshot = () =>
+  new Date()
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    .toUpperCase();
 const getServerEditionSnapshot = () => '';
 
 export function Header() {
@@ -35,6 +39,11 @@ export function Header() {
   const edition = useSyncExternalStore(
     subscribeToNothing,
     getEditionSnapshot,
+    getServerEditionSnapshot
+  );
+  const shortEdition = useSyncExternalStore(
+    subscribeToNothing,
+    getShortEditionSnapshot,
     getServerEditionSnapshot
   );
   const root = useRef<HTMLElement>(null);
@@ -58,7 +67,10 @@ export function Header() {
         <div data-rule className="rule-hair mb-2.5" />
         <div className="flex items-baseline justify-between gap-4 font-mono text-ink3 text-[0.58rem] sm:text-[0.62rem] tracking-[0.16em] uppercase mb-4 sm:mb-6 min-h-[1em]">
           <span>Made by Mariyan Cholakov</span>
-          <span className="tabular-nums text-right">{edition}</span>
+          <span className="tabular-nums text-right">
+            <span className="max-sm:hidden">{edition}</span>
+            <span className="sm:hidden">{shortEdition}</span>
+          </span>
         </div>
 
         {/* Below xl there's no room for ears: the seal sits over the nameplate */}
