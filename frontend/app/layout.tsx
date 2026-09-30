@@ -8,7 +8,7 @@ import "./globals.css";
 const bodoni = Bodoni_Moda({
   variable: "--font-bodoni",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["400", "700", "900"],
   style: ["normal", "italic"],
 });
 
@@ -24,7 +24,6 @@ const courier = Courier_Prime({
   variable: "--font-courier",
   subsets: ["latin"],
   weight: ["400", "700"],
-  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
