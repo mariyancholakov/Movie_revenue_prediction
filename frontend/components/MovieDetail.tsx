@@ -11,9 +11,7 @@ import { DecayCurve } from "./DecayCurve";
 import { ForecastChart } from "./ForecastChart";
 import { Typed, typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
-import { useTrackRecord } from "@/lib/useTrackRecord";
 import { useWidth } from "@/lib/useWidth";
-import Link from "next/link";
 
 const fmt = fmtMoney;
 
@@ -173,7 +171,6 @@ export function MovieDetail({
   // these release-timing flags only need a single stable reading.
   const [now] = useState(() => Date.now());
   const root = useRef<HTMLElement>(null);
-  const record = useTrackRecord();
   // The charts are drawn at the width of this column, measured before any
   // prediction exists, so their line-drawing starts from the right length.
   const [measure, chartWidth] = useWidth();
@@ -326,7 +323,7 @@ export function MovieDetail({
             {!notReleased && !prediction && !predicting && (
               <button
                 onClick={onPredict}
-                className="ledger-btn w-full max-w-[34rem] h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em]"
+                className="ledger-btn w-full sm:w-1/2 h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em]"
               >
                 RUN THE NUMBERS
               </button>
@@ -334,7 +331,7 @@ export function MovieDetail({
 
             {!notReleased && predicting && !prediction && (
               // Same size as the button it replaces, so the page doesn't jump
-              <div className="w-full max-w-[34rem] h-14 flex items-center justify-center border border-ink/25 px-5">
+              <div className="w-full sm:w-1/2 h-14 flex items-center justify-center border border-ink/25 px-5">
                 <FilmLeader />
               </div>
             )}
@@ -352,21 +349,6 @@ export function MovieDetail({
                 </p>
                 {/* Struck beneath the figure like the total line in a ledger. */}
                 <div data-ledger-rule className="rule-double mt-4" />
-                {record && (
-                  <p data-ledger-follow className="text-ink2 text-[0.85rem] leading-[1.55] mt-3 mb-0 max-w-prose">
-                    On the {record.films} films already settled, the model missed the final gross by a median of{" "}
-                    <span className="font-mono tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
-                    {record.later && (
-                      <>
-                        {" "}and <span className="font-mono tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
-                      </>
-                    )}
-                    .{" "}
-                    <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">
-                      See The Ledger
-                    </Link>
-                  </p>
-                )}
               </div>
             )}
           </div>
