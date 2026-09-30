@@ -326,15 +326,15 @@ export function MovieDetail({
             {!notReleased && !prediction && !predicting && (
               <button
                 onClick={onPredict}
-                className="ledger-btn w-full h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em]"
+                className="ledger-btn w-72 max-w-full h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em]"
               >
                 RUN THE NUMBERS
               </button>
             )}
 
             {!notReleased && predicting && !prediction && (
-              // Same height as the button it replaces, so the page doesn't jump
-              <div className="h-14 flex items-center justify-center border border-ink/25 px-5">
+              // Same size as the button it replaces, so the page doesn't jump
+              <div className="w-72 max-w-full h-14 flex items-center justify-center border border-ink/25 px-5">
                 <FilmLeader />
               </div>
             )}
