@@ -278,7 +278,7 @@ export default function HowItWorksPage() {
                   <a
                     href={`#${s.id}`}
                     onClick={e => goToStep(e, s.id)}
-                    className={`flex items-baseline gap-3 py-1 no-underline text-[0.92rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
+                    className={`flex items-baseline gap-3 py-2.5 no-underline text-[0.92rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
                   >
                     <span className="font-mono text-[0.78rem] w-4 text-right">{i < 7 ? i + 1 : '·'}</span>
                     <span className={`border-b-2 ${active === s.id ? 'border-red' : 'border-transparent'}`}>{s.label}</span>

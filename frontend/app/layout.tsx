@@ -16,7 +16,7 @@ const bodoni = Bodoni_Moda({
 const franklin = Libre_Franklin({
   variable: "--font-franklin",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 // Figures — screenplay + accounting ledger. All money and data, tabular.
