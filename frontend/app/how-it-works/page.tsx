@@ -53,7 +53,7 @@ const GENRES: [string, string][] = [
   ['science_fiction', 'Science Fiction'], ['thriller', 'Thriller'],
 ];
 
-const HEAD = 'font-mono text-[0.62rem] tracking-[0.14em] text-ink3 uppercase';
+const HEAD = 'font-sans text-[0.75rem] font-medium text-ink2';
 const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
 const PROSE = 'text-ink2 text-[0.95rem] sm:text-[1.02rem] leading-[1.7] m-0 max-w-[40rem]';
 const x2 = (n: number) => n.toFixed(2);
@@ -249,7 +249,7 @@ export default function HowItWorksPage() {
                 aria-label="Example film"
                 value={filmId ?? ''}
                 onChange={e => setFilmId(Number(e.target.value))}
-                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-[0.95rem] sm:text-[1.05rem] leading-6 border-0 border-b border-ink/40 rounded-none pt-1 pb-1.5 pl-1 pr-6 cursor-pointer"
+                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-[0.95rem] sm:text-[1.05rem] leading-6 border-0 border-b border-ink/40 rounded-none pt-2.5 pb-3 pl-1 pr-6 cursor-pointer"
               >
                 {films.map(f => <option key={f.tmdb_id} value={f.tmdb_id}>{f.title}</option>)}
               </select>
@@ -261,7 +261,7 @@ export default function HowItWorksPage() {
             <span className="paper-skeleton inline-block h-6 w-48" />
           ) : null}
           {data && (
-            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex items-center gap-2 text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-0.5 pb-2 transition-colors hover:border-red hover:text-red">
+            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex items-center gap-2 text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-3 pb-3 transition-colors hover:border-red hover:text-red">
               Open film page
               <span aria-hidden className="text-ink2 transition-transform group-hover:translate-x-1">→</span>
             </Link>
@@ -549,7 +549,7 @@ function Step({ n, id, title, children }: { n?: number; id: string; title: strin
   return (
     <section id={id} className="scroll-mt-8 flex flex-col gap-5">
       <div>
-        <p className={`${HEAD} m-0 mb-2`}>{n ? `Step ${n}` : 'Fine print'}</p>
+        {n && <p className={`${HEAD} m-0 mb-2`}>Step {n}</p>}
         <h2 className="font-display text-ink text-[1.6rem] sm:text-[2rem] font-bold leading-tight m-0">{title}</h2>
       </div>
       {children}
@@ -571,7 +571,7 @@ function TapeRow({ label, detail, figure, children }: { label: string; detail: s
     <div data-row className="grid grid-cols-[1fr_auto] sm:grid-cols-[14rem_1fr_5.5rem] gap-x-5 gap-y-2 items-center py-2.5 border-t border-rule">
       <div className="min-w-0">
         <p className="text-ink text-[0.9rem] m-0 leading-tight">{label}</p>
-        <p className="font-mono text-ink3 text-[0.7rem] m-0 mt-0.5 truncate">{detail}</p>
+        <p className="font-mono text-ink2 text-[0.75rem] m-0 mt-0.5 truncate">{detail}</p>
       </div>
       <div className="order-last col-span-2 sm:order-none sm:col-span-1">{children}</div>
       <span className={`${NUM} text-ink text-right whitespace-nowrap`}>{figure}</span>

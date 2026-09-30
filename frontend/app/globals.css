@@ -12,7 +12,7 @@
   --color-panel:  #E4DCC9;   /* deeper newsprint band — headers, striping */
   --color-ink:    #1C1814;   /* warm printing ink — headlines, primary figures */
   --color-ink2:   #554D40;   /* warm gray — metadata, secondary text (AA on paper) */
-  --color-ink3:   #6E6555;   /* muted — tertiary text / small labels (AA on paper) */
+  --color-ink3:   #675E4F;   /* muted — tertiary text / small labels (AA on paper and panel) */
   --color-rule:   #CBC2AD;   /* hairline rule */
   --color-red:    #C0281F;   /* spot red — loss / over / miss / nameplate accent */
 
@@ -96,8 +96,15 @@ body {
 .ledger-btn:active:not(:disabled) { transform: translateY(1px); }
 
 .tab {
+  position: relative;
   transition: color 0.16s ease, border-color 0.16s ease;
   border-bottom: 2px solid transparent;
+}
+/* the word stays small; the thing you can tap is 44px tall */
+.tab::after {
+  content: '';
+  position: absolute;
+  inset: -0.75rem -0.35rem;
 }
 .tab:hover { color: var(--color-ink); }
 .tab[data-active="true"] {

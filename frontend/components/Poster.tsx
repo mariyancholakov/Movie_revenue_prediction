@@ -12,7 +12,7 @@ export function Poster({ src, alt, ...rest }: ImageProps) {
       className={`${fill ? 'absolute inset-0' : ''} bg-panel flex items-center justify-center`}
       style={fill ? undefined : { width: Number(width), height: Number(height) }}
     >
-      <span className="font-mono text-[0.5rem] tracking-[0.14em] text-ink3 uppercase">No plate</span>
+      <span className="font-sans text-[0.75rem] text-ink2">No plate</span>
     </div>
   );
 }

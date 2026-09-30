@@ -65,7 +65,7 @@ export function Header() {
       <div>
         {/* Folio: byline at left, today's edition date at right */}
         <div data-rule className="rule-hair mb-2.5" />
-        <div className="flex items-baseline justify-between gap-4 font-mono text-ink3 text-[0.58rem] sm:text-[0.62rem] tracking-[0.16em] uppercase mb-4 sm:mb-6 min-h-[1em]">
+        <div className="flex items-baseline justify-between gap-4 font-sans text-ink2 text-[0.75rem] tracking-[0.08em] sm:tracking-[0.12em] uppercase mb-4 sm:mb-6 min-h-[1em]">
           <span>Made by Mariyan Cholakov</span>
           <span className="tabular-nums text-right">
             <span className="max-sm:hidden">{edition}</span>
@@ -132,7 +132,7 @@ export function Header() {
             href={href}
             data-active={active}
             aria-current={active ? 'page' : undefined}
-            className="tab whitespace-nowrap font-sans text-[0.6rem] sm:text-[0.7rem] tracking-[0.12em] sm:tracking-[0.18em] font-semibold text-ink2 no-underline pb-1"
+            className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
           >
             {label}
           </Link>

@@ -13,7 +13,7 @@ interface StatCardProps {
 export function StatCard({ label, value, accent = false }: StatCardProps) {
   return (
     <div className="flex flex-col justify-between gap-3 py-5 px-3 min-[360px]:px-4 sm:px-6 h-full">
-      <p className="font-mono text-[0.58rem] tracking-[0.16em] text-ink3 uppercase m-0">
+      <p className="font-sans text-[0.8rem] font-medium text-ink2 m-0">
         {label}
       </p>
       <p

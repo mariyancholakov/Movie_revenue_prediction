@@ -26,7 +26,7 @@ export function SearchBar({
           value={query}
           onChange={e => onQueryChange(e.target.value)}
           className="w-[calc(100%+0.5rem)] -ml-2 pl-2 bg-transparent border-0 border-b border-ink/40 text-ink font-sans
-                     text-[0.95rem] py-2 pr-8 transition-colors duration-200
+                     text-[0.95rem] py-2.5 pr-8 transition-colors duration-200
                      placeholder:text-ink3 placeholder:italic search-field"
         />
         {query && (
@@ -51,7 +51,7 @@ export function SearchBar({
             onClick={onClearGenres}
             data-active={activeGenres.length === 0}
             aria-pressed={activeGenres.length === 0}
-            className="tab shrink-0 relative after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] font-sans text-[0.66rem] tracking-[0.14em] font-semibold pb-0.5
+            className="tab shrink-0 font-sans text-[0.75rem] tracking-[0.1em] font-semibold pb-0.5
                        data-[active=true]:text-ink text-ink2"
           >
             ALL
@@ -62,7 +62,7 @@ export function SearchBar({
               onClick={() => onToggleGenre(genre)}
               data-active={activeGenres.includes(genre)}
               aria-pressed={activeGenres.includes(genre)}
-              className="tab shrink-0 relative after:absolute after:-inset-x-1 after:-inset-y-3 after:content-[''] font-sans text-[0.66rem] tracking-[0.14em] font-medium pb-0.5
+              className="tab shrink-0 font-sans text-[0.75rem] tracking-[0.1em] font-medium pb-0.5
                          data-[active=true]:text-ink data-[active=true]:font-semibold text-ink2"
             >
               {genre.toUpperCase()}

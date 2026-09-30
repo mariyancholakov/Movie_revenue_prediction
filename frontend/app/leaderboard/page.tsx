@@ -21,7 +21,7 @@ const COL = {
   num: 'w-[4.6rem] sm:w-28 shrink-0',
   profit: 'w-[5.25rem] sm:w-28 shrink-0',
 };
-const HEAD = 'font-mono text-[0.62rem] tracking-[0.14em] text-ink3 uppercase';
+const HEAD = 'font-sans text-[0.75rem] font-medium text-ink2';
 const NUM = 'font-mono tabular-nums text-[0.9rem] sm:text-[1.02rem]';
 const TINT = 'color-mix(in srgb, var(--color-ink2) 30%, transparent)';
 
@@ -149,7 +149,7 @@ export default function LeaderboardPage() {
                         {entry.title}
                       </p>
                       {entry.genres.length > 0 && (
-                        <p className="font-mono text-ink3 text-[0.64rem] tracking-[0.06em] truncate mt-1 uppercase">
+                        <p className="font-sans text-ink2 text-[0.75rem] truncate mt-1">
                           {entry.genres.slice(0, 2).join(' · ')}
                         </p>
                       )}

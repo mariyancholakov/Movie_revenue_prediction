@@ -82,7 +82,7 @@ export function MovieGrid({
           {isFiltering ? 'Search Results' : 'Now in Theaters'}
         </h2>
         {status !== 'error' && (
-          <span className="font-mono text-[0.66rem] tracking-[0.1em] pb-1 whitespace-nowrap text-ink2">
+          <span className="font-sans text-[0.75rem] font-medium tracking-[0.1em] pb-1 whitespace-nowrap text-ink2">
             {loading ? 'FILING…'
               : !isFiltering ? `${totalCount} FILMS`
               : filteredMovies.length === 0 ? 'NO ENTRIES MATCH'
@@ -125,7 +125,7 @@ export function MovieGrid({
                 />
                 {/* No opening-weekend figure yet, so nothing to predict until Monday */}
                 {awaitingOpening(movie.us_release_date, now) && (
-                  <span className="absolute left-0 bottom-0 bg-ink text-paper font-mono text-[0.56rem] tracking-[0.14em] px-2 py-1">
+                  <span className="absolute left-0 bottom-0 bg-ink text-paper font-sans font-semibold text-[0.75rem] tracking-[0.08em] px-2 py-1">
                     FIGURES MONDAY
                   </span>
                 )}
@@ -136,7 +136,7 @@ export function MovieGrid({
                   {movie.title}
                 </p>
                 {year(movie.release_date) && (
-                  <p className="m-0 mt-0.5 font-mono text-[0.64rem] tracking-[0.08em] text-ink3">
+                  <p className="m-0 mt-0.5 font-mono text-[0.8rem] tabular-nums text-ink2">
                     {year(movie.release_date)}
                   </p>
                 )}

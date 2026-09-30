@@ -15,16 +15,16 @@ export function Footer() {
           </span>
         </span>
         <div className="flex flex-col gap-1 sm:items-end">
-          <p className="font-mono text-[0.58rem] tracking-[0.13em] text-ink3 m-0 uppercase">
+          <p className="font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 max-w-[34rem] sm:text-right">
             Predictions from a model trained on 5,000+ theatrical runs · Not affiliated with any studio
           </p>
-          <p className="font-mono text-[0.58rem] tracking-[0.13em] text-ink3 m-0 uppercase">
+          <p className="font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 max-w-[34rem] sm:text-right">
             Film data &amp; posters from{' '}
             <a
               href="https://www.themoviedb.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors"
+              className="relative after:absolute after:-inset-y-3 after:inset-x-0 after:content-[''] text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors"
             >
               TMDB
             </a>
