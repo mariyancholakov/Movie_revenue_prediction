@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import { useRef, useSyncExternalStore } from 'react';
 import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
-import { Seal } from './Seal';
 import { useTrackRecord } from '@/lib/useTrackRecord';
 
 const NAMEPLATE = 'MOVIEGROSS';
@@ -48,13 +47,12 @@ export function Header() {
   );
   const root = useRef<HTMLElement>(null);
 
-  // The nameplate is set like hand type: the rules draw out from the centre,
-  // the letters drop into place one after another, then the dek and tabs.
+  // The nameplate is set like hand type: the letters drop into place one
+  // after another, then the tabs and dek.
   useGSAP(() => {
     motion(() => {
       gsap.timeline({ defaults: { ease: EASE } })
         .set(root.current, { visibility: 'visible' })
-        .from('[data-rule]', { scaleX: 0, duration: 0.7, ease: 'power2.inOut', stagger: 0.15 })
         .from('[data-letter]', { yPercent: 45, opacity: 0, duration: 0.7, stagger: 0.045 }, 0.1)
         .from('[data-follow]', { y: 10, opacity: 0, duration: 0.6, stagger: 0.1 }, '-=0.35');
     });
@@ -63,26 +61,31 @@ export function Header() {
   return (
     <header ref={root} data-intro className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10 text-center">
       <div>
-        {/* Folio: byline at left, today's edition date at right */}
-        <div data-rule className="rule-hair mb-2.5" />
-        <div className="flex items-baseline justify-between gap-4 font-sans text-ink2 text-[0.75rem] tracking-[0.08em] sm:tracking-[0.12em] uppercase mb-4 sm:mb-6 min-h-[1em]">
-          <span>Made by Mariyan Cholakov</span>
-          <span className="tabular-nums text-right">
+        {/* Folio: byline at left, the section tabs in the middle, today's edition date at right.
+            Below xl there's no room for all three, so the tabs drop to a row of their own. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3 xl:grid xl:grid-cols-[1fr_auto_1fr] font-sans text-ink2 text-[0.75rem] tracking-[0.08em] sm:tracking-[0.12em] uppercase mb-8 sm:mb-14 min-h-[1em]">
+          <span className="xl:justify-self-start">Made by Mariyan Cholakov</span>
+          <nav aria-label="Sections" data-follow className="order-last xl:order-none w-full xl:w-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 xl:gap-8">
+            {TABS.map(({ href, label, active }) => (
+              <Link
+                key={href}
+                href={href}
+                data-active={active}
+                aria-current={active ? 'page' : undefined}
+                className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <span className="tabular-nums text-right xl:justify-self-end">
             <span className="max-sm:hidden">{edition}</span>
             <span className="sm:hidden">{shortEdition}</span>
           </span>
         </div>
 
-        {/* Below xl there's no room for ears: the seal sits over the nameplate */}
-        <div data-follow className="xl:hidden flex justify-center mb-3 sm:mb-4">
-          <Seal size={64} className="w-12 h-12 sm:w-16 sm:h-16" />
-        </div>
-
-        {/* Nameplate, flanked on wide screens by the paper's seal at left */}
-        <div className="xl:grid xl:grid-cols-[1fr_auto_1fr] xl:items-center xl:gap-10">
-          <div data-follow className="hidden xl:flex justify-start">
-            <Seal size={108} />
-          </div>
+        {/* Nameplate */}
+        <div>
           <h1
             className="font-display text-ink font-black leading-[0.9] m-0 select-none
                        text-[3.1rem] sm:text-[6rem] lg:text-[7rem] 2xl:text-[8rem]
@@ -100,11 +103,11 @@ export function Header() {
 
       {/* Dek, and the record in the same breath: how the calls below have fared
           once their runs closed. Space is kept while it loads so the page doesn't drop. */}
-      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[42rem] mx-auto mt-5 mb-0 min-h-[5.7rem] sm:min-h-[3.6rem]">
-        Every film now playing, priced to its finish.
+      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[8.6rem] sm:min-h-[5.4rem]">
+        Every film now playing, priced to its finish by a model trained on 5,400&nbsp;past releases.
         {record && (
           <>
-            {' '}On {record.films} settled films, the model&rsquo;s median miss was{' '}
+            {' '}On {record.films} settled films, its median miss was{' '}
             <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
             {record.later && (
               <>
@@ -115,21 +118,6 @@ export function Header() {
           </>
         )}
       </p>
-
-      {/* Ledger tabs */}
-      <nav aria-label="Sections" data-follow className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 sm:gap-9 mt-4">
-        {TABS.map(({ href, label, active }) => (
-          <Link
-            key={href}
-            href={href}
-            data-active={active}
-            aria-current={active ? 'page' : undefined}
-            className="tab whitespace-nowrap font-sans text-[0.75rem] tracking-[0.1em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
     </header>
   );
 }
