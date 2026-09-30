@@ -81,7 +81,7 @@ export function ForecastChart({ history, final, width: measured }: ForecastChart
           <span key={e.key} className="inline-flex items-center gap-1.5">
             <svg aria-hidden width="16" height="12">
               {e.key === 'forecast' && <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />}
-              {e.key === 'range' && <rect x={0} y={0} width={16} height={12} fill={INK2} opacity={0.12} />}
+              {e.key === 'range' && <rect x={0} y={0} width={16} height={12} fill={INK2} opacity={0.2} />}
               {e.key === 'us' && <rect x={0} y={0} width={16} height={12} fill="url(#fc-hatch)" stroke={RULE} strokeWidth={0.5} />}
               {e.key === 'final' && <line x1={0} y1={6} x2={16} y2={6} stroke={INK2} strokeWidth={1.5} strokeDasharray="5 4" />}
             </svg>
@@ -106,7 +106,7 @@ export function ForecastChart({ history, final, width: measured }: ForecastChart
           <line x1={0} y1={innerH} x2={innerW} y2={innerH} stroke={INK} strokeWidth={1.5} />
           <line x1={0} y1={0} x2={0} y2={innerH} stroke={INK} strokeWidth={1.5} />
 
-          {banded && <path d={bandPath} fill={INK2} opacity={0.12} />}
+          {banded && <path d={bandPath} fill={INK2} opacity={0.2} />}
 
           <path d={areaPath} fill="url(#fc-hatch)" />
 
@@ -127,7 +127,7 @@ export function ForecastChart({ history, final, width: measured }: ForecastChart
             <g key={`xtick-${i}`}>
               <line x1={xScale(i)} y1={innerH} x2={xScale(i)} y2={innerH + 5} stroke={INK} strokeWidth={1} />
               {i % every === 0 && (
-                <text x={xScale(i + 0.5)} y={innerH + 22} textAnchor="middle" fill={INK2}
+                <text x={xScale(i)} y={innerH + 22} textAnchor="middle" fill={INK2}
                   fontSize={AXIS_FONT} fontFamily={MONO}>
                   {h.week}
                 </text>
