@@ -448,13 +448,14 @@ export function MovieDetail({
 
           {hasDecay && prediction.decay_curve && (
             <div data-ledger-follow className="mb-11">
-              <div className="flex items-end justify-between mb-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-5">
                 <h2 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h2>
                 {/* decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
-                    weekend keeps e^(−λ) of the one before. */}
+                    weekend keeps e^(−λ) of the one before. On a phone it sits
+                    on one line under the heading, left-aligned with it. */}
                 {lam != null && (
-                  <p className="m-0 text-right">
-                    <span className="block font-sans text-[0.8rem] font-medium text-ink2 mb-1 whitespace-nowrap">Drop per weekend</span>
+                  <p className="m-0 flex items-baseline gap-2 sm:block sm:text-right">
+                    <span className="sm:block font-sans text-[0.8rem] font-medium text-ink2 sm:mb-1 whitespace-nowrap">Drop per weekend</span>
                     <span className="font-mono text-ink text-[1.1rem] tabular-nums">{`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}</span>
                   </p>
                 )}
