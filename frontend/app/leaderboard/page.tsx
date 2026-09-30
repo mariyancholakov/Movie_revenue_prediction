@@ -96,7 +96,7 @@ export default function LeaderboardPage() {
             <p className="font-display text-ink text-xl font-bold mb-2">The chart is blank</p>
             <p className="text-ink2 text-[0.85rem] leading-relaxed">
               Rankings post here once films are priced.{' '}
-              <Link href="/" className="text-red underline underline-offset-2 hover:no-underline">
+              <Link href="/" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">
                 Head to Now Playing
               </Link>{' '}
               and run the numbers on any film.

@@ -263,7 +263,7 @@ export default function HowItWorksPage() {
           {data && (
             <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex items-center gap-2 text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-0.5 pb-2 transition-colors hover:border-red hover:text-red">
               Open film page
-              <span aria-hidden className="text-red transition-transform group-hover:translate-x-1">→</span>
+              <span aria-hidden className="text-ink2 transition-transform group-hover:translate-x-1">→</span>
             </Link>
           )}
         </div>
@@ -457,7 +457,7 @@ export default function HowItWorksPage() {
               <p className={PROSE}>
                 A prediction is a claim, and claims get checked. Once a film has left
                 theaters and is at least 12 weeks past release, the run is settled on{' '}
-                <Link href="/finished" className="text-ink underline decoration-red underline-offset-4 hover:text-red">The Ledger</Link>:
+                <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-4 hover:decoration-ink">The Ledger</Link>:
                 predicted against actual, misses included. The call it&rsquo;s held to is
                 the one made on opening weekend, not the late forecast, which by then has
                 most of the run in hand. The actual is the same worldwide figure the model

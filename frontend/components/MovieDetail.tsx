@@ -310,7 +310,7 @@ export function MovieDetail({
               its place, under the title and above everything about the film. */}
           <div className="mt-6">
             {notReleased && (
-              <div className="border-l-2 border-red pl-4 py-1">
+              <div className="border-t border-ink/25 pt-3">
                 <p className="font-display text-ink text-[1.05rem] font-bold mb-1">Not yet in theaters</p>
                 <p className="text-ink2 text-[0.83rem] leading-[1.55] m-0">
                   The ledger opens once the film releases and the box office starts reporting.
@@ -357,7 +357,7 @@ export function MovieDetail({
                       </>
                     )}
                     .{" "}
-                    <Link href="/finished" className="text-red underline underline-offset-2 hover:no-underline">
+                    <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">
                       See The Ledger
                     </Link>
                   </p>
@@ -503,7 +503,7 @@ export function MovieDetail({
           laterInUS ? fmtDate(selected.release_date) : null,
         );
         return (
-          <div role="alert" className="mt-8 border-l-2 border-red pl-4 py-1 max-w-prose">
+          <div role="alert" className="mt-8 border-t border-red pt-3 max-w-prose">
             <p className="font-display text-ink text-[1.05rem] font-bold m-0 mb-1">{title}</p>
             <p className="text-ink2 text-[0.85rem] leading-[1.55] m-0">{body}</p>
             <div className="flex items-center gap-5 mt-3">

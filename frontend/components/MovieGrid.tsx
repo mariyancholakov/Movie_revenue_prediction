@@ -82,9 +82,7 @@ export function MovieGrid({
           {isFiltering ? 'Search Results' : 'Now in Theaters'}
         </h2>
         {status !== 'error' && (
-          <span className={`font-mono text-[0.66rem] tracking-[0.1em] pb-1 whitespace-nowrap ${
-            isFiltering && filteredMovies.length === 0 ? 'text-red' : 'text-ink2'
-          }`}>
+          <span className="font-mono text-[0.66rem] tracking-[0.1em] pb-1 whitespace-nowrap text-ink2">
             {loading ? 'FILING…'
               : !isFiltering ? `${totalCount} FILMS`
               : filteredMovies.length === 0 ? 'NO ENTRIES MATCH'

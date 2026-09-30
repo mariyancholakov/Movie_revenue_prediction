@@ -131,7 +131,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
           <p className="font-display text-ink text-2xl font-bold mb-2">Not on file</p>
           <p className="text-ink2 text-[0.88rem]">
             No entry for that film.{' '}
-            <Link href="/" className="text-red underline underline-offset-2 hover:no-underline">
+            <Link href="/" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">
               Back to Now Playing
             </Link>
           </p>

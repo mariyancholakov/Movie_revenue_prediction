@@ -7,7 +7,6 @@ interface DecayCurveProps {
 
 // The theme's tokens (globals.css), so the chart follows them.
 const INK = 'var(--color-ink)';
-const RED = 'var(--color-red)';
 const RULE = 'var(--color-rule)';
 const INK2 = 'var(--color-ink2)';
 const INK3 = 'var(--color-ink3)';
@@ -15,7 +14,7 @@ const PAPER = 'var(--color-paper)';
 const MONO = 'var(--font-courier), monospace';
 
 // A printed weekend-gross chart: ink line + hatched fill for the actual run,
-// a dashed red line for the model's fit, ruled gridlines, Courier labels.
+// a dashed grey line for the model's fit, ruled gridlines, Courier labels.
 export function DecayCurve({ data }: DecayCurveProps) {
   const { weeks, actual_gross, fitted_weeks = [], fitted_gross = [] } = data;
   const maxGross = Math.max(...actual_gross, ...(fitted_gross.length ? fitted_gross : [0]));
@@ -81,13 +80,13 @@ export function DecayCurve({ data }: DecayCurveProps) {
         {/* Hatched area under the actual run */}
         <path data-area d={areaPath} fill="url(#ink-hatch)" />
 
-        {/* Model fit — dashed red */}
+        {/* Model fit — dashed, under the actual line so the two read apart */}
         <path
           data-fit
           d={fittedPath}
           fill="none"
-          stroke={RED}
-          strokeWidth={2}
+          stroke={INK2}
+          strokeWidth={2.75}
           strokeDasharray="5 4"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -167,7 +166,7 @@ export function DecayCurve({ data }: DecayCurveProps) {
         <g transform={`translate(${innerW - 130}, -16)`}>
           <line x1={0} y1={6} x2={16} y2={6} stroke={INK} strokeWidth={2.25} />
           <text x={22} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>ACTUAL</text>
-          <line x1={78} y1={6} x2={94} y2={6} stroke={RED} strokeWidth={2} strokeDasharray="5 4" />
+          <line x1={78} y1={6} x2={94} y2={6} stroke={INK2} strokeWidth={2.75} strokeDasharray="5 4" />
           <text x={100} y={9.5} fill={INK2} fontSize={10} fontFamily={MONO}>MODEL</text>
         </g>
       </g>

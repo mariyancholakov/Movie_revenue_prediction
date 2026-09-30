@@ -105,7 +105,7 @@ export function Header() {
               </>
             )}
             .{' '}
-            <Link href="/finished" className="text-red underline underline-offset-2 hover:no-underline whitespace-nowrap">
+            <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink whitespace-nowrap">
               See The Ledger
             </Link>
           </>
