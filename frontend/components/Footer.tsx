@@ -6,7 +6,7 @@ import { Seal } from './Seal';
 export function Footer() {
   return (
     <footer className="mt-auto pt-8 pb-12">
-      <div className="px-4 sm:px-8 lg:px-14 max-w-[74rem] mx-auto w-full">
+      <div className="px-4 sm:px-8 lg:px-14">
         <div className="rule-double mb-4" />
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <span className="flex items-center gap-3">
@@ -20,7 +20,7 @@ export function Footer() {
               Predictions from a model trained on 5,000+ theatrical runs · Not affiliated with any studio
             </p>
             <p className="font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 max-w-[34rem] sm:text-right">
-              Film data &amp; posters from{' '}
+              Film data and posters via the{' '}
               <a
                 href="https://www.themoviedb.org/"
                 target="_blank"
@@ -29,7 +29,7 @@ export function Footer() {
               >
                 TMDB
               </a>
-              {' '}· This product uses the TMDB API but is not endorsed or certified by TMDB
+              {' '}API, which does not endorse or certify this site
             </p>
           </div>
         </div>
