@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bodoni_Moda, Libre_Franklin, Courier_Prime } from "next/font/google";
 import { Footer } from "@/components/Footer";
+import { ServiceWorker } from "@/components/ServiceWorker";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
@@ -38,11 +39,16 @@ export const metadata: Metadata = {
   },
   description:
     "The predicted worldwide box-office run of every film now playing, typeset like the weekend grosses — from a model trained on 5,000+ theatrical releases.",
+  // the home-screen app: its own name, no browser bar
+  appleWebApp: { capable: true, title: "MOVIEGROSS", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // lets the page run under a notch; globals.css pads the edges back in
+  viewportFit: "cover",
+  themeColor: "#EDE7DA",
 };
 
 export default function RootLayout({
@@ -66,6 +72,7 @@ export default function RootLayout({
         >
           Skip to content
         </a>
+        <ServiceWorker />
         {children}
         <Footer />
       </body>
