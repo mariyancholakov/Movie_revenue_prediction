@@ -5,7 +5,7 @@ from flask_limiter.util import get_remote_address
 import joblib
 import pandas as pd
 import numpy as np
-from scraper import get_now_playing, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, NOW_PLAYING_TTL, TMDB_API_KEY, _is_current_release, _tmdb_get
+from scraper import get_now_playing, get_upcoming, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, NOW_PLAYING_TTL, TMDB_API_KEY, _is_current_release, _tmdb_get
 from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RUN_FACTS, RunModel, credit_ids, run_weeks, track_records
 from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
 import dataset
@@ -107,7 +107,7 @@ def rate_limited(e):
 # the browser keep them for a minute (and show a stale copy while it fetches a
 # fresh one) makes reopening the site on a phone, or moving between the tabs,
 # instant. Only successful answers are kept; an error is never cached.
-BROWSER_CACHED = ('/api/now-playing', '/api/leaderboard', '/api/finished')
+BROWSER_CACHED = ('/api/now-playing', '/api/upcoming', '/api/leaderboard', '/api/finished')
 
 
 @app.after_request
@@ -598,6 +598,10 @@ def now_playing():
     if not movies:
         return jsonify(TMDB_DOWN), 503
     return jsonify([m for m in movies if not is_unpriceable(m['tmdb_id'])])
+
+@app.route('/api/upcoming', methods=['GET'])
+def upcoming():
+    return jsonify(get_upcoming())
 
 @app.route('/api/movie/<int:tmdb_id>', methods=['GET'])
 def movie(tmdb_id):

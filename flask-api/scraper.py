@@ -150,6 +150,53 @@ def get_now_playing():
     return movies
 
 
+UPCOMING_DAYS = 42   # how far ahead the "Opening Soon" strip looks
+UPCOMING_MAX = 8
+UPCOMING_TTL = 60 * 60
+_upcoming_cache = TTLCache(UPCOMING_TTL, max_size=1)
+
+
+def get_upcoming():
+    """Films TMDB lists as opening in US theaters within UPCOMING_DAYS, most
+    popular first, English-language with a poster only. These can't be priced (the model needs the
+    opening weekend), so this is only a schedule. [] on failure."""
+    cached = _upcoming_cache.get('upcoming')
+    if cached is not MISSING:
+        return cached
+    today = datetime.now().date()
+    last = today + timedelta(days=UPCOMING_DAYS)
+    films, seen = [], set()
+    for page in (1, 2):
+        data = _tmdb_get(f"https://api.themoviedb.org/3/movie/upcoming?api_key={TMDB_API_KEY}"
+                         f"&language=en-US&region=US&page={page}")
+        if not data or 'results' not in data:
+            break
+        for m in data['results']:
+            try:
+                opens = datetime.strptime(m.get('release_date', ''), '%Y-%m-%d').date()
+            except ValueError:
+                continue
+            if m['id'] in seen or not m.get('poster_path') or m.get('original_language') != 'en' or not (today < opens <= last):
+                continue
+            seen.add(m['id'])
+            films.append({
+                'tmdb_id': m['id'],
+                'title': m['title'],
+                'poster': f"https://image.tmdb.org/t/p/w500{m['poster_path']}",
+                'release_date': m['release_date'],
+                'popularity': m.get('popularity', 0),
+            })
+        if page >= data.get('total_pages', 1):
+            break
+    films.sort(key=lambda f: -f['popularity'])
+    films = sorted(films[:UPCOMING_MAX], key=lambda f: f['release_date'])
+    for f in films:
+        del f['popularity']
+    if films:  # don't cache an outage
+        _upcoming_cache.set('upcoming', films)
+    return films
+
+
 def get_movie_details(tmdb_id, with_status=False):
     """Get full movie details from TMDB by ID. Returns {} on failure, or
     ({} / details, HTTP status) with with_status=True."""
