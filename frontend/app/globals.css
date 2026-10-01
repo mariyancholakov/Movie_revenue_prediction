@@ -157,6 +157,10 @@ main:focus { outline: none; }
 }
 .cycle-node { animation: cycleLight 8s ease-in-out infinite; }
 
+/* The install sheet (InstallPrompt.tsx) slides up once. */
+@keyframes sheetUp { from { transform: translateY(100%); } }
+.install-sheet { animation: sheetUp 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+
 /* Newsprint placeholder shimmer (loading). */
 @keyframes paperShimmer {
   0%   { background-position: -600px 0; }

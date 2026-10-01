@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bodoni_Moda, Libre_Franklin, Courier_Prime } from "next/font/google";
 import { Footer } from "@/components/Footer";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
@@ -65,6 +66,13 @@ export default function RootLayout({
           attributes to <body> before React hydrates; this ignores those on
           this one element only, not its children. */}
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {/* Chrome can offer installing before the page has hydrated; keep the
+            offer for InstallPrompt to pick up. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__installEvent=e;});",
+          }}
+        />
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:bg-ink focus:text-paper
@@ -75,6 +83,7 @@ export default function RootLayout({
         <ServiceWorker />
         {children}
         <Footer />
+        <InstallPrompt />
       </body>
     </html>
   );
