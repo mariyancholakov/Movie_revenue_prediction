@@ -1,7 +1,8 @@
 import type { MetadataRoute } from 'next';
 
-// What "Add to Home Screen" reads: the seal as the app icon, newsprint for the
-// splash screen and the browser bar, and no browser chrome around the page.
+// What "Add to Home Screen" reads: the ticket-and-M as the app icon (full-bleed
+// ink, so it holds its own on a home screen), newsprint for the splash screen
+// and the status bar, and no browser chrome around the page.
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'MOVIEGROSS — The Box-Office Ledger',
