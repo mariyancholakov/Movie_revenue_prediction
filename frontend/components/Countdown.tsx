@@ -1,5 +1,5 @@
 'use client';
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
 // Ticks once a second. The server snapshot is null so the markup matches on
 // hydration; the figures fill in on the client.
@@ -11,6 +11,10 @@ const subscribe = (cb: () => void) => {
 };
 const getNow = () => tick;
 const getServerNow = () => null;
+
+// Keys struck per second when the numerals first appear, like the typed
+// figures on the prediction ledger.
+const KEYS_PER_SECOND = 10;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -28,6 +32,19 @@ export function Countdown({ to }: { to: Date }) {
     { label: 'Seconds', value: left === null ? '--' : pad(left % 60) },
   ];
   const opening = left === 0;
+
+  // The numerals are typed in once, left to right, when the clock first has a
+  // reading; after that they just tick. Reduced motion shows them at once.
+  const total = parts.reduce((n, p) => n + p.value.length, 0);
+  const [typed, setTyped] = useState(0);
+  const started = now !== null;
+  useEffect(() => {
+    if (!started) return;
+    const step = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? total : 1;
+    const id = setInterval(() => setTyped(n => (n >= total ? n : n + step)), 1000 / KEYS_PER_SECOND);
+    return () => clearInterval(id);
+  }, [started, total]);
+  let offset = 0;
   return (
     <div role="timer" aria-live="off" className="border-t border-ink/25 pt-3">
       <div className="flex items-baseline justify-between gap-4 mb-2">
@@ -36,14 +53,23 @@ export function Countdown({ to }: { to: Date }) {
       </div>
       {!opening && (
         <div aria-hidden className="grid grid-cols-4 motion-reduce:grid-cols-3 divide-x divide-ink/25 border-y border-ink/25">
-          {parts.map(({ label, value }) => (
-            <div key={label} className={`text-center py-4 sm:py-5 ${label === 'Seconds' ? 'motion-reduce:hidden' : ''}`}>
-              <p className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-[2.2rem] min-[360px]:text-[2.6rem] sm:text-[5rem]">
-                {value}
-              </p>
-              <p className="font-sans text-ink2 text-[0.7rem] sm:text-[0.75rem] font-medium tracking-[0.14em] uppercase m-0 mt-3">{label}</p>
-            </div>
-          ))}
+          {parts.map(({ label, value }) => {
+            const start = offset;
+            offset += value.length;
+            return (
+              <div key={label} className={`text-center py-3 sm:py-4 ${label === 'Seconds' ? 'motion-reduce:hidden' : ''}`}>
+                <p className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-[2.2rem] min-[360px]:text-[2.6rem] sm:text-[5rem] whitespace-pre">
+                  {[...value].map((ch, i) => (
+                    <span key={i} className={start + i < typed || !started ? '' : 'invisible'}>{ch}</span>
+                  ))}
+                  {started && typed > start && typed <= start + value.length && typed < total && (
+                    <span className="inline-block w-[0.5em] h-[0.85em] bg-ink align-[-0.05em] ml-[0.05em] -mr-[0.55em]" />
+                  )}
+                </p>
+                <p className="font-sans text-ink2 text-[0.7rem] sm:text-[0.75rem] font-medium tracking-[0.14em] uppercase m-0 mt-2">{label}</p>
+              </div>
+            );
+          })}
         </div>
       )}
       <span className="sr-only">{opening ? 'Opens today' : `Opens ${date}`}</span>
