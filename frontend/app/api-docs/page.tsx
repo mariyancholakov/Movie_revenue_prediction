@@ -4,8 +4,24 @@ import { API_URL } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
-  title: 'Public API',
-  description: "Free, read-only access to MOVIEGROSS's box-office forecasts: films now playing, one film's call and range, and the settled record.",
+  title: 'Free Box Office Prediction API',
+  description:
+    'A free box-office forecast API: predicted worldwide gross for films now playing, forecast ranges, and the settled record of past predictions. JSON, no key, CORS open.',
+  alternates: { canonical: '/api-docs' },
+  openGraph: { title: 'Free Box Office Prediction API · MOVIEGROSS', type: 'website' },
+};
+
+// What a search engine reads as "this page documents a web API".
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebAPI',
+  name: 'MOVIEGROSS Box-Office Forecast API',
+  description:
+    'Free, read-only box-office forecasts: predicted worldwide gross and range for films now playing, and the settled record of past predictions.',
+  url: `${SITE_URL}/api-docs`,
+  documentation: `${SITE_URL}/api-docs`,
+  termsOfService: `${SITE_URL}/api-docs`,
+  provider: { '@type': 'Organization', name: 'MOVIEGROSS', url: SITE_URL },
 };
 
 const BASE = `${API_URL}/v1`;
@@ -85,9 +101,13 @@ export default function ApiDocsPage() {
     <main id="main" tabIndex={-1} className="min-h-screen text-ink font-sans">
       <RunningHead stamp={false} />
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
-        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">Public API</h1>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
+        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">Box-Office Forecast API</h1>
         <p className={P}>
-          The model&rsquo;s forecasts, as JSON. Free, read-only, no key, and open to every website. Only forecasts
+          A free box-office prediction API: the model&rsquo;s forecasts of each film&rsquo;s worldwide gross, as JSON.
+          Read-only, no key, and open to every website; an{' '}
+          <a href="/openapi.json" className="text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red">OpenAPI spec</a>{' '}
+          is available. Only forecasts
           are offered: no posters or synopses, which belong to TMDB (use the <code className="font-mono">tmdb_id</code>{' '}
           to fetch those from them).
         </p>
