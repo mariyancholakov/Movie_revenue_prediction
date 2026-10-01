@@ -85,7 +85,17 @@ export function Header() {
         {/* Folio: byline at left, the section tabs in the middle, today's edition date at right.
             Below xl there's no room for all three, so the tabs move under the dek. */}
         <div className="flex items-baseline justify-between gap-4 xl:grid xl:grid-cols-[1fr_auto_1fr] font-sans text-ink2 max-sm:text-[0.6875rem] tracking-[0.06em] sm:text-[0.75rem] sm:tracking-[0.12em] uppercase mb-8 sm:mb-14 min-h-[1em]">
-          <span data-folio className="xl:justify-self-start">Made by Mariyan Cholakov</span>
+          <span data-folio className="xl:justify-self-start">
+            Made by{' '}
+            <a
+              href="https://www.linkedin.com/in/mariyan-cholakov-90457636b/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative after:absolute after:-inset-y-3.5 after:inset-x-0 after:content-[''] text-inherit underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors"
+            >
+              Mariyan Cholakov
+            </a>
+          </span>
           <SectionTabs className="hidden xl:flex xl:gap-8" />
           <span data-folio className="tabular-nums text-right xl:justify-self-end">
             <span className="max-sm:hidden">{edition}</span>
