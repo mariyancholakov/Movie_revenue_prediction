@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { EASE, gsap, motion, ScrollTrigger, useGSAP } from '@/lib/motion';
 import { Poster } from './Poster';
 import { GhostReel } from './GhostReel';
@@ -8,6 +8,17 @@ import type { Movie } from './types';
 import { SearchBar } from './SearchBar';
 import { WireDown } from './WireDown';
 import { awaitingOpening } from '@/lib/release';
+
+// The clock is read on the client only: the page may be built on the server
+// at another hour, and the "figures Monday" tags must follow the reader's
+// date. The server snapshot is null (no tags), so hydration matches. Minute
+// resolution keeps the snapshot stable between renders.
+const subscribeToNothing = () => () => {};
+const getNow = (): number | null => Math.floor(Date.now() / 60000) * 60000;
+const getServerNow = (): number | null => null;
+
+// Posters at the top of the grid: two columns on a phone, up to six on a desk.
+const FIRST_SCREEN = 6;
 
 interface MovieGridProps {
   /** every film now playing, for the ghost reel behind the grid */
@@ -39,16 +50,21 @@ export function MovieGrid({
   const isFiltering = query.trim() !== '' || activeGenres.length > 0;
   const hasNoResults = !loading && status !== 'error' && filteredMovies.length === 0;
   const grid = useRef<HTMLDivElement>(null);
-  // One reading of the clock for the opening-weekend tags (render stays pure).
-  const [now] = useState(() => Date.now());
+  const now = useSyncExternalStore(subscribeToNothing, getNow, getServerNow);
 
-  // Posters rise into place in small batches as they scroll into view, once.
-  // Only the first render of the list is choreographed; cards that reappear
-  // after filtering just show.
+  // Posters below the first screen rise into place in small batches as they
+  // scroll into view, once. The first screen is already printed in the page
+  // and stays put: hiding it until a script ran would hold back the very
+  // thing the reader came for. Only the first render of the list is
+  // choreographed; cards that reappear after filtering just show.
   useGSAP(() => {
     if (status !== 'ok') return;
     motion(() => {
-      const cards = gsap.utils.toArray<HTMLElement>('[data-card]');
+      const fold = window.innerHeight * 0.95;
+      const cards = gsap.utils
+        .toArray<HTMLElement>('[data-card]')
+        .filter(card => card.getBoundingClientRect().top > fold);
+      if (cards.length === 0) return;
       gsap.set(cards, { opacity: 0, y: 24 });
       ScrollTrigger.batch(cards, {
         start: 'top 95%',
@@ -104,7 +120,7 @@ export function MovieGrid({
               </div>
             ))}
 
-          {filteredMovies.map(movie => (
+          {filteredMovies.map((movie, i) => (
             <Link
               key={movie.tmdb_id}
               href={`/movie/${movie.tmdb_id}`}
@@ -118,9 +134,12 @@ export function MovieGrid({
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px"
                   className="object-cover"
+                  // the first screen's posters load at once; the rest wait to scroll near
+                  loading={i < FIRST_SCREEN ? 'eager' : 'lazy'}
+                  fetchPriority={i < 2 ? 'high' : undefined}
                 />
                 {/* No opening-weekend figure yet, so nothing to predict until Monday */}
-                {awaitingOpening(movie.us_release_date, now) && (
+                {now !== null && awaitingOpening(movie.us_release_date, now) && (
                   <span className="absolute left-0 bottom-0 bg-ink text-paper font-sans font-semibold text-[0.75rem] tracking-[0.08em] px-2 py-1">
                     FIGURES MONDAY
                   </span>
