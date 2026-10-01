@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Poster } from './Poster';
 
 export interface Upcoming {
@@ -15,7 +16,7 @@ function opens(date: string) {
 }
 
 // Films not yet in theaters. The model prices a run from its opening weekend,
-// so these carry a date, not a forecast.
+// so these carry a date, not a forecast; a card opens the film's page, which says so.
 export function OpeningSoon({ films }: { films: Upcoming[] }) {
   if (films.length === 0) return null;
   return (
@@ -32,11 +33,13 @@ export function OpeningSoon({ films }: { films: Upcoming[] }) {
       <ul className="list-none m-0 p-0 flex gap-4 sm:gap-5 overflow-x-auto pb-2 snap-x">
         {films.map(film => (
           <li key={film.tmdb_id} className="snap-start shrink-0 w-[8.5rem] sm:w-[10rem]">
+            <Link href={`/movie/${film.tmdb_id}`} className="block no-underline text-inherit group">
             <div className="relative aspect-[2/3] w-full plate overflow-hidden bg-panel">
               <Poster src={film.poster} alt={film.title} fill sizes="160px" className="object-cover" loading="lazy" />
             </div>
-            <p className="m-0 mt-3 pl-0.5 font-sans text-[0.8rem] font-semibold leading-[1.25] text-ink">{film.title}</p>
+            <p className="m-0 mt-3 pl-0.5 font-sans text-[0.8rem] font-semibold leading-[1.25] text-ink group-hover:text-red transition-colors">{film.title}</p>
             <p className="m-0 mt-0.5 pl-0.5 font-mono text-[0.8rem] text-ink2">Opens {opens(film.release_date)}</p>
+            </Link>
           </li>
         ))}
       </ul>
