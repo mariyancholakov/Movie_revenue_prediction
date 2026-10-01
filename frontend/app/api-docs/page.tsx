@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { RunningHead } from '@/components/RunningHead';
+import { DocsNav } from '@/components/DocsNav';
 import { CopyCode } from '@/components/CopyCode';
 import { API_URL } from '@/lib/api';
 import { SITE_URL } from '@/lib/site';
@@ -111,6 +112,15 @@ function Rows({ rows }: { rows: [string, string][] }) {
   );
 }
 
+const SECTIONS = [
+  ['Quick start', 'start'],
+  ['Films', 'films'],
+  ['One film', 'film'],
+  ['Ledger', 'ledger'],
+  ['Embed', 'embed'],
+  ['Errors', 'errors'],
+] as const;
+
 const EMBED = `<iframe src="${SITE_URL}/embed/969681"
         width="360" height="190" style="border:0" title="MOVIEGROSS forecast"></iframe>`;
 
@@ -138,7 +148,9 @@ export default function ApiDocsPage() {
         </p>
         <div className="rule-double mb-2" />
 
-        <div className="max-w-3xl">
+        <div className="lg:grid lg:grid-cols-[11rem_minmax(0,1fr)] lg:gap-14">
+          <DocsNav sections={SECTIONS} />
+          <div className="min-w-0 max-w-3xl">
             <section id="start" className="mt-8 scroll-mt-6">
               <h2 className="font-display text-ink text-[1.4rem] font-bold m-0 mb-2">Quick start</h2>
               <CopyCode label="curl example">{CURL_EXAMPLE}</CopyCode>
@@ -230,10 +242,11 @@ export default function ApiDocsPage() {
             </Endpoint>
 
             <div className="mt-12">
-              <a href="/openapi.json" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] uppercase px-5 py-3">
+              <a href="/openapi.json" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
                 OpenAPI spec
               </a>
             </div>
+          </div>
         </div>
       </div>
     </main>

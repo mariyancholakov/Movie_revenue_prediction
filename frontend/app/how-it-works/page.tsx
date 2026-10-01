@@ -536,10 +536,10 @@ export default function HowItWorksPage() {
                 are free to use too.
               </p>
               <div className="flex flex-wrap gap-3">
-                <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] uppercase px-5 py-3">
+                <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
                   Read the code on GitHub
                 </a>
-                <Link href="/api-docs" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] uppercase px-5 py-3">
+                <Link href="/api-docs" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
                   Use the free API
                 </Link>
               </div>

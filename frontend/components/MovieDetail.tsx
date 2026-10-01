@@ -318,7 +318,7 @@ export function MovieDetail({
             {!notReleased && !prediction && !predicting && (
               <button
                 onClick={onPredict}
-                className="ledger-btn w-full sm:w-1/2 h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em]"
+                className="ledger-btn w-full sm:w-1/2 h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em] indent-[0.18em]"
               >
                 RUN THE NUMBERS
               </button>

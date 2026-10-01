@@ -116,7 +116,7 @@ export function InstallPrompt() {
         </p>
         <div className="flex items-center gap-3">
           {show === 'android' && (
-            <button onClick={install} className="ledger-btn font-sans text-[0.8rem] font-semibold tracking-[0.08em] px-5 py-3 cursor-pointer">
+            <button onClick={install} className="ledger-btn font-sans text-[0.8rem] font-semibold tracking-[0.08em] indent-[0.08em] px-5 py-3 cursor-pointer">
               INSTALL
             </button>
           )}
@@ -124,7 +124,7 @@ export function InstallPrompt() {
             onClick={dismiss}
             className={show === 'android'
               ? 'font-sans text-[0.8rem] font-semibold tracking-[0.08em] text-ink2 bg-transparent border-0 px-3 py-3 cursor-pointer'
-              : 'ledger-btn font-sans text-[0.8rem] font-semibold tracking-[0.08em] px-5 py-3 cursor-pointer'}
+              : 'ledger-btn font-sans text-[0.8rem] font-semibold tracking-[0.08em] indent-[0.08em] px-5 py-3 cursor-pointer'}
           >
             {show === 'android' ? 'NOT NOW' : 'GOT IT'}
           </button>
