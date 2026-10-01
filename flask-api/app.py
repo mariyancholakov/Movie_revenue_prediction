@@ -33,7 +33,8 @@ ALLOWED_ORIGINS = [
     # A browser's Origin never ends in '/', so a pasted URL with one would never match.
     o.strip().rstrip('/') for o in os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',') if o.strip()
 ]
-CORS(app, origins=ALLOWED_ORIGINS)
+# The public API (/v1) is open to every site; everything else only to ours.
+CORS(app, resources={r'/v1/*': {'origins': '*', 'expose_headers': ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After']}, r'/*': {'origins': ALLOWED_ORIGINS}})
 
 # Behind a host's proxies the socket address is the proxy's, not the visitor's.
 # CLIENT_IP_HEADER names a header the edge sets to the visitor's IP and
@@ -113,6 +114,8 @@ BROWSER_CACHED = ('/api/now-playing', '/api/leaderboard', '/api/finished')
 def let_browsers_keep_lists(response):
     if request.path in BROWSER_CACHED and response.status_code == 200:
         response.headers['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=600'
+    elif request.path.startswith('/v1/') and response.status_code == 200:
+        response.headers['Cache-Control'] = 'public, max-age=300'
     return response
 
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
@@ -960,19 +963,120 @@ def _refresh_leaderboard():
         _leaderboard['refreshing'] = False
 
 
-@app.route('/api/leaderboard', methods=['GET'])
-def leaderboard():
+def get_leaderboard():
+    """The kept ranking (see above), or None when TMDB is unavailable."""
     ranked, age = _leaderboard['ranked'], time.time() - _leaderboard['at']
     if ranked is not None and age < LEADERBOARD_STALE:
         if age >= LEADERBOARD_FRESH and _claim_leaderboard_refresh():
             threading.Thread(target=_refresh_leaderboard, daemon=True).start()
-        return jsonify(ranked)
+        return ranked
 
     ranked = build_leaderboard()
+    if ranked is not None:
+        _leaderboard.update(at=time.time(), ranked=ranked)
+    return ranked
+
+
+@app.route('/api/leaderboard', methods=['GET'])
+def leaderboard():
+    ranked = get_leaderboard()
     if ranked is None:
         return jsonify(TMDB_DOWN), 503
-    _leaderboard.update(at=time.time(), ranked=ranked)
     return jsonify(ranked)
+
+
+# ─── Public API (/v1) ────────────────────────────────────────────────────────
+# Free, read-only, no key, open to every site: the model's forecasts and
+# nothing else (no posters or synopses, which are TMDB's). The shape of these
+# answers is promised not to change; the site's own /api routes are not. Every
+# answer is built from what is already kept or stored (never a scrape or a
+# fresh prediction), and the limits are strict because the host is small.
+PUBLIC_LIMIT = '10 per minute;200 per day'
+PUBLIC_SITE = os.getenv('PUBLIC_SITE_URL', 'https://moviegross.vercel.app').rstrip('/')
+PUBLIC_CREDIT = f'Forecasts by MOVIEGROSS ({PUBLIC_SITE}). Estimates, not facts.'
+_public_film = TTLCache(300, max_size=500)        # tmdb id -> answer
+_public_ledger = TTLCache(600, max_size=1)
+
+
+def public(payload):
+    """The envelope every /v1 answer shares."""
+    return jsonify({'currency': 'USD', 'credit': PUBLIC_CREDIT, **payload})
+
+
+def public_error(message, code, status):
+    return jsonify({'error': message, 'code': code}), status
+
+
+@app.route('/v1/films', methods=['GET'])
+@limiter.limit(PUBLIC_LIMIT)
+def v1_films():
+    """Every film now playing that has a forecast, largest forecast first."""
+    ranked = get_leaderboard()
+    if ranked is None:
+        return public_error('Film listings are unavailable right now.', 'unavailable', 503)
+    return public({'films': [{
+        'tmdb_id': r['tmdb_id'],
+        'title': r['title'],
+        'predicted_total': r['predicted_revenue'],
+        'opening_weekend': r['opening_weekend'],
+    } for r in ranked]})
+
+
+@app.route('/v1/films/<int:tmdb_id>', methods=['GET'])
+@limiter.limit(PUBLIC_LIMIT)
+def v1_film(tmdb_id):
+    """One forecast film: its call, the range around it, and the call as it
+    stood after each US weekend. Only films MOVIEGROSS has already forecast."""
+    answer = _public_film.get(tmdb_id)
+    if answer is MISSING:
+        try:
+            rows = supabase.table('movies').select('*').eq('tmdb_id', tmdb_id).execute().data or []
+        except Exception as e:
+            print(f"[v1] film {tmdb_id} unavailable: {e}")
+            return public_error('The data is unavailable right now.', 'unavailable', 503)
+        movie = rows[0] if rows else None
+        if not movie or not movie.get('predicted_revenue') or not movie.get('opening_weekend'):
+            return public_error('No forecast for this film.', 'no_forecast', 404)
+        settled = movie.get('is_in_theaters') is False
+        feats = movie.get('features') or {}
+        predicted = movie['predicted_revenue'] if settled else live_prediction(movie)
+        answer = {
+            'tmdb_id': tmdb_id,
+            'title': movie['title'],
+            'status': 'settled' if settled else 'in_theaters',
+            'predicted_total': predicted,
+            'range': headline_range(feats, predicted, settled),
+            'opening_weekend': movie['opening_weekend'],
+            'actual_total': int(movie['actual_revenue']) if settled and movie.get('actual_revenue') else None,
+            'forecasts_by_weekend': safe_history(feats, None if settled else predicted),
+        }
+        _public_film.set(tmdb_id, answer)
+    return public(answer)
+
+
+@app.route('/v1/ledger', methods=['GET'])
+@limiter.limit(PUBLIC_LIMIT)
+def v1_ledger():
+    """Films whose runs have ended: the call made after the opening weekend
+    beside the total they settled at, so the model's record can be checked."""
+    films = _public_ledger.get('all')
+    if films is MISSING:
+        try:
+            rows = supabase.table('movies').select('tmdb_id,title,predicted_revenue,actual_revenue,later_calls') \
+                .eq('is_in_theaters', False).execute().data or []
+        except Exception as e:
+            print(f"[v1] ledger unavailable: {e}")
+            return public_error('The data is unavailable right now.', 'unavailable', 503)
+        films = [{
+            'tmdb_id': m['tmdb_id'],
+            'title': m['title'],
+            'predicted_total': m['predicted_revenue'],
+            'actual_total': int(m['actual_revenue']),
+            # the call after US weekends 2, 4 and 8, for the weekends its run reached
+            'later_forecasts': m.get('later_calls') or {},
+        } for m in rows if m.get('actual_revenue') and m.get('predicted_revenue')]
+        _public_ledger.set('all', films)
+    return public({'films': films})
 
 
 @app.route('/api/explain/<int:tmdb_id>', methods=['GET'])
