@@ -118,9 +118,9 @@ export function Header() {
             {' '}On {record.films} settled films, its median miss was{' '}
             <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
             {record.later && (
-              <span className="max-sm:hidden">
+              <>
                 , <span className="tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
-              </span>
+              </>
             )}
             .
           </>
