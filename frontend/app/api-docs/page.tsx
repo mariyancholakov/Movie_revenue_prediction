@@ -78,31 +78,6 @@ function Endpoint({ path, children }: { path: string; children: React.ReactNode 
 const EMBED = `<iframe src="${SITE_URL}/embed/969681"
         width="360" height="190" style="border:0" title="MOVIEGROSS forecast"></iframe>`;
 
-// For the free Scriptable app on iPhone: a home-screen widget from the API.
-const SCRIPTABLE = `// MOVIEGROSS widget for Scriptable. Long-press the widget > Edit > Parameter:
-// leave empty for the biggest forecast, or put a film's tmdb_id.
-const base = "${BASE}";
-const id = args.widgetParameter;
-const money = n => n >= 1e9 ? "$" + (n / 1e9).toFixed(2) + "B" : "$" + (n / 1e6).toFixed(1) + "M";
-let film;
-if (id) film = await new Request(base + "/films/" + id).loadJSON();
-else film = (await new Request(base + "/films").loadJSON()).films[0];
-
-const w = new ListWidget();
-w.backgroundColor = new Color("#EDE7DA");
-const brand = w.addText("MOVIEGROSS");
-brand.font = Font.boldSystemFont(11); brand.textColor = new Color("#554D40");
-w.addSpacer(6);
-const title = w.addText(film.title);
-title.font = Font.boldSerifSystemFont(16); title.textColor = new Color("#1C1814"); title.lineLimit = 2;
-w.addSpacer(4);
-const total = w.addText(money(film.predicted_total));
-total.font = Font.boldMonospacedSystemFont(24); total.textColor = new Color("#1C1814");
-const label = w.addText("predicted worldwide total");
-label.font = Font.systemFont(10); label.textColor = new Color("#554D40");
-Script.setWidget(w);
-w.presentSmall();`;
-
 const P = 'text-ink2 text-[0.9rem] leading-[1.65] max-w-prose m-0 mb-3';
 
 export default function ApiDocsPage() {
@@ -206,16 +181,6 @@ export default function ApiDocsPage() {
             title="MOVIEGROSS forecast"
             className="border-0 max-w-full mt-1"
           />
-        </Endpoint>
-
-        <Endpoint path="An iPhone widget">
-          <p className={P}>
-            Apple only allows home-screen widgets from native apps, but the free{' '}
-            <a href="https://scriptable.app" target="_blank" rel="noopener noreferrer" className="text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red">Scriptable</a>{' '}
-            app can run this script as one. In Scriptable, make a new script, paste this in, then add a Scriptable widget
-            to your home screen and pick the script.
-          </p>
-          <Code>{SCRIPTABLE}</Code>
         </Endpoint>
 
         <Endpoint path="Errors">
