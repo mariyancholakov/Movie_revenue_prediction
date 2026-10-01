@@ -3,7 +3,8 @@ import { Seal } from './Seal';
 
 // Site-wide footer. Carries the two lines that must appear on every page:
 // the model disclaimer (product requirement) and TMDB attribution (TMDB API ToS
-// requires it wherever their data is shown).
+// requires it wherever their data is shown). On a phone the disclaimer is left
+// out to keep the footer short; the attribution stays.
 export function Footer() {
   return (
     <footer className="mt-auto pt-8 pb-12">
@@ -17,7 +18,7 @@ export function Footer() {
             </span>
           </span>
           <div className="flex flex-col gap-1 sm:items-end">
-            <p className="font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 max-w-[34rem] sm:text-right">
+            <p className="max-sm:hidden font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 max-w-[34rem] sm:text-right">
               Predictions from a model trained on 5,000+ theatrical runs · Not affiliated with any studio
             </p>
             <p className="font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 max-w-[34rem] sm:text-right">

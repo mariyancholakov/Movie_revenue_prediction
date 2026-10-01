@@ -1,12 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-// A sheet that slides up from the bottom of a phone, once, offering to put the
-// site on the home screen. It waits for a second visit (the first is for
-// looking around), never shows to someone who already runs it from the home
-// screen, and stays away for a month once dismissed. Android hands over a
+// A sheet that slides up from the bottom of a phone, a few seconds into a
+// visit, offering to put the site on the home screen. It never shows to
+// someone who already runs it from the home screen, and stays away for a
+// month once dismissed. Android hands over a
 // real install prompt; iPhone allows none, so the sheet says where to tap.
-const VISITS = 'mg-visits';
 const DISMISSED = 'mg-install-dismissed';
 const MONTH = 30 * 24 * 60 * 60 * 1000;
 const DELAY = 4000;
@@ -48,17 +47,6 @@ export function InstallPrompt() {
     if (!window.matchMedia('(pointer: coarse)').matches || isInstalled()) return;
     const dismissedAt = Number(read(DISMISSED));
     if (dismissedAt && Date.now() - dismissedAt < MONTH) return;
-
-    // one count per visit, not per page
-    let visits = Number(read(VISITS)) || 0;
-    try {
-      if (!sessionStorage.getItem(VISITS)) {
-        sessionStorage.setItem(VISITS, '1');
-        visits += 1;
-        write(VISITS, String(visits));
-      }
-    } catch {}
-    if (visits < 2) return;
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const open = (kind: 'android' | 'iphone') => { timer = setTimeout(() => setShow(kind), DELAY); };
