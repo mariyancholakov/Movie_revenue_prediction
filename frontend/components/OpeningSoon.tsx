@@ -28,7 +28,7 @@ export function OpeningSoon({ films }: { films: Upcoming[] }) {
       </div>
       <div className="rule-double mb-6" />
       <ul className="list-none m-0 p-0 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-8">
-        {films.slice(0, 6).map(film => (
+        {films.map(film => (
           <li key={film.tmdb_id}>
             <Link href={`/movie/${film.tmdb_id}`} className="block no-underline text-inherit group">
               <div className="relative aspect-[2/3] w-full plate overflow-hidden bg-panel">

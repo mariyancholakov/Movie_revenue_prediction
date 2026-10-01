@@ -151,7 +151,7 @@ def get_now_playing():
 
 
 UPCOMING_DAYS = 42   # how far ahead the "Opening Soon" strip looks
-UPCOMING_MAX = 8
+UPCOMING_MAX = 40   # every film TMDB lists in the window (two pages)
 UPCOMING_TTL = 60 * 60
 _upcoming_cache = TTLCache(UPCOMING_TTL, max_size=1)
 
