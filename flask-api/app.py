@@ -452,6 +452,25 @@ def live_prediction(movie, stage=None):
         return stored
 
 
+_warm_lock = threading.Lock()
+
+
+def _warm_lists():
+    """Rebuild whatever the Now Playing and Rankings lists have let go stale,
+    so a visitor finds them ready. One run at a time; a call that arrives
+    while another is running does nothing."""
+    if not _warm_lock.acquire(blocking=False):
+        return
+    try:
+        showing_now()  # cached for NOW_PLAYING_TTL; this rebuilds it once that passes
+        if time.time() - _leaderboard['at'] >= LEADERBOARD_FRESH and _claim_leaderboard_refresh():
+            _refresh_leaderboard()
+    except Exception as e:
+        print(f"[warm] lists not rebuilt: {e}")
+    finally:
+        _warm_lock.release()
+
+
 @app.route('/health', methods=['GET'])
 @limiter.exempt
 def health():
@@ -463,6 +482,10 @@ def health():
         supabase.table('movies').select('count').limit(1).execute()
     except Exception:
         db_ok = False
+    # The uptime monitor calls this every few minutes, which makes it the
+    # moment to rebuild the lists a visitor would otherwise wait for. It
+    # happens off to the side; the probe itself still answers at once.
+    threading.Thread(target=_warm_lists, daemon=True).start()
     return jsonify({
         'status': 'ok',
         'model_loaded': model is not None,
@@ -917,6 +940,15 @@ def build_leaderboard():
     return results
 
 
+def _claim_leaderboard_refresh():
+    """True for exactly one caller until that refresh has finished."""
+    with _leaderboard_lock:
+        if _leaderboard['refreshing']:
+            return False
+        _leaderboard['refreshing'] = True
+        return True
+
+
 def _refresh_leaderboard():
     try:
         ranked = build_leaderboard()
@@ -932,12 +964,8 @@ def _refresh_leaderboard():
 def leaderboard():
     ranked, age = _leaderboard['ranked'], time.time() - _leaderboard['at']
     if ranked is not None and age < LEADERBOARD_STALE:
-        if age >= LEADERBOARD_FRESH:
-            with _leaderboard_lock:
-                start = not _leaderboard['refreshing']
-                _leaderboard['refreshing'] = True
-            if start:
-                threading.Thread(target=_refresh_leaderboard, daemon=True).start()
+        if age >= LEADERBOARD_FRESH and _claim_leaderboard_refresh():
+            threading.Thread(target=_refresh_leaderboard, daemon=True).start()
         return jsonify(ranked)
 
     ranked = build_leaderboard()
