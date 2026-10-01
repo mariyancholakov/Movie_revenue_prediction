@@ -43,7 +43,7 @@ export default async function EmbedPage({ params }: { params: Promise<{ id: stri
         className="flex gap-3.5 no-underline text-inherit border border-ink p-3 h-[calc(100vh-1.5rem)] min-h-[9.5rem]"
       >
         <div className="relative w-[84px] shrink-0 aspect-[2/3] self-start plate bg-panel overflow-hidden">
-          <Poster src={movie?.poster ?? ''} alt={movie?.title ?? ''} fill sizes="84px" className="object-cover" />
+          <Poster src={movie?.poster ?? ''} alt={movie?.title ?? ''} fill sizes="84px" className="object-cover" loading="eager" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="font-display font-black text-[0.8rem] tracking-[0.02em] leading-none">MOVIEGROSS</span>

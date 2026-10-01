@@ -13,6 +13,7 @@ import { Typed, typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
 import { Countdown } from "./Countdown";
 import { useWidth } from "@/lib/useWidth";
+import { toggleSaved, useWatchlist } from "@/lib/watchlist";
 
 const fmt = fmtMoney;
 
@@ -166,6 +167,7 @@ export function MovieDetail({
   onBack,
   onPredict,
 }: MovieDetailProps) {
+  const saved = useWatchlist().some(f => f.id === selected.tmdb_id);
   const [shareState, setShareState] = useState<"idle" | "copied" | "failed">("idle");
   // Capture "now" once at mount. Reading the clock during render is impure
   // (react-hooks/purity) and can drift between the server render and hydration;
@@ -257,30 +259,45 @@ export function MovieDetail({
         >
           ‹ ALL FILMS
         </button>
-        <button
-          onClick={handleShare}
-          title="Copy a link to this film’s page"
-          aria-live="polite"
-          className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
-                     text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
-        >
-          <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
-            {shareState === "copied" ? (
-              <path d="M5 12.5l4.5 4.5L19 7.5" />
-            ) : (
-              <>
-                <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
-                <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" />
-              </>
-            )}
-          </svg>
-          {shareState === "copied"
-            ? "LINK COPIED"
-            : shareState === "failed"
-              ? "COULDN\u2019T COPY"
-              : "SHARE THIS FILM"}
-        </button>
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => toggleSaved({ id: selected.tmdb_id, title: selected.title, poster: selected.poster, date: selected.release_date })}
+            aria-pressed={saved}
+            title={saved ? "Remove from your watchlist" : "Save to your watchlist, kept in this browser"}
+            className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
+                       text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
+          >
+            <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor"
+              strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 3h12v18l-6-4.5L6 21z" />
+            </svg>
+            {saved ? "SAVED" : "SAVE"}
+          </button>
+          <button
+            onClick={handleShare}
+            title="Copy a link to this film’s page"
+            aria-live="polite"
+            className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
+                       text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
+          >
+            <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+              {shareState === "copied" ? (
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              ) : (
+                <>
+                  <path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" />
+                  <path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" />
+                </>
+              )}
+            </svg>
+            {shareState === "copied"
+              ? "LINK COPIED"
+              : shareState === "failed"
+                ? "COULDN\u2019T COPY"
+                : "SHARE THIS FILM"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-7 sm:gap-10">

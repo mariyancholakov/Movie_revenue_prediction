@@ -41,6 +41,12 @@ export default async function Image({ params }: { params: Promise<{ id: string }
   // Only a film that is out or coming soon is waiting on its opening weekend.
   const recent = !!movie?.release_date && Date.parse(movie.release_date) > Date.now() - 90 * 864e5;
   const year = movie?.release_date?.slice(0, 4);
+  // Not out yet: the card says when it opens.
+  const opensOn = movie?.release_date && Date.parse(movie.release_date) > Date.now()
+    ? new Date(`${movie.us_release_date || movie.release_date}T00:00:00Z`)
+        .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+        .toUpperCase()
+    : null;
   // [label, figure] pairs, the way the page prints them
   const figures: [string, string][] = done
     ? [['PREDICTED', fmtMoney(done.predicted_revenue)], ['SETTLED AT', fmtMoney(done.actual_revenue)]]
@@ -74,6 +80,15 @@ export default async function Image({ params }: { params: Promise<{ id: string }
               <div style={{ display: 'flex', alignItems: 'baseline', marginTop: 16 }}>
                 <div style={{ display: 'flex', fontFamily: 'Franklin', fontSize: 24, color: INK2 }}>{figures[1][0]}</div>
                 <div style={{ display: 'flex', fontFamily: 'Courier', fontSize: 38, marginLeft: 18 }}>{figures[1][1]}</div>
+              </div>
+            </div>
+          ) : opensOn ? (
+            <div style={{ display: 'flex', flexDirection: 'column', marginTop: 28 }}>
+              <div style={{ display: 'flex', fontFamily: 'Franklin', fontSize: 24, color: INK2 }}>OPENS IN THEATERS</div>
+              <div style={{ display: 'flex', fontFamily: 'Courier', fontSize: opensOn.length > 11 ? 74 : 88, lineHeight: 1, marginTop: 6 }}>{opensOn}</div>
+              <div style={{ display: 'flex', width: '100%', height: 4, marginTop: 18, borderTop: `2px solid ${INK}`, borderBottom: `1px solid ${INK}` }} />
+              <div style={{ display: 'flex', fontFamily: 'Franklin', fontSize: 26, color: INK2, marginTop: 16 }}>
+                The forecast is filed after the opening weekend.
               </div>
             </div>
           ) : recent ? (

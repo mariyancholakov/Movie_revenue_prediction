@@ -115,16 +115,15 @@ main:focus { outline: none; }
 .ledger-btn:active:not(:disabled) { transform: translateY(1px); }
 
 /* The quiet button: a ruled outline for actions that aren't the page's main
-   one. It fills with ink on hover, like a stamp pressed down. */
+   one. On hover it only takes a faint wash of ink, and stays an outline. */
 .ledger-btn-quiet {
   background: transparent;
   color: var(--color-ink);
   border: 1px solid var(--color-ink);
-  transition: background 0.18s ease, color 0.18s ease;
+  transition: background 0.18s ease;
 }
 .ledger-btn-quiet:hover {
-  background: var(--color-ink);
-  color: var(--color-paper);
+  background: color-mix(in srgb, var(--color-ink) 7%, transparent);
 }
 
 .tab {
