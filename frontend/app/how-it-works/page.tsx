@@ -529,7 +529,9 @@ export default function HowItWorksPage() {
                 MOVIEGROSS is open source. The model, the scrapers, the retraining exam and
                 this page are all on GitHub; the model lives in{' '}
                 <code className="font-mono text-ink text-[0.9em]">model_lib.py</code> and the exam in{' '}
-                <code className="font-mono text-ink text-[0.9em]">retrain.py</code>.
+                <code className="font-mono text-ink text-[0.9em]">retrain.py</code>. The forecasts
+                are free to use too: see the{' '}
+                <Link href="/api-docs" className="text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors">public API</Link>.
               </p>
               <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] uppercase px-5 py-3">
                 Read the code on GitHub
