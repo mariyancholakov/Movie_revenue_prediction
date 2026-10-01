@@ -27,3 +27,6 @@ lxml==6.1.1
 # Data store + config
 supabase==2.30.0
 python-dotenv==1.2.2
+
+# Web push notifications for saved films
+pywebpush==2.5.0

@@ -91,3 +91,35 @@ async function offlinePage(cache) {
     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
 }
+
+// ─── Push notifications for saved films ─────────────────────────────────────
+// The scheduled job (flask-api/push_alerts.py) sends {title, body, url, tag}.
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { return; }
+  if (!data.title) return;
+  event.waitUntil(self.registration.showNotification(data.title, {
+    body: data.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag,          // a newer message about the same film replaces the old
+    data: { url: data.url || '/' },
+  }));
+});
+
+// A tap opens the film, in the open tab if there is one.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil((async () => {
+    const tabs = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const tab of tabs) {
+      if (new URL(tab.url).origin === self.location.origin && 'focus' in tab) {
+        await tab.focus();
+        if ('navigate' in tab) await tab.navigate(url);
+        return;
+      }
+    }
+    await self.clients.openWindow(url);
+  })());
+});

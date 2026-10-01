@@ -1011,6 +1011,102 @@ def public_error(message, code, status):
     return jsonify({'error': message, 'code': code}), status
 
 
+# ─── Push notifications for saved films ──────────────────────────────────────
+# A browser that saves a film hands over its push subscription here; the
+# scheduled job (push_alerts.py) later tells it when the film opens, gets its
+# forecast, moves meaningfully, or settles. No account: the subscription is
+# the identity, and only it, the film id and the title are kept.
+VAPID_PUBLIC_KEY = os.getenv('VAPID_PUBLIC_KEY', '').strip()
+# Push services only; the job POSTs to whatever address is stored, so an
+# arbitrary URL must never be accepted.
+PUSH_HOSTS = ('.googleapis.com', '.mozilla.com', '.push.apple.com', '.notify.windows.com')
+PUSH_LIMIT = '30 per hour'
+MAX_SAVED_PER_BROWSER = 100
+
+
+def film_state(tmdb_id):
+    """Where a film stands, for alerts: {'stage', 'forecast', 'actual'}, with
+    stage upcoming < opened < forecast < settled. None when TMDB can't say."""
+    try:
+        rows = supabase.table('movies').select('*').eq('tmdb_id', tmdb_id).execute().data or []
+    except Exception as e:
+        print(f"[push] state for {tmdb_id} unavailable: {e}")
+        return None
+    movie = rows[0] if rows else None
+    if movie and movie.get('predicted_revenue') and movie.get('opening_weekend'):
+        settled = movie.get('is_in_theaters') is False and movie.get('actual_revenue')
+        forecast = movie['predicted_revenue'] if settled else live_prediction(movie)
+        return {'stage': 'settled' if settled else 'forecast', 'forecast': int(forecast),
+                'actual': int(movie['actual_revenue']) if settled else None}
+    us_date = get_us_theatrical_date(tmdb_id)
+    if us_date is None:
+        return None
+    opened = bool(us_date) and us_date <= datetime.now().strftime('%Y-%m-%d')
+    return {'stage': 'opened' if opened else 'upcoming', 'forecast': None, 'actual': None}
+
+
+def _push_body():
+    """The validated subscribe/unsubscribe body, or None."""
+    body = request.get_json(silent=True) or {}
+    sub = body.get('subscription') or {}
+    keys = sub.get('keys') or {}
+    endpoint, tmdb_id = sub.get('endpoint'), body.get('tmdb_id')
+    if not (isinstance(endpoint, str) and endpoint.startswith('https://') and len(endpoint) < 600):
+        return None
+    host = endpoint.split('/')[2].split(':')[0]
+    if not host.endswith(PUSH_HOSTS):
+        return None
+    if not (isinstance(keys.get('p256dh'), str) and isinstance(keys.get('auth'), str)):
+        return None
+    if not (isinstance(tmdb_id, int) and not isinstance(tmdb_id, bool) and 0 < tmdb_id < 10**9):
+        return None
+    title = body.get('title')
+    return {'endpoint': endpoint, 'tmdb_id': tmdb_id, 'p256dh': keys['p256dh'][:200],
+            'auth': keys['auth'][:100], 'title': title[:200] if isinstance(title, str) and title else 'This film'}
+
+
+@app.route('/api/push/key', methods=['GET'])
+def push_key():
+    if not VAPID_PUBLIC_KEY:
+        return jsonify({'error': 'Notifications are not set up.', 'code': 'unavailable'}), 503
+    return jsonify({'key': VAPID_PUBLIC_KEY})
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+@limiter.limit(PUSH_LIMIT)
+def push_subscribe():
+    row = _push_body()
+    if not row:
+        return jsonify({'error': 'That subscription was not understood.', 'code': 'bad_request'}), 400
+    try:
+        have = supabase.table('push_subscriptions').select('tmdb_id').eq('endpoint', row['endpoint']).execute().data or []
+        if len(have) >= MAX_SAVED_PER_BROWSER and not any(h['tmdb_id'] == row['tmdb_id'] for h in have):
+            return jsonify({'error': 'Too many saved films.', 'code': 'too_many'}), 400
+        # Remember where the film stands now, so only later changes are sent.
+        state = film_state(row['tmdb_id']) or {'stage': 'upcoming', 'forecast': None, 'actual': None}
+        supabase.table('push_subscriptions').upsert(
+            {**row, 'last_state': state}, on_conflict='endpoint,tmdb_id').execute()
+    except Exception as e:
+        print(f"[push] subscribe failed: {e}")
+        return jsonify({'error': 'Could not save that right now.', 'code': 'unavailable'}), 503
+    return jsonify({'ok': True})
+
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+@limiter.limit(PUSH_LIMIT)
+def push_unsubscribe():
+    row = _push_body()
+    if not row:
+        return jsonify({'error': 'That subscription was not understood.', 'code': 'bad_request'}), 400
+    try:
+        supabase.table('push_subscriptions').delete() \
+            .eq('endpoint', row['endpoint']).eq('tmdb_id', row['tmdb_id']).execute()
+    except Exception as e:
+        print(f"[push] unsubscribe failed: {e}")
+        return jsonify({'error': 'Could not do that right now.', 'code': 'unavailable'}), 503
+    return jsonify({'ok': True})
+
+
 @app.route('/v1/films', methods=['GET'])
 @limiter.limit(PUBLIC_LIMIT)
 def v1_films():

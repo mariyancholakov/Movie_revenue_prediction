@@ -14,6 +14,7 @@ import { FilmLeader } from "./FilmLeader";
 import { Countdown } from "./Countdown";
 import { useWidth } from "@/lib/useWidth";
 import { toggleSaved, useWatchlist } from "@/lib/watchlist";
+import { needsHomeScreen, subscribeToFilm, unsubscribeFromFilm, type PushResult } from "@/lib/push";
 
 const fmt = fmtMoney;
 
@@ -168,6 +169,18 @@ export function MovieDetail({
   onPredict,
 }: MovieDetailProps) {
   const saved = useWatchlist().some(f => f.id === selected.tmdb_id);
+  // What saving a film did about alerts, said once under the controls.
+  const [alerts, setAlerts] = useState<PushResult | null>(null);
+  const handleSave = async () => {
+    const film = { id: selected.tmdb_id, title: selected.title, poster: selected.poster, date: selected.release_date };
+    toggleSaved(film);
+    if (saved) {
+      setAlerts(null);
+      void unsubscribeFromFilm(film.id, film.title);
+      return;
+    }
+    setAlerts(await subscribeToFilm(film.id, film.title));
+  };
   const [shareState, setShareState] = useState<"idle" | "copied" | "failed">("idle");
   // Capture "now" once at mount. Reading the clock during render is impure
   // (react-hooks/purity) and can drift between the server render and hydration;
@@ -261,9 +274,9 @@ export function MovieDetail({
         </button>
         <div className="flex items-center gap-5">
           <button
-            onClick={() => toggleSaved({ id: selected.tmdb_id, title: selected.title, poster: selected.poster, date: selected.release_date })}
+            onClick={handleSave}
             aria-pressed={saved}
-            title={saved ? "Remove from your watchlist" : "Save to your watchlist, kept in this browser"}
+            title={saved ? "Stop alerts about this film" : "Save this film and get a notification when something changes"}
             className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
                        text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
           >
@@ -299,6 +312,18 @@ export function MovieDetail({
           </button>
         </div>
       </div>
+
+      {saved && alerts && alerts !== "on" && (
+        <p role="status" className="font-sans text-ink2 text-[0.8rem] leading-[1.5] -mt-4 mb-6 m-0">
+          {alerts === "unsupported" && needsHomeScreen()
+            ? "Saved. For alerts on an iPhone, add MOVIEGROSS to your home screen first, then save it again."
+            : alerts === "denied"
+              ? "Saved, but notifications are blocked in this browser, so there will be no alerts."
+              : alerts === "unsupported"
+                ? "Saved, but this browser can't send alerts."
+                : "Saved, but alerts couldn\u2019t be switched on right now. Try saving it again later."}
+        </p>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-7 sm:gap-10">
         {/* Poster plate */}

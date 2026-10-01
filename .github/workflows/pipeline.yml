@@ -4,6 +4,7 @@
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   TMDB_API_KEY, SUPABASE_URL, SUPABASE_KEY (the sb_secret_… key)
+# and, for push notifications about saved films: VAPID_PRIVATE_KEY, VAPID_SUBJECT
 #
 # Retraining is deliberately manual: run the "retrain" job from the Actions
 # tab and download the candidate-model artifact. If the report says it holds up
@@ -17,12 +18,13 @@ on:
   schedule:
     - cron: "0 6 * * *"   # daily 06:00 UTC — warm the prediction cache
     - cron: "0 3 * * 0"   # Sundays 03:00 UTC — capture finished runs
+    - cron: "30 */6 * * *"  # every six hours — push alerts for saved films
   workflow_dispatch:
     inputs:
       job:
         description: Which job to run
         type: choice
-        options: [warm-cache, capture, retrain]
+        options: [warm-cache, capture, push-alerts, retrain]
         default: warm-cache
 
 concurrency:
@@ -40,6 +42,8 @@ env:
   TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
   SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+  VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
 
 jobs:
   warm-cache:
@@ -69,6 +73,20 @@ jobs:
           cache-dependency-path: flask-api/requirements.txt
       - run: pip install -r requirements.txt
       - run: python capture_finished.py
+
+  push-alerts:
+    if: github.event.schedule == '30 */6 * * *' || inputs.job == 'push-alerts'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: flask-api/.python-version
+          cache: pip
+          cache-dependency-path: flask-api/requirements.txt
+      - run: pip install -r requirements.txt
+      - run: python push_alerts.py
 
   retrain:
     if: inputs.job == 'retrain'

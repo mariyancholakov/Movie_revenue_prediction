@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { Header } from '@/components/Header';
 import { MovieGrid } from '@/components/MovieGrid';
-import { Watchlist } from '@/components/Watchlist';
 import type { Movie } from '@/components/types';
 import { API_URL } from '@/lib/api';
 
@@ -60,7 +59,6 @@ export function HomeClient({ initialMovies, children }: { initialMovies: Movie[]
         }
         onClearGenres={() => setActiveGenres([])}
       />
-      <Watchlist />
       {children}
     </main>
   );

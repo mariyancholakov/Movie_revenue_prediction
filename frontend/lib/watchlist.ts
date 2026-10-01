@@ -1,8 +1,8 @@
 'use client';
 import { useSyncExternalStore } from 'react';
 
-// Films a visitor has saved, kept in this browser only (no account). Each entry
-// carries what the home page needs to show it, so it needs no fetch.
+// Films a visitor has saved with the SAVE button, kept in this browser only
+// (no account).
 export interface Saved {
   id: number;
   title: string;
@@ -53,8 +53,4 @@ export function useWatchlist(): Saved[] {
 export function toggleSaved(film: Saved) {
   const list = read();
   write(list.some(f => f.id === film.id) ? list.filter(f => f.id !== film.id) : [...list, film]);
-}
-
-export function removeSaved(id: number) {
-  write(read().filter(f => f.id !== id));
 }
