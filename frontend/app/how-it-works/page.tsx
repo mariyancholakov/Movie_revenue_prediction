@@ -230,9 +230,9 @@ export default function HowItWorksPage() {
           </h1>
           <p className={`${PROSE} pb-8`}>
             Here is the whole process, step by step, worked through with the real
-            figures for a film in theaters now. The forecasts are free to use, too:{' '}
+            figures for a film in theaters now. The forecasts are free to use, too: see the{' '}
             <Link href="/api-docs" className="text-ink underline decoration-ink/40 underline-offset-2 hover:text-red transition-colors">
-              see the public API
+              public API
             </Link>.
           </p>
         </div>
