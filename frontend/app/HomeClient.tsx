@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { Header } from '@/components/Header';
 import { MovieGrid } from '@/components/MovieGrid';
 import type { Movie } from '@/components/types';
@@ -7,7 +7,7 @@ import { API_URL } from '@/lib/api';
 
 // `initialMovies` is the list the server already fetched, so the posters are in
 // the page itself. null means the server couldn't get it; the browser asks.
-export function HomeClient({ initialMovies }: { initialMovies: Movie[] | null }) {
+export function HomeClient({ initialMovies, children }: { initialMovies: Movie[] | null; children?: ReactNode }) {
   const [movies, setMovies] = useState<Movie[]>(initialMovies ?? []);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>(initialMovies ? 'ok' : 'loading');
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +59,7 @@ export function HomeClient({ initialMovies }: { initialMovies: Movie[] | null })
         }
         onClearGenres={() => setActiveGenres([])}
       />
+      {children}
     </main>
   );
 }

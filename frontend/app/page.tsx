@@ -1,6 +1,8 @@
 import { HomeClient } from './HomeClient';
 import type { Movie } from '@/components/types';
 import { API_URL } from '@/lib/api';
+import { fetchList } from '@/lib/serverApi';
+import { OpeningSoon, type Upcoming } from '@/components/OpeningSoon';
 
 // The list of films is fetched here, on the server, and kept for five
 // minutes, so a phone gets the page with the posters already in it instead of
@@ -24,5 +26,13 @@ async function loadNowPlaying(): Promise<Movie[] | null> {
 }
 
 export default async function Home() {
-  return <HomeClient initialMovies={await loadNowPlaying()} />;
+  const [movies, upcoming] = await Promise.all([
+    loadNowPlaying(),
+    fetchList<Upcoming[]>('/api/upcoming', 3600),
+  ]);
+  return (
+    <HomeClient initialMovies={movies}>
+      <OpeningSoon films={upcoming ?? []} />
+    </HomeClient>
+  );
 }
