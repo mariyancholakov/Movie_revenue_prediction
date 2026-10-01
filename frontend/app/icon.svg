@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><rect width="1024" height="1024" fill="#1C1814"/>
+  <!-- M: stems 124, arm thickness 148, left arm 45deg, right arm 5:4 slope, all vertices on integer grid, tip flush with baseline y=716 -->
+  <path fill="#EDE7DA" d="M228 716 L228 420 L352 420 L500 568 L688 333 L688 481 L500 716 L352 568 L352 716 Z"/>
+  <rect x="648" y="272" width="124" height="444" fill="#C02820"/>
+</svg>
