@@ -109,8 +109,12 @@ export function MovieGrid({
       {/* This week's films run faintly behind the grid, on a ghost reel. It's
           clipped top and bottom so its tilt can't lengthen the page, but may
           run off the sides. */}
-      <div className="relative isolate overflow-y-clip">
-        <GhostReel posters={posters} tilt={-16} size={2.2} />
+      <div className="relative isolate overflow-y-clip min-h-[20rem] sm:min-h-[40rem]">
+        {/* the strip fades out toward the ends of the list, so a short result
+            list doesn't show it cut off by a hard edge */}
+        <div aria-hidden className="absolute inset-0 -z-10 pointer-events-none [mask-image:linear-gradient(to_bottom,transparent,black_140px,black_calc(100%-140px),transparent)]">
+          <GhostReel posters={posters} tilt={-16} size={2.2} />
+        </div>
         <div ref={grid} className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-x-5 gap-y-8">
           {loading &&
             Array.from({ length: 12 }).map((_, i) => (
