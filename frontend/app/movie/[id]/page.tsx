@@ -44,9 +44,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: `${title} · MOVIEGROSS`,
       description,
       type: 'website',
-      ...(movie.poster ? { images: [{ url: movie.poster, width: 500, height: 750, alt: movie.title }] } : {}),
     },
-    twitter: { card: movie.poster ? 'summary_large_image' : 'summary', title, description },
+    // The share card is the route's opengraph-image / twitter-image.
+    twitter: { card: 'summary_large_image', title, description },
   };
 }
 
