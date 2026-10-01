@@ -101,6 +101,20 @@ limiter = Limiter(
 def rate_limited(e):
     return jsonify({'error': 'Too many requests. Try again in a minute.', 'code': 'rate_limited'}), 429
 
+
+# The three lists every page reads change a few times a day at most. Letting
+# the browser keep them for a minute (and show a stale copy while it fetches a
+# fresh one) makes reopening the site on a phone, or moving between the tabs,
+# instant. Only successful answers are kept; an error is never cached.
+BROWSER_CACHED = ('/api/now-playing', '/api/leaderboard', '/api/finished')
+
+
+@app.after_request
+def let_browsers_keep_lists(response):
+    if request.path in BROWSER_CACHED and response.status_code == 200:
+        response.headers['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=600'
+    return response
+
 SUPABASE_KEY = os.getenv('SUPABASE_KEY', '')
 if SUPABASE_KEY.startswith('sb_publishable_'):
     # The publishable key is meant to be public. The API needs the secret key
@@ -852,11 +866,24 @@ def predict():
         return jsonify({'error': 'Something went wrong generating the prediction.', 'code': 'internal'}), 500
     return jsonify(payload), status
 
-@app.route('/api/leaderboard', methods=['GET'])
-def leaderboard():
+# Re-scoring every priced film with the model takes about two seconds, and
+# every visit to the Rankings page asks for it. The ranking is kept for
+# LEADERBOARD_FRESH seconds; after that a visitor is handed the kept copy at
+# once while one background thread builds the next, so nobody waits on it
+# unless the copy is over LEADERBOARD_STALE old (an idle server). A newly
+# priced film or a promoted model shows up within a couple of minutes.
+LEADERBOARD_FRESH = 120  # seconds
+LEADERBOARD_STALE = 3600
+_leaderboard = {'at': 0.0, 'ranked': None, 'refreshing': False}
+_leaderboard_lock = threading.Lock()
+
+
+def build_leaderboard():
+    """The ranking of every priced film still in theaters, largest predicted
+    total first; None when TMDB's now-playing list is unavailable."""
     now_playing = showing_now()
     if not now_playing:
-        return jsonify(TMDB_DOWN), 503
+        return None
 
     tmdb_ids = [m['tmdb_id'] for m in now_playing]
     poster_map  = {m['tmdb_id']: m['poster']  for m in now_playing}
@@ -887,7 +914,37 @@ def leaderboard():
         })
 
     results.sort(key=lambda x: x['predicted_revenue'], reverse=True)
-    return jsonify(results)
+    return results
+
+
+def _refresh_leaderboard():
+    try:
+        ranked = build_leaderboard()
+        if ranked is not None:
+            _leaderboard.update(at=time.time(), ranked=ranked)
+    except Exception as e:
+        print(f"[leaderboard] refresh failed: {e}")
+    finally:
+        _leaderboard['refreshing'] = False
+
+
+@app.route('/api/leaderboard', methods=['GET'])
+def leaderboard():
+    ranked, age = _leaderboard['ranked'], time.time() - _leaderboard['at']
+    if ranked is not None and age < LEADERBOARD_STALE:
+        if age >= LEADERBOARD_FRESH:
+            with _leaderboard_lock:
+                start = not _leaderboard['refreshing']
+                _leaderboard['refreshing'] = True
+            if start:
+                threading.Thread(target=_refresh_leaderboard, daemon=True).start()
+        return jsonify(ranked)
+
+    ranked = build_leaderboard()
+    if ranked is None:
+        return jsonify(TMDB_DOWN), 503
+    _leaderboard.update(at=time.time(), ranked=ranked)
+    return jsonify(ranked)
 
 
 @app.route('/api/explain/<int:tmdb_id>', methods=['GET'])
