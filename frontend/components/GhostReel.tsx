@@ -9,13 +9,20 @@ const HOLES = `url("data:image/svg+xml,${encodeURIComponent(
   '</svg>'
 )}")`;
 
+// Frames a phone draws; the rest of the strip is for wider screens.
+const PHONE_FRAMES = 12;
+
 // A ghost of a film strip crossing behind a page heading on the diagonal,
 // its frames holding this week's posters, printed so faintly they read as
 // a watermark. It feeds slowly sideways (reduced motion: it holds still).
 // The parent must be `relative isolate` so the reel prints on the paper,
 // behind the heading. With `fixed` it is pinned to the screen instead and the
 // page scrolls over it; body is isolated (globals.css) so it still prints
-// behind everything. Decorative only.
+// behind everything. Decorative only, so it is kept cheap for a phone: a dozen
+// frames at most, one grayscale filter over the whole strip rather than one
+// per frame, and the strip holds still (a crawl at 6% ink is invisible, but
+// redrawing it every frame is not free) with a single copy. A desk still gets
+// every frame, which the crawl needs to keep the strip from running out.
 export function GhostReel({ posters, tilt = -5, size = 1, fixed = false, top = '46%', ink = 0.06 }: {
   posters: string[];
   /** degrees the strip leans; flatter where the heading is wide */
@@ -33,12 +40,12 @@ export function GhostReel({ posters, tilt = -5, size = 1, fixed = false, top = '
 
   const run = (copy: number) => (
     <div
-      className="flex shrink-0 gap-[10px] px-[5px] py-[20px] bg-ink"
+      className={`flex shrink-0 gap-[10px] px-[5px] py-[20px] bg-ink ${copy ? 'max-sm:hidden' : ''}`}
       style={{ backgroundImage: HOLES, backgroundRepeat: 'repeat-x' }}
     >
       {posters.map((src, i) => (
-        <div key={`${copy}-${i}`} className="relative w-[150px] h-[96px] overflow-hidden bg-paper">
-          <Poster src={src} alt="" fill sizes="150px" className="object-cover grayscale contrast-125" />
+        <div key={`${copy}-${i}`} className={`relative w-[150px] h-[96px] overflow-hidden bg-paper ${i >= PHONE_FRAMES ? 'max-sm:hidden' : ''}`}>
+          <Poster src={src} alt="" fill sizes="150px" className="object-cover" />
         </div>
       ))}
     </div>
@@ -50,7 +57,7 @@ export function GhostReel({ posters, tilt = -5, size = 1, fixed = false, top = '
       className={`${fixed ? 'fixed' : 'absolute'} left-1/2 w-[300vw] sm:w-[170vw] scale-[calc(var(--reel-size)*0.6)] sm:scale-[var(--reel-size)] -translate-x-1/2 -translate-y-1/2 -z-10 pointer-events-none select-none overflow-hidden`}
       style={{ top, opacity: ink, rotate: `${tilt}deg`, ['--reel-size' as string]: size }}
     >
-      <div className="reel-track reel-in flex w-max">
+      <div className="reel-track reel-in flex w-max grayscale contrast-125">
         {run(0)}
         {run(1)}
       </div>
