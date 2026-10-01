@@ -112,11 +112,11 @@ export function Header() {
       {/* Dek, and the record in the same breath: how the calls below have fared
           once their runs closed. Space is kept while it loads so the page doesn't drop. */}
       <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[4.3rem] sm:min-h-[5.4rem]">
-        Every film now playing, priced to its finish by a model trained on 5,400&nbsp;<span className="max-sm:hidden">past </span>releases.
+        Every film now playing, priced to its finish by a model trained on 5,400&nbsp;past releases.
         {record && (
           <>
             {' '}On {record.films} settled films, its median miss was{' '}
-            <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after <span className="max-sm:hidden">the </span>opening weekend
+            <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
             {record.later && (
               <span className="max-sm:hidden">
                 , <span className="tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
