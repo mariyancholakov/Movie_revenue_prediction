@@ -104,8 +104,7 @@ export function FinishedClient({ initial }: { initial: FinishedEntry[] | null })
           </h1>
           <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
             Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
-            to the final gross. When a film fell short of the prediction, the gap posts in&nbsp;the&nbsp;red.
-            Want to check the record yourself? The same figures are free in the{' '}
+            to the final gross. Want to check the record yourself? The same figures are free in the{' '}
             <Link href="/api-docs" className="text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors">public API</Link>.
           </p>
 
