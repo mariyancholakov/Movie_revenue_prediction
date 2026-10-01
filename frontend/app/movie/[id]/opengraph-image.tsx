@@ -64,7 +64,14 @@ export default async function Image({ params }: { params: Promise<{ id: string }
         )}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginLeft: 56, justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', fontFamily: 'Bodoni', fontSize: 34, letterSpacing: -0.5 }}>MOVIEGROSS</div>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <svg width={44} height={44} viewBox="0 0 1024 1024" style={{ border: `1px solid ${INK}` }}>
+                <rect width="1024" height="1024" fill={PAPER} />
+                <path fill={INK} d="M228 716 L228 420 L352 420 L500 568 L688 333 L688 481 L500 716 L352 568 L352 716 Z" />
+                <rect x="648" y="272" width="124" height="444" fill="#C02820" />
+              </svg>
+              <div style={{ display: 'flex', fontFamily: 'Bodoni', fontSize: 34, letterSpacing: -0.5, marginLeft: 14 }}>MOVIEGROSS</div>
+            </div>
             <div style={{ display: 'flex', width: '100%', height: 4, marginTop: 10, borderTop: `2px solid ${INK}`, borderBottom: `1px solid ${INK}` }} />
             <div style={{ display: 'flex', fontFamily: 'Bodoni', fontSize: title.length > 28 ? 56 : title.length > 16 ? 64 : 76, lineHeight: 1.02, marginTop: 36 }}>
               {title}

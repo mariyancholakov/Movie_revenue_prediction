@@ -10,7 +10,12 @@ export const metadata: Metadata = {
   description:
     'A free box-office forecast API: predicted worldwide gross for films now playing, forecast ranges, and the settled record of past predictions. JSON, no key, CORS open.',
   alternates: { canonical: '/api-docs' },
-  openGraph: { title: 'Free Box Office Prediction API · MOVIEGROSS', type: 'website' },
+  // a page's own openGraph replaces the root one, so the site card is named here
+  openGraph: {
+    title: 'Free Box Office Prediction API · MOVIEGROSS',
+    type: 'website',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'MOVIEGROSS — The Box-Office Ledger' }],
+  },
 };
 
 // What a search engine reads as "this page documents a web API".

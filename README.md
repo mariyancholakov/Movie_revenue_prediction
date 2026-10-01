@@ -1,3 +1,5 @@
+<p align="center"><img src="frontend/public/icon-light.svg" alt="MOVIEGROSS" width="96" height="96"></p>
+
 # MOVIEGROSS — The Box-Office Ledger
 
 Predicts the **worldwide theatrical gross** of every film now playing, from an

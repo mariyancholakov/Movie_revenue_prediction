@@ -46,7 +46,11 @@ export default async function EmbedPage({ params }: { params: Promise<{ id: stri
           <Poster src={movie?.poster ?? ''} alt={movie?.title ?? ''} fill sizes="84px" className="object-cover" loading="eager" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="font-display font-black text-[0.8rem] tracking-[0.02em] leading-none">MOVIEGROSS</span>
+          <span className="flex items-center gap-1.5 font-display font-black text-[0.8rem] tracking-[0.02em] leading-none">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-light.svg" alt="" width={16} height={16} className="border border-ink" />
+            MOVIEGROSS
+          </span>
           <div className="rule-double mt-1.5 mb-2" />
           <p className="font-display font-bold text-[1.05rem] leading-[1.15] m-0 truncate">{movie?.title ?? 'Film not found'}</p>
           {rows.length > 0 ? (
