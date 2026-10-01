@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 
 const nextConfig: NextConfig = {
+  devIndicators: false, // the dev-mode "N" badge covers the page corner
   images: {
     remotePatterns: [
       {

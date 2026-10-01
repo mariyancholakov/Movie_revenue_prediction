@@ -34,11 +34,12 @@ export function Footer() {
               {' '}API, which does not endorse or certify this site
             </p>
             <p className="font-sans text-[0.75rem] leading-[1.6] text-ink2 m-0 sm:text-right">
+              Building something? Use the{' '}
               <Link
                 href="/api-docs"
                 className="relative after:absolute after:-inset-y-3.5 after:inset-x-0 after:content-[''] text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors"
               >
-                Free public API
+                free public API
               </Link>
             </p>
           </div>

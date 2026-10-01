@@ -11,6 +11,7 @@ import { DecayCurve } from "./DecayCurve";
 import { ForecastChart } from "./ForecastChart";
 import { Typed, typeOut } from "./Typed";
 import { FilmLeader } from "./FilmLeader";
+import { Countdown } from "./Countdown";
 import { useWidth } from "@/lib/useWidth";
 
 const fmt = fmtMoney;
@@ -208,6 +209,7 @@ export function MovieDetail({
     });
   }, { scope: root, dependencies: [prediction] });
 
+  const opensOn = parseDay(selected.us_release_date || selected.release_date);
   const releaseTime = selected.release_date ? new Date(selected.release_date).getTime() : NaN;
   const notReleased = !Number.isNaN(releaseTime) && releaseTime > now;
   // Opening-weekend timing counts from the US release, which can trail the
@@ -311,14 +313,7 @@ export function MovieDetail({
           {/* The answer comes first: the button, then the predicted total in
               its place, under the title and above everything about the film. */}
           <div className="mt-6" aria-live="polite" aria-busy={predicting}>
-            {notReleased && (
-              <div className="border-t border-ink/25 pt-3">
-                <p className="font-display text-ink text-[1.05rem] font-bold mb-1">Not yet in theaters</p>
-                <p className="text-ink2 text-[0.83rem] leading-[1.55] m-0">
-                  The ledger opens once the film releases and the box office starts reporting.
-                </p>
-              </div>
-            )}
+            {notReleased && opensOn && <Countdown to={opensOn} />}
 
             {!notReleased && !prediction && !predicting && (
               <button
@@ -361,7 +356,7 @@ export function MovieDetail({
 
           {/* Particulars ledger */}
           <div className={`border-t border-ink/25 ${selected.overview ? "" : "mt-7"}`}>
-            <Particular label="Released">{fmtDate(selected.release_date)}</Particular>
+            <Particular label={notReleased ? "Releases" : "Released"}>{fmtDate(selected.release_date)}</Particular>
             {laterInUS && (
               <Particular label="In the US">{fmtDate(selected.us_release_date!)}</Particular>
             )}
