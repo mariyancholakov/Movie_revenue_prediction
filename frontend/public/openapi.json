@@ -1,0 +1,358 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MOVIEGROSS Box-Office Forecast API",
+    "version": "1.0.0",
+    "description": "Free, read-only box-office forecasts from the MOVIEGROSS model: films now playing, one film's forecast and range, and the settled record of past calls. No key. Strict limits (10 requests a minute, 200 a day per visitor); answers are cached for five minutes. Forecasts are estimates, not facts. Credit appreciated: a link to https://moviegross.vercel.app.",
+    "license": {
+      "name": "Free to use; credit appreciated"
+    },
+    "contact": {
+      "url": "https://moviegross.vercel.app/api-docs"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://moviegross-api.onrender.com/v1"
+    }
+  ],
+  "paths": {
+    "/films": {
+      "get": {
+        "summary": "Films now playing that have a forecast, largest forecast first",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "example": "USD"
+                    },
+                    "credit": {
+                      "type": "string"
+                    },
+                    "films": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tmdb_id": {
+                            "type": "integer"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "predicted_total": {
+                            "type": "integer",
+                            "description": "Forecast worldwide gross, USD."
+                          },
+                          "opening_weekend": {
+                            "type": "integer",
+                            "description": "The US opening weekend the forecast was made from, USD."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/films/{tmdb_id}": {
+      "get": {
+        "summary": "One film's forecast, its range, and the call after each US weekend",
+        "description": "Only films MOVIEGROSS has already forecast; any other id answers 404 no_forecast.",
+        "parameters": [
+          {
+            "name": "tmdb_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The film's TMDB id."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Film"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ledger": {
+      "get": {
+        "summary": "Settled runs: the call made after the opening weekend beside the real total",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "currency": {
+                      "type": "string",
+                      "example": "USD"
+                    },
+                    "credit": {
+                      "type": "string"
+                    },
+                    "films": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "tmdb_id": {
+                            "type": "integer"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "predicted_total": {
+                            "type": "integer",
+                            "description": "US dollars, whole numbers."
+                          },
+                          "actual_total": {
+                            "type": "integer",
+                            "description": "US dollars, whole numbers."
+                          },
+                          "later_forecasts": {
+                            "type": "object",
+                            "description": "The call after US weekend 2, 4 or 8 (keys), for the weekends the run reached.",
+                            "additionalProperties": {
+                              "type": "integer",
+                              "description": "US dollars, whole numbers."
+                            },
+                            "example": {
+                              "2": 2767893
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "no_forecast",
+              "rate_limited",
+              "unavailable"
+            ]
+          }
+        }
+      },
+      "Film": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "credit": {
+            "type": "string"
+          },
+          "tmdb_id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "in_theaters",
+              "settled"
+            ]
+          },
+          "predicted_total": {
+            "type": "integer",
+            "description": "US dollars, whole numbers."
+          },
+          "range": {
+            "type": "array",
+            "nullable": true,
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "integer"
+            },
+            "description": "[low, high]: where half of films like it finished. null when none can be made."
+          },
+          "opening_weekend": {
+            "type": "integer",
+            "description": "US dollars, whole numbers."
+          },
+          "actual_total": {
+            "type": "integer",
+            "description": "The total the run settled at; null while it is open.",
+            "nullable": true
+          },
+          "forecasts_by_weekend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "week": {
+                  "type": "integer"
+                },
+                "us_to_date": {
+                  "type": "integer",
+                  "description": "US dollars, whole numbers."
+                },
+                "forecast": {
+                  "type": "integer",
+                  "description": "US dollars, whole numbers."
+                },
+                "low": {
+                  "type": "integer",
+                  "description": "US dollars, whole numbers."
+                },
+                "high": {
+                  "type": "integer",
+                  "description": "US dollars, whole numbers."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

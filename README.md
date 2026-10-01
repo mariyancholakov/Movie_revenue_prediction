@@ -111,6 +111,29 @@ Requests are rate-limited per visitor: 120 a minute overall, and 10 a minute
 TMDB and Box Office Mojo. Over the limit, the API answers 429 with the code
 `rate_limited`. `/health` is exempt.
 
+## Public API
+
+Free, read-only forecasts, no key, open to every website. Forecasts only (no
+posters or synopses, which are TMDB's). Docs: `/api-docs` on the site;
+machine-readable spec: [`frontend/public/openapi.json`](frontend/public/openapi.json),
+served at `/openapi.json`.
+
+```bash
+curl https://moviegross-api.onrender.com/v1/films
+```
+
+| Method | Path | |
+|---|---|---|
+| GET | `/v1/films` | Films now playing with a forecast: `tmdb_id`, `title`, `predicted_total`, `opening_weekend` |
+| GET | `/v1/films/<tmdb_id>` | One film: the call, its range, and the call after each US weekend; 404 `no_forecast` if never forecast |
+| GET | `/v1/ledger` | Settled runs, predicted vs. actual, with the later calls |
+
+Strict limits: 10 requests a minute and 200 a day per visitor (429
+`rate_limited`); answers are cached for five minutes. Built from kept or stored
+data only, never a scrape or a fresh prediction. The shape of these answers is
+promised not to change; the site's own `/api` routes above are not. There is
+also an embeddable box, `/embed/<tmdb_id>`, for framing a film's forecast.
+
 ## Local development
 
 Requires Python 3.14 and Node 20+.
