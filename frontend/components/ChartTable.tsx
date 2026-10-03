@@ -6,7 +6,8 @@ export function ChartTable({ caption, heads, rows }: {
   rows: (string | number)[][];
 }) {
   return (
-    <table className="sr-only">
+    <div className="sr-only">
+    <table>
       <caption>{caption}</caption>
       <thead>
         <tr>{heads.map(h => <th key={h} scope="col">{h}</th>)}</tr>
@@ -21,5 +22,6 @@ export function ChartTable({ caption, heads, rows }: {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

@@ -51,10 +51,10 @@ export function GhostReel({ posters, tilt = -5, size = 1, fixed = false, top = '
     </div>
   );
 
-  return (
+  const strip = (
     <div
       aria-hidden
-      className={`${fixed ? 'fixed' : 'absolute'} left-1/2 w-[300vw] sm:w-[170vw] scale-[calc(var(--reel-size)*0.6)] sm:scale-[var(--reel-size)] -translate-x-1/2 -translate-y-1/2 -z-10 pointer-events-none select-none overflow-hidden`}
+      className={`absolute left-1/2 w-[300vw] sm:w-[170vw] scale-[calc(var(--reel-size)*0.6)] sm:scale-[var(--reel-size)] -translate-x-1/2 -translate-y-1/2 ${fixed ? '' : '-z-10'} pointer-events-none select-none overflow-hidden`}
       style={{ top, opacity: ink, rotate: `${tilt}deg`, ['--reel-size' as string]: size }}
     >
       <div className="reel-track reel-in flex w-max grayscale contrast-125">
@@ -63,4 +63,11 @@ export function GhostReel({ posters, tilt = -5, size = 1, fixed = false, top = '
       </div>
     </div>
   );
+
+  // The strip is far wider than a phone. Pinned straight to the screen, a phone
+  // still counts that width as page and lets you pan sideways, so it sits in a
+  // screen-sized box that clips it.
+  return fixed ? (
+    <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none">{strip}</div>
+  ) : strip;
 }
