@@ -162,14 +162,6 @@ main:focus { outline: none; }
 @keyframes leaderSweep { to { stroke-dashoffset: 0; } }
 .leader-sweep { animation: leaderSweep 1s linear infinite; }
 
-/* The retraining loop (how-it-works Cycle): each step's node fills ink in
-   turn, clockwise, holding it for a quarter of the turn. */
-@keyframes cycleLight {
-  0%, 20%   { fill: var(--color-ink); }
-  25%, 100% { fill: transparent; }
-}
-.cycle-node { animation: cycleLight 8s ease-in-out infinite; }
-
 /* The install sheet (InstallPrompt.tsx) slides up once. */
 @keyframes sheetUp { from { transform: translateY(100%); } }
 .install-sheet { animation: sheetUp 0.35s cubic-bezier(0.22, 1, 0.36, 1); }

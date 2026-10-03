@@ -252,7 +252,7 @@ export default function HowItWorksPage() {
                 aria-label="Example film"
                 value={filmId ?? ''}
                 onChange={e => setFilmId(Number(e.target.value))}
-                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-[0.95rem] sm:text-[1.05rem] leading-6 border-0 border-b border-ink/40 rounded-none pt-2.5 pb-3 pl-1 pr-6 cursor-pointer"
+                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-base sm:text-[1.05rem] leading-6 border-0 border-b border-ink/40 rounded-none pt-2.5 pb-3 pl-1 pr-6 cursor-pointer"
               >
                 {films.map(f => <option key={f.tmdb_id} value={f.tmdb_id}>{f.title}</option>)}
               </select>
@@ -379,10 +379,26 @@ export default function HowItWorksPage() {
                       </span>
                       <span className="text-right">Effect</span>
                     </div>
+                    <p className={`sm:hidden flex gap-4 m-0 pb-2.5 ${HEAD}`}>
+                      <span className="inline-flex items-center gap-1.5"><span aria-hidden className="inline-block h-2 w-3 bg-ink2" />Raises it</span>
+                      <span className="inline-flex items-center gap-1.5"><span aria-hidden className="inline-block h-2 w-3 bg-red" />Lowers it</span>
+                    </p>
                     <TapeRow label="Starting point" detail="The typical film" figure={`${x2(data.base_multiplier)}×`} />
-                    {factors.map(([g, f]) => (
-                      <TapeRow key={g} label={LABELS[g]} detail={file[g]} figure={`× ${x2(f)}`}>
-                        <div className="relative h-4 w-full">
+                    {factors.map(([g, f]) => {
+                      // Judged on the figure as printed, so a 0.997 shown as 1.00 isn't marked as a loss
+                      const lowers = Number(x2(f)) < 1;
+                      return (
+                      <TapeRow key={g} label={LABELS[g]} detail={file[g]} figure={`× ${x2(f)}`} lowers={lowers}>
+                        {/* A phone has no room for a bar each way round the rule: the bar runs one way
+                            from the left, as long as the effect is big, black to raise and red to lower */}
+                        <div className="sm:hidden relative h-2 w-full bg-rule/60">
+                          <div
+                            data-bar="left"
+                            className={`absolute inset-y-0 left-0 ${lowers ? 'bg-red' : 'bg-ink2'}`}
+                            style={{ width: `${(Math.abs(Math.log(f)) / reach) * 100}%` }}
+                          />
+                        </div>
+                        <div className="max-sm:hidden relative h-4 w-full">
                           <div className="absolute inset-y-[-4px] left-1/2 w-px bg-ink/50" />
                           <div
                             data-bar={f >= 1 ? 'left' : 'right'}
@@ -394,7 +410,8 @@ export default function HowItWorksPage() {
                           />
                         </div>
                       </TapeRow>
-                    ))}
+                      );
+                    })}
                     <div className="rule-double" />
                     <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[14rem_1fr_5.5rem] gap-x-5 items-baseline py-3">
                       <span className="text-ink font-semibold text-[0.92rem]">Multiplier</span>
@@ -517,8 +534,8 @@ export default function HowItWorksPage() {
                     <span className="text-right">Median miss</span>
                   </div>
                   {[
-                    ['One multiplier, TMDB facts only', '$53M', '38.4%'],
-                    ['US run × trip abroad, Mojo facts (now live)', '$42M', '26.3%'],
+                    ['Earlier model: one multiplier, TMDB data', '$53M', '38.4%'],
+                    ['Live model: US run, then the world, Mojo data', '$42M', '26.3%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>
@@ -603,7 +620,7 @@ function Exhibit({ ready, children }: { ready: boolean; children: React.ReactNod
   );
 }
 
-function TapeRow({ label, detail, figure, children }: { label: string; detail: string; figure: string; children?: React.ReactNode }) {
+function TapeRow({ label, detail, figure, lowers, children }: { label: string; detail: string; figure: string; lowers?: boolean; children?: React.ReactNode }) {
   return (
     <div data-row className="grid grid-cols-[1fr_auto] sm:grid-cols-[14rem_1fr_5.5rem] gap-x-5 gap-y-2 items-center py-2.5 border-t border-rule">
       <div className="min-w-0">
@@ -611,7 +628,7 @@ function TapeRow({ label, detail, figure, children }: { label: string; detail: s
         <p className="font-mono text-ink2 text-[0.75rem] m-0 mt-0.5 truncate">{detail}</p>
       </div>
       <div className="order-last col-span-2 sm:order-none sm:col-span-1">{children}</div>
-      <span className={`${NUM} text-ink text-right whitespace-nowrap`}>{figure}</span>
+      <span className={`${NUM} text-right whitespace-nowrap ${lowers ? 'text-ink max-sm:text-red' : 'text-ink'}`}>{figure}</span>
     </div>
   );
 }
@@ -630,56 +647,21 @@ function Figure({ label, short, value }: { label: string; short?: string; value:
   );
 }
 
-// The loop the whole product runs on: four steps round a ring, clockwise
-// from the top, drawn in the seal's pair of rules. The nodes light red one by
-// one (plain CSS, so the global reduced-motion rule leaves them all unlit).
+// The loop the whole product runs on, as four step names in a ruled row.
+// The last step leads back to the first, which the sentence above says.
 function Cycle() {
-  const R = 80; // the ring the steps sit on, in viewBox units
-  const at = (deg: number) => {
-    const a = (deg * Math.PI) / 180;
-    return [100 + R * Math.sin(a), 100 - R * Math.cos(a)] as const;
-  };
-  const label = 'text-ink text-[0.9rem] sm:text-[0.98rem] leading-snug m-0';
+  const steps = ['Predict', 'Settle', 'Retrain', 'Promote'];
   return (
-    <figure className="m-0 mt-8 max-w-[46rem] grid grid-cols-[1fr_auto_1fr] items-center gap-x-4 gap-y-2">
-      <figcaption className="sr-only">
-        The loop: predict, settle, retrain, promote the new model if it wins, and round again.
-      </figcaption>
-      <p className={`${label} col-start-2 text-center`}>Predict</p>
-      <p className={`${label} row-start-2 col-start-1 text-right`}>Promote</p>
-      <svg aria-hidden viewBox="12 12 176 176" className="row-start-2 col-start-2 w-[8.5rem] sm:w-[11rem] overflow-visible">
-        {/* The ring stops short of each node, so an unlit node is hollow: just the paper behind it */}
-        <mask id="cycle-gaps">
-          <rect x="0" y="0" width="200" height="200" fill="white" />
-          {[0, 90, 180, 270].map(deg => {
-            const [x, y] = at(deg);
-            return <circle key={deg} cx={x} cy={y} r="5.5" fill="black" />;
-          })}
-        </mask>
-        <g mask="url(#cycle-gaps)">
-          <circle cx="100" cy="100" r={R} fill="none" stroke="var(--color-ink)" strokeWidth="1.4" />
-          <circle cx="100" cy="100" r={R - 10} fill="none" stroke="var(--color-ink)" strokeWidth="0.5" />
-        </g>
-        {/* Which way round: a chevron on the ring between each pair of steps */}
-        {[45, 135, 225, 315].map(deg => {
-          const [x, y] = at(deg);
-          return (
-            <path key={deg} d="M-3.5,-5 L2.5,0 L-3.5,5" fill="none" stroke="var(--color-ink)" strokeWidth="1.6"
-              strokeLinecap="round" strokeLinejoin="round" transform={`translate(${x} ${y}) rotate(${deg})`} />
-          );
-        })}
-        {/* Lit in turn: a negative delay starts each node partway through the
-            turn, so step i lights 2i seconds in and none waits unlit */}
-        {[0, 90, 180, 270].map((deg, i) => {
-          const [x, y] = at(deg);
-          return (
-            <circle key={deg} cx={x} cy={y} r="5.5" fill="transparent" stroke="var(--color-ink)" strokeWidth="1.4"
-              className="cycle-node" style={{ animationDelay: `${i * 2 - 8}s` }} />
-          );
-        })}
-      </svg>
-      <p className={`${label} row-start-2 col-start-3 text-left`}>Settle</p>
-      <p className={`${label} row-start-3 col-start-2 text-center`}>Retrain</p>
-    </figure>
+    <ol
+      aria-label="The loop: predict, settle, retrain, promote the new model if it wins, and round again"
+      className="list-none m-0 mt-8 py-3.5 px-0 max-w-[46rem] flex items-center justify-between sm:justify-start gap-x-2 sm:gap-x-5 border-y border-rule text-ink text-[0.9rem] sm:text-[0.98rem] leading-snug"
+    >
+      {steps.map((step, i) => (
+        <li key={step} className="contents">
+          <span>{step}</span>
+          {i < steps.length - 1 && <span aria-hidden className="text-ink3">→</span>}
+        </li>
+      ))}
+    </ol>
   );
 }
