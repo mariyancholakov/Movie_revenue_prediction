@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { EASE, gsap, motion, useGSAP } from '@/lib/motion';
 import { RunningHead } from '@/components/RunningHead';
 import { DecayCurve } from '@/components/DecayCurve';
-import { GhostReel } from '@/components/GhostReel';
+import { PosterMosaic } from '@/components/PosterMosaic';
 import { WireDown } from '@/components/WireDown';
 import { Typed, typeOut } from '@/components/Typed';
 import type { DecayCurveData } from '@/components/types';
@@ -32,7 +32,10 @@ interface Explain {
   decay_curve: DecayCurveData | null;
 }
 
-interface Film { tmdb_id: number; title: string; poster: string; budget: number | null; decay_rate: number | null }
+interface Film {
+  tmdb_id: number; title: string; poster: string; predicted_revenue: number;
+  budget: number | null; decay_rate: number | null;
+}
 
 const STEPS = [
   { id: 'opening', label: 'The opening' },
@@ -221,9 +224,9 @@ export default function HowItWorksPage() {
       <RunningHead active="how" stamp={false} />
 
       <div ref={root} className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
-        {/* This week's films run faintly behind the page, on a ghost reel
-            pinned low on the screen that the steps scroll over */}
-        <GhostReel posters={films.map(f => f.poster).filter(Boolean)} fixed top="64%" tilt={-8} size={1.6} ink={0.045} />
+        {/* This week's posters sit faintly behind the page, tiled by gross,
+            pinned to the screen so the steps scroll over them */}
+        <PosterMosaic films={films} />
         <div>
           <h1 className="font-display text-ink text-[2.2rem] sm:text-[3.2rem] font-bold leading-[1.02] m-0 mb-4 max-w-3xl">
             How a number gets made
