@@ -48,12 +48,14 @@ export function InstallPrompt() {
     if (isInstalled()) return;
     const dismissedAt = Number(read(DISMISSED));
     if (dismissedAt && Date.now() - dismissedAt < SNOOZE) return;
-    setDesktop(!window.matchMedia('(pointer: coarse)').matches);
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const open = (kind: 'android' | 'iphone') => {
       clearTimeout(timer);
-      timer = setTimeout(() => setShow(kind), DELAY);
+      timer = setTimeout(() => {
+        setDesktop(!window.matchMedia('(pointer: coarse)').matches);
+        setShow(kind);
+      }, DELAY);
     };
 
     const onPrompt = (e: Event) => {
