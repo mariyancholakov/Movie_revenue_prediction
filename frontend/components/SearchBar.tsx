@@ -26,7 +26,7 @@ export function SearchBar({
           value={query}
           onChange={e => onQueryChange(e.target.value)}
           className="w-[calc(100%+0.5rem)] -ml-2 pl-2 bg-transparent border-0 border-b border-ink/40 text-ink font-sans
-                     text-[0.95rem] py-2.5 pr-8 transition-colors duration-200
+                     max-sm:text-base sm:text-[0.95rem] py-2.5 pr-8 transition-colors duration-200
                      placeholder:text-ink3 placeholder:italic search-field"
         />
         {query && (
