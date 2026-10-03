@@ -230,20 +230,23 @@ export default function HowItWorksPage() {
           </h1>
           <p className={`${PROSE} pb-8`}>
             Here is the whole process, step by step, worked through with the real
-            figures for a film in theaters now. The forecasts are free to use, too: see the{' '}
-            <Link href="/api-docs" className="text-ink underline decoration-ink/40 underline-offset-2 hover:text-red transition-colors">
-              public API
-            </Link>.
+            figures for a film in theaters now.
+            <span className="max-sm:hidden">
+              {' '}The forecasts are free to use, too: see the{' '}
+              <Link href="/api-docs" className="text-ink underline decoration-ink/40 underline-offset-2 hover:text-red transition-colors">
+                public API
+              </Link>.
+            </span>
           </p>
         </div>
 
         {/* The worked example: every figure on the page below is this film's. */}
         <div className="rule-double" />
         {/* One ruled line: the film and its link sit on the same bottom rule */}
-        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 py-4">
+        <div className="flex flex-nowrap items-end gap-x-4 sm:gap-x-6 py-4">
           {films.length > 0 ? (
             // Sized to the chosen title, not the longest one, with its own chevron beside it
-            <span className="relative inline-flex max-w-full">
+            <span className="relative inline-flex min-w-0 max-w-full">
               <select
                 id="film"
                 aria-label="Example film"
@@ -261,8 +264,9 @@ export default function HowItWorksPage() {
             <span className="paper-skeleton inline-block h-6 w-48" />
           ) : null}
           {data && (
-            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex items-center gap-2 text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-3 pb-3 transition-colors hover:border-red hover:text-red">
-              Open film page
+            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-3 pb-3 transition-colors hover:border-red hover:text-red">
+              <span className="sm:hidden">Film page</span>
+              <span className="max-sm:hidden">Open film page</span>
               <span aria-hidden className="text-ink2 transition-transform group-hover:translate-x-1">→</span>
             </Link>
           )}
@@ -292,9 +296,12 @@ export default function HowItWorksPage() {
             {/* 1 ─ The opening */}
             <Step n={1} id="opening" title="It starts with the opening weekend">
               <p className={PROSE}>
-                A film can&rsquo;t be priced before it opens. On the Monday after its
-                first Friday-to-Sunday in US theaters, Box Office Mojo reports what it took.
-                That one figure sets the scale of the whole run: a film that opens to
+                A film can&rsquo;t be priced before it opens.
+                <span className="max-sm:hidden">
+                  {' '}On the Monday after its first Friday-to-Sunday in US theaters, Box Office
+                  Mojo reports what it took.
+                </span>
+                {' '}That one figure sets the scale of the whole run: a film that opens to
                 $100M isn&rsquo;t going to finish at $20M.
               </p>
               <Exhibit ready={!!data}>
@@ -312,9 +319,13 @@ export default function HowItWorksPage() {
               <p className={PROSE}>
                 TMDB supplies what kind of film it is and who made it; Box Office Mojo adds
                 how many theaters it opened in, its rating, its distributor and what it
-                opened to in other countries. The director and leads are read by their
-                record: what their earlier films made. There are no reviews and no
-                trailer views, only facts that are on record the week a film opens.
+                opened to in other countries.
+                <span className="max-sm:hidden">
+                  {' '}The director and leads are read by their record: what their earlier
+                  films made.
+                </span>
+                {' '}There are no reviews and no trailer views, only facts that are on record
+                the week a film opens.
               </p>
               <Exhibit ready={!!file}>
                 {file && (
@@ -328,7 +339,7 @@ export default function HowItWorksPage() {
                   </dl>
                 )}
               </Exhibit>
-              <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem]`}>
+              <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem] max-sm:hidden`}>
                 Left out on purpose: TMDB&rsquo;s popularity score. In the training data it
                 was measured years after each release, while a new film is scored in its
                 opening week, so the model would read every new film as unusually hot. Budget
@@ -346,13 +357,15 @@ export default function HowItWorksPage() {
                 mostly says how long it will hold, and how far it will travel abroad.
               </p>
               <p className={PROSE}>
-                It answers those two questions separately, with two gradient-boosted tree
-                ensembles (XGBoost) trained on 5,389 past releases: how many times its
-                opening the film will make in the US, and how much bigger the world makes
-                that. Together they start from the multiplier of a typical film and let
-                each part of the file push it up or down.
+                <span className="max-sm:hidden">
+                  It answers those two questions separately, with two gradient-boosted tree
+                  ensembles (XGBoost) trained on 5,389 past releases: how many times its
+                  opening the film will make in the US, and how much bigger the world makes
+                  that. Together they start from the multiplier of a typical film and let
+                  each part of the file push it up or down.
+                </span>
                 {up && down && data && (
-                  <> For {data.title}, the biggest push came from {LABELS[up[0]].toLowerCase()} (×{x2(up[1])}),
+                  <><span className="max-sm:hidden">{' '}</span>For {data.title}, the biggest push came from {LABELS[up[0]].toLowerCase()} (×{x2(up[1])}),
                   and the biggest pull from {LABELS[down[0]].toLowerCase()} (×{x2(down[1])}).</>
                 )}
               </p>
@@ -391,7 +404,7 @@ export default function HowItWorksPage() {
                   </div>
                 )}
               </Exhibit>
-              <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem]`}>
+              <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem] max-sm:hidden`}>
                 The opening shows up twice: it sets the scale, and it also moves the
                 multiplier, because huge openers tend to burn out fast while small ones have
                 room to grow. The effects are the model&rsquo;s own accounting (SHAP values),
@@ -405,19 +418,22 @@ export default function HowItWorksPage() {
                 Opening weekend times multiplier is the predicted total. It&rsquo;s a
                 worldwide figure, even though the opening is US-only: from past films, and
                 from what this one opened to abroad, the model has learned how a US opening
-                translates into a global run. Beside it the film page prints the prediction&rsquo;s range,
-                read off the model&rsquo;s own misses on films it never saw: half of films
-                like it finished inside, a quarter above and a quarter below. It is wide
-                for a small opening and narrows as the weekends come in.
+                translates into a global run.
+                <span className="max-sm:hidden">
+                  {' '}Beside it the film page prints the prediction&rsquo;s range,
+                  read off the model&rsquo;s own misses on films it never saw: half of films
+                  like it finished inside, a quarter above and a quarter below. It is wide
+                  for a small opening and narrows as the weekends come in.
+                </span>
               </p>
               <Exhibit ready={!!data}>
                 {data && (
-                  <div className="flex flex-wrap items-end gap-x-4 sm:gap-x-6 gap-y-4">
-                    <Figure label="US opening weekend" value={fmtMoney(data.opening_weekend)} />
-                    <span className={`${NUM} text-ink3 pb-[0.1rem]`}>×</span>
+                  <div className="flex flex-nowrap items-end gap-x-2 sm:gap-x-6">
+                    <Figure label="US opening weekend" short="Opening" value={fmtMoney(data.opening_weekend)} />
+                    <span className={`${NUM} text-ink3 pb-[0.1rem] shrink-0`}>×</span>
                     <Figure label="Multiplier" value={`${x2(data.multiplier)}×`} />
-                    <span className={`${NUM} text-ink3 pb-[0.1rem]`}>=</span>
-                    <Figure label="Predicted worldwide total" value={fmtMoney(data.predicted_revenue)} />
+                    <span className={`${NUM} text-ink3 pb-[0.1rem] shrink-0`}>=</span>
+                    <Figure label="Predicted worldwide total" short="Predicted total" value={fmtMoney(data.predicted_revenue)} />
                   </div>
                 )}
               </Exhibit>
@@ -434,11 +450,13 @@ export default function HowItWorksPage() {
                   about {Math.round(Math.exp(-lam) * 100)}% of the one before, so its
                   weekend gross halves every {(Math.LN2 / lam).toFixed(1)} weeks.</>
                 )}
-                {' '}The curve itself is a read-out. The weekends aren&rsquo;t: after each
-                one, the forecast is made again with the run so far, the gross to date,
-                the last weekend and how hard it dropped. On films the model never saw, the
-                median miss falls from 27% at opening to 16% after four weekends and 13%
-                after eight.
+                <span className="max-sm:hidden">
+                  {' '}The curve itself is a read-out. The weekends aren&rsquo;t: after each
+                  one, the forecast is made again with the run so far, the gross to date,
+                  the last weekend and how hard it dropped.
+                </span>
+                {' '}On films the model never saw, the median miss falls from 27% at opening
+                to 16% after four weekends and 13% after eight.
               </p>
               <Exhibit ready={!!data}>
                 {data && (curve && curve.weeks.length > 1 ? (
@@ -459,10 +477,15 @@ export default function HowItWorksPage() {
                 theaters and is at least 12 weeks past release, the run is settled on{' '}
                 <Link href="/finished" className="text-ink underline decoration-ink/40 underline-offset-4 hover:decoration-ink">The Ledger</Link>:
                 predicted against actual, misses included. The call it&rsquo;s held to is
-                the one made on opening weekend, not the late forecast, which by then has
-                most of the run in hand. The actual is the same worldwide figure the model
-                learns from: Box Office Mojo&rsquo;s, or TMDB&rsquo;s where Mojo has no
-                foreign grosses.
+                the one made on opening weekend
+                <span className="max-sm:hidden">
+                  , not the late forecast, which by then has most of the run in hand
+                </span>
+                .
+                <span className="max-sm:hidden">
+                  {' '}The actual is the same worldwide figure the model learns from: Box
+                  Office Mojo&rsquo;s, or TMDB&rsquo;s where Mojo has no foreign grosses.
+                </span>
               </p>
               <Exhibit ready={record !== undefined}>
                 {record && (
@@ -479,8 +502,11 @@ export default function HowItWorksPage() {
               <p className={PROSE}>
                 Every settled run becomes one more training example. A new candidate model
                 is then put through an honest exam: it trains only on films released before
-                2017 and is scored on the 1,107 released since, the same job it does live,
-                pricing films newer than anything it has seen. It replaces the current model
+                2017 and is scored on the 1,107 released since
+                <span className="max-sm:hidden">
+                  , the same job it does live, pricing films newer than anything it has seen
+                </span>
+                . It replaces the current model
                 only if it wins, and a person makes that call.
               </p>
               <Exhibit ready>
@@ -514,8 +540,8 @@ export default function HowItWorksPage() {
                   ['Small releases, precisely.', 'A limited opening can grow many times over or vanish, so its multiplier is a wide guess. The film page flags these as rough.'],
                   ['How a film holds abroad.', 'The model sees what a film opened to in other countries, but not how it held there afterwards. A film that keeps growing overseas will be undercalled.'],
                   ['Better data than TMDB has.', 'Budgets are often missing or estimates, and final grosses keep being revised after a run ends. The Ledger follows the revisions for a year.'],
-                ].map(([head, body]) => (
-                  <li key={head}>
+                ].map(([head, body], i, all) => (
+                  <li key={head} className={i === all.length - 1 ? 'max-sm:hidden' : undefined}>
                     <p className="text-ink font-semibold text-[0.95rem] m-0 mb-1">{head}</p>
                     <p className="text-ink2 text-[0.9rem] leading-relaxed m-0">{body}</p>
                   </li>
@@ -530,17 +556,22 @@ export default function HowItWorksPage() {
               </h2>
               <p className={`${PROSE} mb-5`}>
                 MOVIEGROSS is open source. The model, the scrapers, the retraining exam and
-                this page are all on GitHub; the model lives in{' '}
-                <code className="font-mono text-ink text-[0.9em]">model_lib.py</code> and the exam in{' '}
-                <code className="font-mono text-ink text-[0.9em]">retrain.py</code>. The forecasts
-                are free to use too.
+                this page are all on GitHub.
+                <span className="max-sm:hidden">
+                  {' '}The model lives in{' '}
+                  <code className="font-mono text-ink text-[0.9em]">model_lib.py</code> and the exam in{' '}
+                  <code className="font-mono text-ink text-[0.9em]">retrain.py</code>. The forecasts
+                  are free to use too.
+                </span>
               </p>
-              <div className="flex flex-wrap gap-3">
-                <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
-                  Read the code on GitHub
+              <div className="flex flex-nowrap gap-3">
+                <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block whitespace-nowrap no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-4 sm:px-5 py-3">
+                  <span className="sm:hidden">View the code</span>
+                  <span className="max-sm:hidden">Read the code on GitHub</span>
                 </a>
-                <Link href="/api-docs" className="ledger-btn-quiet inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
-                  Use the free API
+                <Link href="/api-docs" className="ledger-btn-quiet inline-block whitespace-nowrap no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-4 sm:px-5 py-3">
+                  <span className="sm:hidden">Free API</span>
+                  <span className="max-sm:hidden">Use the free API</span>
                 </Link>
               </div>
             </section>
@@ -585,11 +616,14 @@ function TapeRow({ label, detail, figure, children }: { label: string; detail: s
   );
 }
 
-function Figure({ label, value }: { label: string; value: string }) {
+// `short` is the label a phone shows, where three figures share one line.
+function Figure({ label, short, value }: { label: string; short?: string; value: string }) {
   return (
     <div className="flex flex-col gap-2 min-w-0">
-      <span className={HEAD}>{label}</span>
-      <span data-figure className="font-mono tabular-nums text-ink text-[1.2rem] sm:text-[1.5rem] leading-none">
+      <span className={HEAD}>
+        {short ? <><span className="sm:hidden">{short}</span><span className="max-sm:hidden">{label}</span></> : label}
+      </span>
+      <span data-figure className="font-mono tabular-nums text-ink text-[clamp(0.95rem,4.8vw,1.2rem)] sm:text-[1.5rem] leading-none whitespace-nowrap">
         <Typed text={value} />
       </span>
     </div>

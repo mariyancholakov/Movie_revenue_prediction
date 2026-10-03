@@ -14,12 +14,14 @@ interface DecayCurveProps {
 const INK = 'var(--color-ink)';
 const RULE = 'var(--color-rule)';
 const INK2 = 'var(--color-ink2)';
+// The model's fit is in the paper's one spot red, so it reads apart from the ink of the actual run.
+const MODEL = 'var(--color-red)';
 const PAPER = 'var(--color-paper)';
 const MONO = 'var(--font-courier), monospace';
 const SANS = 'var(--font-franklin), sans-serif';
 
 // A printed weekend-gross chart: ink line + hatched fill for the actual run,
-// a dashed grey line for the model's fit, ruled gridlines, Courier labels.
+// a dashed red line for the model's fit, ruled gridlines, Courier labels.
 export function DecayCurve({ data, width: measured }: DecayCurveProps) {
   const [frame, ownWidth] = useWidth();
   const width = measured ?? ownWidth ?? 640;
@@ -67,7 +69,7 @@ export function DecayCurve({ data, width: measured }: DecayCurveProps) {
           Actual
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <svg aria-hidden width="16" height="12"><line x1="0" y1="6" x2="16" y2="6" stroke={INK2} strokeWidth={2.75} strokeDasharray="5 4" /></svg>
+          <svg aria-hidden width="16" height="12"><line x1="0" y1="6" x2="16" y2="6" stroke={MODEL} strokeWidth={2.75} strokeDasharray="5 4" /></svg>
           Model
         </span>
       </div>
@@ -94,7 +96,7 @@ export function DecayCurve({ data, width: measured }: DecayCurveProps) {
           <path data-area d={areaPath} fill="url(#ink-hatch)" />
 
           {/* Model fit — dashed, under the actual line so the two read apart */}
-          <path data-fit d={fittedPath} fill="none" stroke={INK2} strokeWidth={2.75}
+          <path data-fit d={fittedPath} fill="none" stroke={MODEL} strokeWidth={2.75}
             strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Actual gross — solid ink */}
