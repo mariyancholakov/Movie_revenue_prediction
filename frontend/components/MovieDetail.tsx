@@ -308,7 +308,7 @@ export function MovieDetail({
               ? "LINK COPIED"
               : shareState === "failed"
                 ? "COULDN\u2019T COPY"
-                : "SHARE THIS FILM"}
+                : "SHARE"}
           </button>
         </div>
       </div>

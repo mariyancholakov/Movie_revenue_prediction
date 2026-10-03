@@ -33,21 +33,14 @@ export interface LeaderboardEntry {
   budget: number | null;
 }
 
-/** What the server fetched; each part is null if it couldn't be had, and the
- *  browser then asks for it. */
+/** What the server fetched; null if it couldn't be had, and the browser then asks for it. */
 export interface LeaderboardData {
   ranked: LeaderboardEntry[] | null;
-  playing: number[] | null;
-  settled: number[] | null;
 }
 
 export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>(initial.ranked ?? []);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>(initial.ranked ? 'ok' : 'loading');
-  // Films TMDB lists as playing now, and the ones already settled on The
-  // Ledger: what explains the gap between "playing" and "ranked" below.
-  const [playing, setPlaying] = useState<number[]>(initial.playing ?? []);
-  const [settled, setSettled] = useState<Set<number>>(() => new Set(initial.settled ?? []));
   const chart = useRef<HTMLDivElement>(null);
 
   // The chart fills in like a printer's proof: rows post top-down and each
@@ -70,28 +63,7 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
         .then((data: LeaderboardEntry[]) => { setEntries(data); setStatus('ok'); })
         .catch(() => setStatus('error'));
     }
-
-    // Only for the note on unranked films; without them the note isn't shown.
-    if (!initial.playing) {
-      fetch(`${API_URL}/api/now-playing`)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then((films: { tmdb_id: number }[]) => setPlaying(films.map(f => f.tmdb_id)))
-        .catch(() => {});
-    }
-    if (!initial.settled) {
-      fetch(`${API_URL}/api/finished`)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
-        .then((films: { tmdb_id: number }[]) => setSettled(new Set(films.map(f => f.tmdb_id))))
-        .catch(() => {});
-    }
   }, [initial]);
-
-  // Films listed as playing that aren't ranked: those whose run has closed sit
-  // on The Ledger and go unmentioned; the rest wait on their opening weekend.
-  const ranked = new Set(entries.map(e => e.tmdb_id));
-  const unranked = status === 'ok' ? playing.filter(id => !ranked.has(id)) : [];
-  const waiting = unranked.filter(id => !settled.has(id)).length;
-  const films = (n: number) => `${n} ${n === 1 ? 'film' : 'films'}`;
 
   const maxRevenue = entries[0]?.predicted_revenue ?? 1;
 
@@ -107,9 +79,6 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
         <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-6">
           Every film now playing that the model has priced, ranked by its predicted worldwide total. Profit is
           estimated as the studio&rsquo;s roughly half of that gross, minus the budget.
-          {entries.length > 0 && waiting > 0 && (
-            <> Not ranked: {films(waiting)} {waiting === 1 ? 'is' : 'are'} waiting on opening-weekend figures.</>
-          )}
         </p>
 
         <div className="rule-double mb-2" />
