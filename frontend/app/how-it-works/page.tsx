@@ -631,7 +631,7 @@ function TapeRow({ label, detail, figure, lowers, children }: { label: string; d
         <p className="font-mono text-ink2 text-[0.75rem] m-0 mt-0.5 truncate">{detail}</p>
       </div>
       <div className="order-last col-span-2 sm:order-none sm:col-span-1">{children}</div>
-      <span className={`${NUM} text-right whitespace-nowrap ${lowers ? 'text-ink max-sm:text-red' : 'text-ink'}`}>{figure}</span>
+      <span className={`${NUM} text-right whitespace-nowrap ${lowers ? 'text-ink max-sm:text-red-ink' : 'text-ink'}`}>{figure}</span>
     </div>
   );
 }

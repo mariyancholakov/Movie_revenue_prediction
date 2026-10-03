@@ -15,6 +15,7 @@
   --color-ink3:   #675E4F;   /* muted — tertiary text / small labels (AA on paper and panel) */
   --color-rule:   #CBC2AD;   /* hairline rule */
   --color-red:    #C0281F;   /* spot red — loss / over / miss / nameplate accent */
+  --color-red-ink: #A01E16;  /* the same red, deepened for small text (4.5:1 on paper and the poster mosaic) */
 
   --font-sans:    var(--font-franklin), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-bodoni), Georgia, serif;
