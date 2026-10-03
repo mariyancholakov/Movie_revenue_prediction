@@ -21,7 +21,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
   stamp?: boolean;
 }) {
   return (
-    <header className="relative pt-5 sm:pt-7">
+    <header className="relative pt-[max(2.25rem,calc(env(safe-area-inset-top)+0.75rem))] sm:pt-7">
       {stamp && <Seal
         size={320}
         spin={120}

@@ -122,23 +122,34 @@ export function Header() {
 
       {/* Dek, and the record in the same breath: how the calls below have fared
           once their runs closed. Space is kept while it loads so the page doesn't drop. */}
-      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[4.3rem] sm:min-h-[5.4rem]">
-        Every film now playing, priced to its finish by a model trained on 5,400&nbsp;past releases.
-        {record && (
-          <>
-            {' '}On {record.films} settled films, its median miss was{' '}
-            <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
-            {record.later && (
-              <>
-                , <span className="tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
-              </>
-            )}
-            .
-          </>
-        )}
+      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[2.85rem] sm:min-h-[5.4rem]">
+        {/* A phone gets the short version: two lines at most */}
+        <span className="sm:hidden">
+          Every film now playing, priced to its finish.
+          {record && (
+            <>
+              {' '}Median miss on {record.films} settled films: <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span>.
+            </>
+          )}
+        </span>
+        <span className="max-sm:hidden">
+          Every film now playing, priced to its finish by a model trained on 5,400&nbsp;past releases.
+          {record && (
+            <>
+              {' '}On {record.films} settled films, its median miss was{' '}
+              <span className="tabular-nums text-ink">{record.opening.toFixed(1)}%</span> after the opening weekend
+              {record.later && (
+                <>
+                  , <span className="tabular-nums text-ink">{record.later.miss.toFixed(1)}%</span> after weekend {record.later.week}
+                </>
+              )}
+              .
+            </>
+          )}
+        </span>
       </p>
 
-      <SectionTabs className="xl:hidden mt-3 sm:mt-5" />
+      <SectionTabs className="xl:hidden mt-6 sm:mt-5" />
     </header>
   );
 }
