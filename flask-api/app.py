@@ -170,16 +170,22 @@ GENRES = ['Action', 'Adventure', 'Animation', 'Comedy', 'Crime', 'Documentary',
 FULL_TTL = timedelta(days=7)
 DECAY_RETRY_TTL = timedelta(hours=6)
 # Box Office Mojo posts a weekend's actuals on the Monday after; they're in
-# by Tuesday 00:00 UTC. A run in theaters is refreshed once each new weekend
-# is posted, so its forecast moves weekly instead of whenever FULL_TTL lapses.
-WEEKEND_POSTED_WEEKDAY = 1  # Tuesday
+# by Tuesday 00:00 UTC. The Monday and Tuesday grosses and the weekend
+# abroad, which the forecast also reads, are in by Thursday 00:00 UTC. A run
+# in theaters is refreshed at both, so its forecast moves when the figures do
+# instead of whenever FULL_TTL lapses.
+FIGURES_POSTED_WEEKDAYS = (1, 3)  # Tuesday, Thursday
 
 
 def weekend_posted_since(then, now):
-    """Whether a US weekend's actuals have been posted between `then` and `now`."""
-    days_back = (now.weekday() - WEEKEND_POSTED_WEEKDAY) % 7
-    posted = (now - timedelta(days=days_back)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return then < posted
+    """Whether new figures for a run (a US weekend's actuals, or the week's
+    midweek figures) have been posted between `then` and `now`."""
+    for weekday in FIGURES_POSTED_WEEKDAYS:
+        days_back = (now.weekday() - weekday) % 7
+        posted = (now - timedelta(days=days_back)).replace(hour=0, minute=0, second=0, microsecond=0)
+        if then < posted:
+            return True
+    return False
 
 # A run must be at least this old before it can be settled as finished. By
 # week 12 nearly all of a typical theatrical gross is in.
