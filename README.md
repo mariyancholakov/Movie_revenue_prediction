@@ -36,17 +36,22 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
   (genres, studio, release timing, franchise, release year; not budget or
   runtime, which TMDB often lacks and which made it less accurate),
   Box Office Mojo facts (opening theaters, MPAA rating, distributor, the
-  international markets that have opened and their opening weekends),
-  director and lead-cast track records (their earlier films only), and the
-  US weekends so far. There is one model pair per stage, from the opening
-  weekend to US weekend 8, so the forecast is redone as each weekend comes
-  in; the live number never sits below the worldwide gross to date. Results
-  are cached in Supabase; a film in theaters is re-scraped once each new US
-  weekend is posted (Mondays; 7 days at most otherwise) and re-scored with
-  the current model on every read.
+  international markets that have opened and their opening weekends, the
+  gross so far in the twelve biggest markets abroad, and how the opening
+  week's Monday and Tuesday held), director and lead-cast track records
+  (their earlier films only), and the US weekends so far. There is one model
+  pair per stage, from the opening weekend to US weekend 8, so the forecast
+  is redone as each weekend comes in; each call settles midweek, once the
+  weekdays and the weekend abroad are posted. Later stages are scaled by a
+  recency calibration (runs keep getting shorter; `retrain.calibrate`). The
+  live number never sits below the worldwide gross to date. Results are
+  cached in Supabase; a film in theaters is re-scraped when a US weekend is
+  posted (Tuesday 00:00 UTC) and again when the midweek figures are
+  (Thursday; 7 days at most otherwise), and re-scored with the current model
+  on every read.
 - **Accuracy** (films from 2017 on, trained on earlier ones, vs the cleaned
-  worldwide total): median miss 26% at the opening weekend (the previous
-  model: 38%), 20% after US weekend 2, 15% after weekend 4, 13% after weekend 8.
+  worldwide total): median miss 24.5% at the opening weekend (the previous
+  model: 38%), 18% after US weekend 2, 13% after weekend 4, 9% after weekend 8.
 - **Ranges:** `ranges.py` reads each call's likely range off the model's own
   misses on those unseen films, by US weekend and size of opening;
   `retrain.py` recalibrates it with every model it builds.

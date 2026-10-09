@@ -87,7 +87,8 @@ function describe(f: Explain['features'], weeksReported = 0) {
     rating: f.mpaa ? String(f.mpaa) : 'Not rated',
     talent: `${plural(n('dir_prior_n'), 'earlier film')} by the director · ${n('cast_prior_n')} by the leads`,
     abroad: n(`intl_markets_w${stage}`)
-      ? `${fmtMoney(n(`intl_open_w${stage}`))} from ${plural(n(`intl_markets_w${stage}`), 'market')}`
+      ? `${fmtMoney(n(`intl_open_w${stage}`))} opening in ${plural(n(`intl_markets_w${stage}`), 'market')}`
+        + (n(`intl_td_w${stage}`) ? ` · ${fmtMoney(n(`intl_td_w${stage}`))} so far in the biggest` : '')
       : 'No markets reported yet',
     run: weeksReported > 1 ? `${weeksReported} US weekends so far` : 'Opening weekend only',
   } satisfies Record<Group, string>;
@@ -102,7 +103,7 @@ const LABELS: Record<Group, string> = {
   era: 'Release year',
   rating: 'Rating',
   talent: 'Director and leads',
-  abroad: 'Openings abroad',
+  abroad: 'Box office abroad',
   run: 'The run so far',
 };
 
@@ -302,7 +303,8 @@ export default function HowItWorksPage() {
                 A film can&rsquo;t be priced before it opens.
                 <span className="max-sm:hidden">
                   {' '}On the Monday after its first Friday-to-Sunday in US theaters, Box Office
-                  Mojo reports what it took.
+                  Mojo reports what it took. The call settles by midweek, once Monday and
+                  Tuesday and the weekend abroad are in.
                 </span>
                 {' '}That one figure sets the scale of the whole run: a film that opens to
                 $100M isn&rsquo;t going to finish at $20M.
@@ -321,8 +323,8 @@ export default function HowItWorksPage() {
             <Step n={2} id="file" title="Then the model reads the file">
               <p className={PROSE}>
                 TMDB supplies what kind of film it is and who made it; Box Office Mojo adds
-                how many theaters it opened in, its rating, its distributor and what it
-                opened to in other countries.
+                how many theaters it opened in, its rating, its distributor, how its first
+                weekdays held and what it has taken in other countries.
                 <span className="max-sm:hidden">
                   {' '}The director and leads are read by their record: what their earlier
                   films made.
@@ -475,8 +477,8 @@ export default function HowItWorksPage() {
                   one, the forecast is made again with the run so far, the gross to date,
                   the last weekend and how hard it dropped.
                 </span>
-                {' '}On films the model never saw, the median miss falls from 27% at opening
-                to 16% after four weekends and 13% after eight.
+                {' '}On films the model never saw, the median miss falls from 25% at opening
+                to 13% after four weekends and 9% after eight.
               </p>
               <Exhibit ready={!!data}>
                 {data && (curve && curve.weeks.length > 1 ? (
@@ -538,7 +540,7 @@ export default function HowItWorksPage() {
                   </div>
                   {[
                     ['Earlier model: one multiplier, TMDB data', '$53M', '38.4%'],
-                    ['Live model: US run, then the world, Mojo data', '$42M', '26.3%'],
+                    ['Live model: US run, then the world, Mojo data', '$39M', '24.5%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
                       <span className="text-ink text-[0.9rem]">{name}</span>
@@ -555,10 +557,10 @@ export default function HowItWorksPage() {
             <Step id="limits" title="What the model can’t know">
               <ul className="list-none m-0 p-0 flex flex-col gap-5 max-w-[44rem]">
                 {[
-                  ['Whether the film is any good.', 'Nothing in the file measures word of mouth. A crowd-pleaser and a dud with the same opening and profile get the same number.'],
+                  ['Whether the film is any good.', 'Nothing in the file measures reviews. Word of mouth shows only in how the first weekdays hold, and in the weekends after, so at opening a crowd-pleaser and a dud with the same profile look much alike.'],
                   ['Anything before opening day.', 'No US opening weekend, no prediction. Films that skip US theaters aren’t priced at all, and a film that opens abroad first waits for its US opening.'],
                   ['Small releases, precisely.', 'A limited opening can grow many times over or vanish, so its multiplier is a wide guess. The film page flags these as rough.'],
-                  ['How a film holds abroad.', 'The model sees what a film opened to in other countries, but not how it held there afterwards. A film that keeps growing overseas will be undercalled.'],
+                  ['How a film holds abroad, at first.', 'The model reads the gross so far in the twelve biggest markets abroad, so a film that keeps growing overseas is caught as it does. On opening weekend most of that run is still ahead.'],
                   ['Better data than TMDB has.', 'Budgets are often missing or estimates, and final grosses keep being revised after a run ends. The Ledger follows the revisions for a year.'],
                 ].map(([head, body], i, all) => (
                   <li key={head} className={i === all.length - 1 ? 'max-sm:hidden' : undefined}>
