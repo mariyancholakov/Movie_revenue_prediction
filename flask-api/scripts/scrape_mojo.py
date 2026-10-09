@@ -1,17 +1,21 @@
 """Scrape Box Office Mojo for every seed film: theatrical totals split into
 domestic and international, theater counts, distributor, MPAA rating,
-international market openings and the domestic weekend-by-weekend run.
+international market openings, overseas gross to date in the big markets
+and the domestic weekend-by-weekend run.
 
-Two stages, so the slow part runs once and every number stays traceable
-(see mojo_cache.py for the pages and the cache):
+Stages, so the slow part runs once and every number stays traceable (see
+mojo_cache.py for the pages and the cache):
 
-  fetch  downloads each film's pages into data/mojo_cache/. Re-runnable:
-         cached pages are never re-fetched.
-  parse  reads only the cache and writes
-           data/mojo.csv           one row per film (tmdb_id, imdb_id, ...)
-           data/mojo_weekends.csv  one row per film per domestic weekend
+  fetch   downloads each film's pages into data/mojo_cache/. Re-runnable:
+          cached pages are never re-fetched.
+  charts  downloads the big overseas markets' weekly charts back to 2000
+          (about 17,000 pages, 3-4 hours), from --through YEAR-WEEK.
+  parse   reads only the cache and writes
+            data/mojo.csv           one row per film (tmdb_id, imdb_id, ...)
+            data/mojo_weekends.csv  one row per film per domestic weekend
 
     ./venv/bin/python scripts/scrape_mojo.py fetch [--workers 1] [--delay 1.5]
+    ./venv/bin/python scripts/scrape_mojo.py charts --through 2026-40
     ./venv/bin/python scripts/scrape_mojo.py parse
 """
 import argparse
@@ -26,7 +30,7 @@ sys.path.insert(0, os.getcwd())
 import pandas as pd  # noqa: E402
 
 import mojo_cache  # noqa: E402
-from mojo_cache import fetch_film, parse_film  # noqa: E402
+from mojo_cache import chart_index, fetch_charts, fetch_film, parse_film  # noqa: E402
 
 SEED_CSV = 'data/movies_final.csv'
 OUT_FILMS = 'data/mojo.csv'
@@ -55,9 +59,10 @@ def run_fetch(workers):
 
 def run_parse():
     seed = pd.read_csv(SEED_CSV)[['tmdb_id', 'imdb_id']].dropna()
+    charts = chart_index()
     rows, weekends = [], []
     for r in seed.itertuples():
-        row, weeks = parse_film(r.tmdb_id, r.imdb_id)
+        row, weeks = parse_film(r.tmdb_id, r.imdb_id, charts)
         rows.append(row)
         if weeks is not None:
             weekends.append(weeks)
@@ -70,12 +75,20 @@ def run_parse():
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('stage', choices=['fetch', 'parse'])
+    ap.add_argument('stage', choices=['fetch', 'charts', 'parse'])
     ap.add_argument('--workers', type=int, default=1)
     ap.add_argument('--delay', type=float, default=mojo_cache.DELAY)
+    ap.add_argument('--through', default=None, help='charts: the latest week, YEAR-WEEK')
     args = ap.parse_args()
     mojo_cache.DELAY = args.delay
-    run_fetch(args.workers) if args.stage == 'fetch' else run_parse()
+    if args.stage == 'fetch':
+        run_fetch(args.workers)
+    elif args.stage == 'charts':
+        if not args.through:
+            ap.error('charts needs --through YEAR-WEEK')
+        fetch_charts(tuple(int(v) for v in args.through.split('-')))
+    else:
+        run_parse()
 
 
 if __name__ == '__main__':

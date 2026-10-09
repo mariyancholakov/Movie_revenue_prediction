@@ -165,27 +165,39 @@ class MultiplierModel:
 # Box Office Mojo facts a film's snapshot carries on top of SNAPSHOT_COLUMNS:
 # opening theaters, MPAA rating, distributor, and international market
 # openings known by the end of each US weekend (intl_open_w1..w8,
-# intl_markets_w1..w8). `weeks` holds the US weekends reported so far.
+# intl_markets_w1..w8) and overseas gross to date in the biggest markets
+# (intl_td_w1..w8). `weeks` holds the US weekends reported so far.
 MAX_STAGE = 8  # after 8 US weekends a run's total is essentially known
 MPAA_RATINGS = ['G', 'PG', 'PG-13', 'R']
 STREAMERS = ('Netflix', 'Amazon', 'Apple')
 N_DISTRIBUTORS = 15
+# The opening week day by day (mojo_parse.opening_week_shape); read by the
+# opening call (stage 1) only.
+DAILY_FEATURES = ['dy_fri_share', 'dy_sat_fri', 'dy_mon_sun', 'dy_montue_wknd']
+# Overseas gross to date in the biggest markets abroad (intl_td_w1..w8,
+# mojo_parse.international_to_date), against the US gross to date and the
+# US opening weekend.
+INTL_TD_FEATURES = ['log_intl_td_vs_us', 'log_intl_td_vs_open']
 # The snapshot keys RunModel reads besides the TMDB features and `weeks`.
 RUN_FACTS = (['open_theaters', 'mpaa', 'distributor']
              + [f'intl_open_w{k}' for k in range(1, MAX_STAGE + 1)]
              + [f'intl_markets_w{k}' for k in range(1, MAX_STAGE + 1)]
-             + TRACK_FEATURES)
+             + [f'intl_td_w{k}' for k in range(1, MAX_STAGE + 1)]
+             + TRACK_FEATURES + DAILY_FEATURES)
 
 # RunModel doesn't read budget or runtime (retrain.RUN_FEATURES).
 RUN_EXPLAIN_GROUPS = {
     **{g: f for g, f in EXPLAIN_GROUPS.items() if g not in ('budget', 'runtime')},
-    'opening': lambda f: f in ('opening_weekend', 'log_open_theaters', 'per_theater'),
+    'opening': lambda f: f in ('opening_weekend', 'log_open_theaters', 'per_theater') or f in DAILY_FEATURES,
     'origin': lambda f: f in ('is_major_studio', 'is_us_production', 'is_english',
                               'dist_code', 'is_streamer'),
     'rating': lambda f: f.startswith('mpaa_'),
     'talent': lambda f: f in TRACK_FEATURES,
-    'abroad': lambda f: f in ('log_intl_open', 'intl_markets'),
+    'abroad': lambda f: f in ('log_intl_open', 'intl_markets') or f in INTL_TD_FEATURES,
     'run': lambda f: f.startswith('run_'),
+    # The recency calibration (RunModel.scale_) corrects for runs getting
+    # shorter, which is what the release year stands for.
+    'era': lambda f: f in ('release_year', 'era_calibration'),
 }
 
 
@@ -232,21 +244,34 @@ class RunModel:
     Stage 1 is the opening-weekend forecast; each later stage re-forecasts
     with the run so far, so the number tightens as a film plays. The US legs
     and the international share are different questions, and international
-    market openings answer the second one far better than anything US-side.
+    market openings and the gross so far in the biggest markets abroad answer
+    the second one far better than anything US-side.
 
     predict() takes raw snapshot rows (the columns above, strings and a
     `weeks` list included) and derives every model input itself, so the
     seed backfill and a film priced live go through the same code.
     A live snapshot may also carry `ww_to_date`, the worldwide gross so far,
     which floors the latest forecast.
+
+    `scale_` holds a per-stage recency calibration (retrain.calibrate): runs
+    keep getting shorter, and trees can't extrapolate the release year, so a
+    stage's worldwide call is multiplied by how far a backtest's calls on the
+    latest films overshot. Models pickled before it existed have none.
     """
 
-    def __init__(self, base_features, params, distributors=(), use_track=True):
+    def __init__(self, base_features, params, distributors=(), use_track=True, use_daily=True,
+                 use_intl_td=True):
         self.base_features = list(base_features)
         self.params = dict(params)
         self.distributors = list(distributors)
         self.use_track = use_track
+        self.use_daily = use_daily
+        self.use_intl_td = use_intl_td
         self.models_ = {}  # stage -> (us regressor, ratio regressor)
+        self.scale_ = {}  # stage -> multiplier on the worldwide call
+
+    def scale(self, stage):
+        return getattr(self, 'scale_', {}).get(stage, 1.0)
 
     @property
     def inputs(self):
@@ -259,6 +284,11 @@ class RunModel:
             + ['mpaa_' + r.replace('-', '') for r in MPAA_RATINGS] \
             + (TRACK_FEATURES if self.use_track else []) \
             + ['log_intl_open', 'intl_markets']
+        # Models pickled before these features existed have neither flag.
+        if stage == 1 and getattr(self, 'use_daily', False):
+            f += DAILY_FEATURES
+        if getattr(self, 'use_intl_td', False):
+            f += INTL_TD_FEATURES
         if stage >= 2:
             f += ['run_log_to_date', 'run_log_last', 'run_last_drop', 'run_log_theater_change']
         return f
@@ -268,7 +298,7 @@ class RunModel:
         only what is known after that many US weekends."""
         ow = max(_num(raw.get('opening_weekend')) or 1.0, 1.0)
         x = {f: _num(raw.get(f)) for f in self.base_features}
-        x.update({f: _num(raw.get(f)) for f in TRACK_FEATURES})
+        x.update({f: _num(raw.get(f)) for f in TRACK_FEATURES + DAILY_FEATURES})
         theaters = _num(raw.get('open_theaters'))
         x['log_open_theaters'] = np.log1p(theaters)
         x['per_theater'] = np.log1p(ow / theaters) if theaters and theaters > 0 else np.nan
@@ -285,6 +315,12 @@ class RunModel:
         to_date = _num(weeks[-1].get('to_date')) if weeks else np.nan
         if np.isnan(to_date) or to_date <= 0:
             to_date = ow
+        # Nothing reported abroad yet reads as unknown, not as zero: a film
+        # that will open abroad later looks the same as one that never will.
+        td = _num(raw.get(f'intl_td_w{stage}'))
+        td = td if td > 0 else np.nan
+        x['log_intl_td_vs_us'] = np.log(td / to_date)
+        x['log_intl_td_vs_open'] = np.log(td / ow)
         if stage >= 2 and len(weeks) >= 2:
             last, prev = _num(weeks[-1].get('weekend_gross')), _num(weeks[-2].get('weekend_gross'))
             x['run_log_to_date'] = np.log(to_date / ow)
@@ -324,7 +360,7 @@ class RunModel:
             x, to_date = self._matrix([raw], k)
             us_m, ratio_m = self.models_[k]
             us = to_date[0] * np.exp(us_m.predict(x)[0])
-            total = us * np.exp(ratio_m.predict(x)[0])
+            total = us * np.exp(ratio_m.predict(x)[0]) * self.scale(k)
             if stage is None:
                 # The latest forecast never sits below what the film has
                 # already grossed worldwide (a live fact the stage models,
@@ -355,6 +391,7 @@ class RunModel:
                 by_feature[f] = by_feature.get(f, 0.0) + v
         # US gross to date vs the opening weekend: part of the run so far.
         by_feature['run_to_date_vs_opening'] = float(np.log(to_date[0] / ow))
+        by_feature['era_calibration'] = float(np.log(self.scale(k)))
         # The worldwide-gross-to-date floor (predict_parts) is also the run so far.
         unfloored = ow * np.exp(bias + sum(by_feature.values()))
         floor = _num(raw.get('ww_to_date')) or 0

@@ -6,8 +6,10 @@ import joblib
 import pandas as pd
 import numpy as np
 from scraper import get_now_playing, get_upcoming, get_us_theatrical_date, get_movie_details, get_title_page, get_opening_weekend, get_weekly_grossing, parse_and_fit_decay, get_movie_page, get_franchise_features, get_mojo_page, MAX_RELEASE_AGE_DAYS, NOW_PLAYING_TTL, TMDB_API_KEY, _is_current_release, _tmdb_get
-from model_lib import FRANCHISE_FEATURES, MAX_STAGE, RUN_FACTS, RunModel, credit_ids, run_weeks, track_records
-from mojo_parse import film_facts, original_group_path, original_release_totals, performance_totals, weekend_table
+from model_lib import DAILY_FEATURES, FRANCHISE_FEATURES, MAX_STAGE, RUN_FACTS, RunModel, credit_ids, run_weeks, track_records
+from mojo_parse import (domestic_daily_path, film_facts, international_to_date, market_releases,
+                        opening_week_shape, original_group_path, original_release_totals,
+                        performance_totals, release_to_date, weekend_frame, weekend_table)
 import dataset
 from ttl_cache import MISSING, TTLCache
 import ranges
@@ -367,10 +369,32 @@ class MojoUnavailable(ConnectionError):
     """Box Office Mojo didn't answer for a page a snapshot needs."""
 
 
+def market_to_date(market_page, us_release):
+    """{market: [(Sunday, gross to date)]} for a film's big overseas markets,
+    from each market release's weekend page (the same figures the training
+    data read off the weekly charts). Only markets already open and opened
+    within the forecast's eight US weekends are read: up to a dozen pages."""
+    out = {}
+    if pd.isna(us_release):
+        return out
+    last = us_release + pd.Timedelta(days=7 * MAX_STAGE)
+    for name, (rl, released) in market_releases(market_page).items():
+        if pd.isna(released) or released > min(pd.Timestamp.now(), last):
+            continue
+        page = get_mojo_page(f'/release/{rl}/weekend/')
+        if page is None:
+            raise MojoUnavailable(f"Box Office Mojo release {rl} ({name}) unavailable")
+        df = weekend_frame(page)
+        out[name] = release_to_date(weekend_table(df) if df is not None else None, released)
+    return out
+
+
 def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
     """The RunModel facts for a film priced live: Box Office Mojo facts
-    (theaters, MPAA, distributor, international openings, the weekends so
-    far) and director/cast track records, read with the same parsers the
+    (theaters, MPAA, distributor, international openings and gross to date,
+    the weekends so far, the opening week day by day) and director/cast
+    track records, read
+    with the same parsers the
     training data went through (mojo_parse, model_lib.track_records).
     Raises ConnectionError rather than guess when a page it reads is
     unavailable: "no markets abroad" or "no track record" would quietly
@@ -386,7 +410,18 @@ def mojo_snapshot(tmdb_id, details, title_page, weekly_data):
     for k in range(1, MAX_STAGE + 1):
         snap[f'intl_open_w{k}'] = facts.get(f'intl_open_w{k}')
         snap[f'intl_markets_w{k}'] = facts.get(f'intl_markets_w{k}')
+    snap.update(international_to_date(market_to_date(market_page, facts.get('us_release')),
+                                      facts.get('us_release')))
     snap['weeks'] = weeks[dataset.WEEK_COLUMNS].to_dict('records') if weeks is not None else []
+    # The opening week day by day; empty until Mojo has posted its Tuesday
+    # (the opening call settles midweek), and the next refresh fills it in.
+    snap.update(dict.fromkeys(DAILY_FEATURES))
+    daily_path = domestic_daily_path(title_page)
+    if daily_path:
+        daily_page = get_mojo_page(daily_path)
+        if daily_page is None:
+            raise MojoUnavailable(f"Box Office Mojo daily page {daily_path} unavailable")
+        snap.update(opening_week_shape(daily_page))
 
     # Kept in the snapshot so the run, once settled, joins the track records.
     credits = film_credits(tmdb_id, details)

@@ -97,6 +97,8 @@ RUN_PARAMS = dict(
     subsample=0.8, colsample_bytree=0.8,
     objective='reg:absoluteerror', random_state=42,
 )
+CALIBRATION_YEARS = 4  # the latest release years the recency calibration is measured on
+COVID_YEARS = (2020, 2021)
 LABEL = 'revenue'  # a captured row's settled actual, cleaned again in add_mojo
 TARGET = 'total'  # the cleaned worldwide label every model is fit and scored on
 
@@ -141,7 +143,8 @@ def enrich_captured(captured, seed):
     facts, weeks, credits, dates = [], {}, [], []
     for r in captured.itertuples():
         try:
-            mojo_cache.fetch_film(r.imdb_id)
+            # Its big markets' own pages: the cached charts may predate its run.
+            mojo_cache.fetch_film(r.imdb_id, markets=True)
         except ConnectionError as e:
             print(f"! Mojo unavailable for {r.title}: {e}")
         row, wk = mojo_cache.parse_film(r.tmdb_id, r.imdb_id)
@@ -182,12 +185,44 @@ def fit_reference(d):
     return MultiplierModel(FEATURES, **PARAMS).fit(d, d[TARGET])
 
 
-def fit(d):
-    """The production approach: RunModel on films with a Mojo US total."""
+def fit_uncalibrated(d):
     d = d.dropna(subset=['us_total'])
     distributors = d['distributor'].value_counts().index[:N_DISTRIBUTORS].tolist()
     model = RunModel(RUN_FEATURES, RUN_PARAMS, distributors)
     return model.fit(dataset.raw_rows(d), d['us_total'].values, d['total'].values)
+
+
+def calibrate(d):
+    """Per-stage recency factors for a model trained on `d` (RunModel.scale_).
+
+    Runs keep getting shorter and the trees can't extrapolate the release
+    year, so a model overshoots the films released after its training data.
+    A backtest measures by how much: fit on the films before the last
+    CALIBRATION_YEARS release years of `d`, call those years' films, and take
+    exp(median log(actual / call)) per stage. COVID-era years are left out of
+    the window: their runs fell short and recovered, so they pull the wrong
+    way. Stage 1 is left alone: its factor swung with the window chosen
+    (x0.97 on 2012-16, x1.03 on 2017-21) and made the opening call no better.
+    On the holdout: after weekend 2 19.0% -> 18.2%, weekend 4 15.1% -> 14.3%."""
+    d = d.dropna(subset=['us_total'])
+    years = sorted(d['release_year'].unique())[-CALIBRATION_YEARS:]
+    window = d[d['release_year'].isin(years) & ~d['release_year'].isin(COVID_YEARS)]
+    backtest = fit_uncalibrated(d[d['release_year'] < min(years)])
+    raws = dataset.raw_rows(window)
+    scale = {}
+    for k in range(2, MAX_STAGE + 1):
+        idx = [i for i, r in enumerate(raws) if reached(r, k)]
+        calls = backtest.predict([raws[i] for i in idx], stage=k)
+        scale[k] = float(np.exp(np.median(np.log(window['total'].values[idx] / calls))))
+    return scale
+
+
+def fit(d):
+    """The production approach: RunModel on films with a Mojo US total,
+    calibrated for recency."""
+    model = fit_uncalibrated(d)
+    model.scale_ = calibrate(d)
+    return model
 
 
 def fmt(m):

@@ -6,6 +6,7 @@ like the films the model learned from. Everything takes a parsed page
 import re
 from io import StringIO
 
+import numpy as np
 import pandas as pd
 
 from model_lib import MAX_STAGE
@@ -31,6 +32,42 @@ def domestic_release_path(title):
     return None
 
 
+def domestic_daily_path(title):
+    """The original domestic release's day-by-day page."""
+    path = domestic_release_path(title)
+    return path.replace('/weekend/', '/') if path else None
+
+
+def opening_week_shape(daily_page):
+    """How the opening week played day by day, from the domestic release's
+    daily page (domestic_daily_path): the call settles midweek, when
+    Monday's and Tuesday's grosses are in. A film that holds up on the
+    weekdays is spreading by word of mouth; a Friday swollen by previews means
+    fans came early. {} until Tuesday is reported, or for a page without
+    daily figures (most films before 2000).
+      dy_fri_share     Friday / opening weekend
+      dy_sat_fri       log(Saturday / Friday)
+      dy_mon_sun       log(Monday / Sunday)
+      dy_montue_wknd   log((Monday + Tuesday) / opening weekend)
+    On the holdout the opening call's MAE fell 5-8% with these."""
+    table = daily_page.find('table') if daily_page is not None else None
+    if table is None:
+        return {}
+    df = pd.read_html(StringIO(str(table)))[0]
+    if 'Daily' not in df or 'DOW' not in df:
+        return {}
+    first = {}
+    for dow, gross in zip(df['DOW'].head(12), df['Daily'].head(12)):
+        first.setdefault(dow, _money(str(gross)))
+    days = [first.get(d) for d in ('Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday')]
+    if not all(days):
+        return {}
+    fri, sat, sun, mon, tue = days
+    weekend = fri + sat + sun
+    return {'dy_fri_share': fri / weekend, 'dy_sat_fri': float(np.log(sat / fri)),
+            'dy_mon_sun': float(np.log(mon / sun)), 'dy_montue_wknd': float(np.log((mon + tue) / weekend))}
+
+
 def original_group_path(title):
     """The original release group's page, or None for a single-release title
     (its title page already lists the markets)."""
@@ -54,17 +91,97 @@ def market_rows(soup):
     return out
 
 
+# The overseas markets whose gross to date the model reads: about two thirds
+# of all overseas box office. Mojo names (market rows) -> area codes (charts).
+INTL_TD_MARKETS = {
+    'United Kingdom': 'GB', 'China': 'CN', 'France': 'FR', 'Germany': 'DE', 'Japan': 'JP',
+    'Australia': 'AU', 'Mexico': 'MX', 'Spain': 'ES', 'South Korea': 'KR', 'Italy': 'IT',
+    'Brazil': 'BR', 'Netherlands': 'NL',
+}
+
+
+def market_releases(soup):
+    """{market: (release id, release date)} for the INTL_TD_MARKETS on a title
+    or release-group page."""
+    out = {}
+    for tr in soup.find_all('tr'):
+        tds = tr.find_all('td')
+        a = tds[0].find('a', href=re.compile(r'^/release/rl')) if len(tds) == 4 else None
+        name = tds[0].get_text(strip=True) if a else None
+        if name in INTL_TD_MARKETS and name not in out:
+            released = pd.to_datetime(tds[1].get_text(strip=True), format='%b %d, %Y', errors='coerce')
+            out[name] = (re.match(r'/release/(rl\d+)', a['href']).group(1), released)
+    return out
+
+
+def _sunday(day):
+    return day + pd.Timedelta(days=(6 - day.weekday()) % 7)
+
+
+def release_to_date(weeks, released):
+    """[(Sunday, gross to date)] for one market's release, from its weekend
+    table (weekend_table() of /release/<rl>/weekend/), each weekend dated
+    from the market's release date."""
+    if weeks is None or pd.isna(released):
+        return []
+    first = _sunday(released)
+    return [(first + pd.Timedelta(days=7 * (int(w) - 1)), float(t))
+            for w, t in zip(weeks['week'], weeks['to_date']) if not pd.isna(t)]
+
+
+def chart_to_date(chart_soup, sunday):
+    """[(release id, Sunday, gross to date)] from one market's weekend chart
+    (/weekend/<year>W<week>/?area=..)."""
+    table = chart_soup.find('table') if chart_soup is not None else None
+    if table is None:
+        return []
+    head = [th.get_text(strip=True) for th in table.find_all('tr')[0].find_all('th')]
+    if 'Total Gross' not in head:
+        return []
+    col = head.index('Total Gross')
+    out = []
+    for tr in table.find_all('tr')[1:]:
+        tds, a = tr.find_all('td'), tr.find('a', href=re.compile(r'^/release/rl'))
+        if a and len(tds) > col and _money(tds[col].get_text()) is not None:
+            out.append((re.match(r'/release/(rl\d+)', a['href']).group(1), sunday, float(_money(tds[col].get_text()))))
+    return out
+
+
+def international_to_date(series, us_date, weeks=range(1, MAX_STAGE + 1)):
+    """Overseas gross to date in the INTL_TD_MARKETS, as known by the call made
+    after US weekend k: each market's latest gross to date from weekends up to
+    that US weekend's Sunday, summed. `series`: {market: [(Sunday, to date)]}.
+    Charts for the weekend just played come in during the week, so like the
+    international openings this settles midweek. On the holdout the forecast
+    after weekend 8 went 11.8% -> 8.9% median miss (MAE $30M -> $23M),
+    weekend 4 14.2% -> 13.3%, and the opening call 25.0% -> 24.2%."""
+    out = {}
+    if pd.isna(us_date):
+        return out
+    opening_sunday = _sunday(us_date)
+    for k in weeks:
+        cutoff = opening_sunday + pd.Timedelta(days=7 * (k - 1))
+        total = 0.0
+        for points in series.values():
+            seen = [t for s, t in sorted(points) if s <= cutoff]
+            total += seen[-1] if seen else 0.0
+        out[f'intl_td_w{k}'] = total
+    return out
+
+
 def international_openings(markets, us_date, weeks=range(1, MAX_STAGE + 1)):
-    """International opening weekends known when US weekend k is reported:
-    summed over markets that opened before that weekend's Friday. Overseas
-    figures come in days late, so a market opening the same weekend as the
-    US isn't counted yet (holdout: no less accurate than counting it)."""
+    """International opening weekends known by the call made after US weekend
+    k: summed over markets that opened by that weekend's Sunday. Overseas
+    figures come in a few days after the weekend, so the call settles
+    midweek; counting the markets that open alongside the US weekend made the
+    opening call more accurate (holdout median miss 26.4% -> 25.2%)."""
     out = {}
     if pd.isna(us_date):
         return out
     intl = [(d, o) for name, d, o in markets if name != 'Domestic' and not pd.isna(d) and o]
+    opening_sunday = us_date + pd.Timedelta(days=(6 - us_date.weekday()) % 7)
     for k in weeks:
-        cutoff = us_date + pd.Timedelta(days=7 * (k - 1) - 1)
+        cutoff = opening_sunday + pd.Timedelta(days=7 * (k - 1))
         opened = [o for d, o in intl if d <= cutoff]
         out[f'intl_open_w{k}'] = sum(opened)
         out[f'intl_markets_w{k}'] = len(opened)
@@ -162,6 +279,17 @@ def weekend_numbers(dates):
         # Rounded: the fixed leap year can be a day off across a February.
         out.append(int(round(days / 7)) + 1)
     return out
+
+
+def weekend_frame(soup):
+    """The raw weekend table (pd.read_html) on a /release/<rl>/weekend/ page,
+    or None. Not just the first table: a market release too new for a
+    weekend has only a rankings table there."""
+    for table in soup.find_all('table') if soup is not None else []:
+        head = [th.get_text(strip=True) for th in table.find_all('th')]
+        if 'To Date' in head and head.count('Weekend') >= 2:
+            return pd.read_html(StringIO(str(table)))[0]
+    return None
 
 
 def weekend_table(df):
