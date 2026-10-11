@@ -13,6 +13,7 @@ from mojo_parse import (domestic_daily_path, film_facts, international_to_date, 
 import dataset
 from ttl_cache import MISSING, TTLCache
 import ranges
+import monitor
 from datetime import datetime, timezone, timedelta
 from supabase import create_client
 import os
@@ -62,6 +63,16 @@ def client_ip():
 INTERNAL_API_KEY = os.getenv('INTERNAL_API_KEY', '').strip()
 VISITOR_LIMIT = '120 per minute'
 INTERNAL_LIMIT = '1200 per minute'
+
+
+# The operator's monitoring report (/api/admin/monitor) is for its owner only:
+# it needs this key in X-Admin-Key. Unset, the route does not exist.
+ADMIN_API_KEY = os.getenv('ADMIN_API_KEY', '').strip()
+
+
+def is_admin():
+    key = request.headers.get('X-Admin-Key', '')
+    return bool(ADMIN_API_KEY) and hmac.compare_digest(key.encode(), ADMIN_API_KEY.encode())
 
 
 def is_internal():
@@ -1218,6 +1229,29 @@ def v1_ledger():
         } for m in rows if m.get('actual_revenue') and m.get('predicted_revenue')]
         _public_ledger.set('all', films)
     return public({'films': films})
+
+
+@app.route('/api/admin/monitor', methods=['GET'])
+@limiter.limit('20 per minute')
+def admin_monitor():
+    """The operator's health report (monitor.py). Owner only; 404 to anyone
+    else, so the route does not announce itself."""
+    if not is_admin():
+        return jsonify({'error': 'Not found.', 'code': 'not_found'}), 404
+    try:
+        movies = supabase.table('movies').select(
+            'tmdb_id,title,is_in_theaters,last_scraped,finished_at,'
+            'predicted_revenue,actual_revenue,later_calls').execute().data or []
+        pushes = len(supabase.table('push_subscriptions').select('endpoint').execute().data or [])
+    except Exception as e:
+        print(f"[admin] monitor unavailable: {e}")
+        return jsonify({'error': 'The database is not responding.', 'code': 'db_unavailable'}), 503
+    report = monitor.build_report(
+        movies, pushes, os.getenv('MODEL_PATH', 'models/box_office_model_final.pkl'),
+        monitor.load_production_metrics('models/production_metrics.json'))
+    response = jsonify(report)
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.route('/api/explain/<int:tmdb_id>', methods=['GET'])

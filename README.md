@@ -90,6 +90,7 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | `flask-api/mojo_parse.py` | Box Office Mojo page parsers shared by the API and the backfill |
 | `flask-api/mojo_cache.py` | Mojo pages through a gzip cache (`data/mojo_cache/`, gitignored) |
 | `flask-api/dataset.py` | Assembles the training set (seed + Mojo facts + credits + labels) |
+| `flask-api/monitor.py` | The owner-only health report: live miss vs the exam, data-job freshness, model age |
 | `flask-api/retrain.py` | Holdout-validated retraining; `--promote` to swap the model |
 | `flask-api/scripts/scrape_mojo.py` | Scrapes Mojo for the seed films into `data/mojo*.csv` |
 | `flask-api/scripts/fetch_credits.py` | TMDB directors and lead cast for the seed films |
@@ -109,6 +110,13 @@ XGBoost model (models/*.pkl) ─────────┘      │           s
 | GET | `/api/leaderboard` | Priced now-playing films |
 | GET | `/api/finished` | Settled runs with actual revenue |
 | GET | `/api/explain/<tmdb_id>` | A priced film's feature snapshot and its multiplier split into factors (SHAP) |
+
+`GET /api/admin/monitor` is not part of the public surface: it answers 404
+without the owner's `ADMIN_API_KEY` in `X-Admin-Key` (and does not exist if
+the key is unset). The frontend's `/admin` page signs in with the same key
+(set `ADMIN_API_KEY` on both hosts) and shows the report: the live median
+miss of settled runs against the exam's, whether the model calls high or low,
+how fresh the scrapes and captures are, and how old the promoted model is.
 
 The list endpoints answer 503 with a `code` when TMDB or the database is
 down, rather than an empty list.
