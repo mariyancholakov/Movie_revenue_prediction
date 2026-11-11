@@ -93,9 +93,9 @@ function Endpoint({ path, id, children }: { path: string; id: string; children: 
   return (
     <section id={id} className="mt-12 scroll-mt-6">
       {isPath ? (
-        <h2 className="font-mono text-ink text-[1.05rem] sm:text-[1.2rem] font-bold m-0 break-all">{`GET ${path}`}</h2>
+        <h2 className="font-mono text-ink text-body sm:text-title font-bold m-0 break-all">{`GET ${path}`}</h2>
       ) : (
-        <h2 className="font-display text-ink text-[1.4rem] font-bold m-0">{path}</h2>
+        <h2 className="font-display text-ink text-section font-bold m-0">{path}</h2>
       )}
       <div className="rule-hair mt-2 mb-3" />
       {children}
@@ -106,7 +106,7 @@ function Endpoint({ path, id, children }: { path: string; id: string; children: 
 // Ruled name | meaning rows; `mono` names are field names or status codes.
 function Rows({ rows }: { rows: [string, string][] }) {
   return (
-    <dl className="text-[0.9rem] leading-[1.6] m-0 mt-4 border-t border-ink/25">
+    <dl className="text-small leading-[1.6] m-0 mt-4 border-t border-ink/25">
       {rows.map(([k, v]) => (
         <div key={k} className="grid sm:grid-cols-[13rem_1fr] sm:gap-4 py-2 border-b border-ink/15">
           <dt className="font-mono text-ink break-words">{k}</dt>
@@ -129,7 +129,7 @@ const SECTIONS = [
 const EMBED = `<iframe src="${SITE_URL}/embed/969681"
         width="360" height="190" style="border:0" title="MOVIEGROSS forecast"></iframe>`;
 
-const P = 'text-ink2 text-[0.9rem] leading-[1.65] max-w-prose m-0 mb-3';
+const P = 'text-ink2 text-small leading-[1.65] max-w-prose m-0 mb-3';
 
 const FACTS: [string, React.ReactNode][] = [
   ['Base address', <span key="b" className="font-mono text-ink break-all">{BASE}</span>],
@@ -146,7 +146,7 @@ export default function ApiDocsPage() {
       <RunningHead stamp={false} />
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }} />
-        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">Box-Office Forecast API</h1>
+        <h1 className="font-display text-ink text-headline sm:text-banner font-bold leading-none m-0 mb-3">Box-Office Forecast API</h1>
         <p className={P}>
           A free box-office prediction API: the model&rsquo;s forecasts of each film&rsquo;s worldwide gross, as JSON.
           Read-only, no key, open to every website.
@@ -157,10 +157,10 @@ export default function ApiDocsPage() {
           <DocsNav sections={SECTIONS} />
           <div className="min-w-0 max-w-3xl">
             <section id="start" className="mt-8 scroll-mt-6">
-              <h2 className="font-display text-ink text-[1.4rem] font-bold m-0 mb-2">Quick start</h2>
+              <h2 className="font-display text-ink text-section font-bold m-0 mb-2">Quick start</h2>
               <CopyCode label="curl example">{CURL_EXAMPLE}</CopyCode>
               <CopyCode label="JavaScript example">{FETCH_EXAMPLE}</CopyCode>
-              <dl className="text-[0.9rem] leading-[1.6] m-0 mt-5 border-t border-ink/25">
+              <dl className="text-small leading-[1.6] m-0 mt-5 border-t border-ink/25">
                 {FACTS.map(([k, v]) => (
                   <div key={k} className="grid sm:grid-cols-[9rem_1fr] sm:gap-4 py-2 border-b border-ink/15">
                     <dt className="font-semibold text-ink">{k}</dt>
@@ -224,7 +224,7 @@ export default function ApiDocsPage() {
                 here). It links back to the film&rsquo;s page.
               </p>
               <CopyCode label="Embed snippet">{EMBED}</CopyCode>
-              <p className="font-sans text-ink2 text-[0.75rem] font-semibold tracking-[0.12em] uppercase m-0 mt-5 mb-2">Live preview</p>
+              <p className="font-sans text-ink2 text-label font-semibold tracking-[0.12em] uppercase m-0 mt-5 mb-2">Live preview</p>
               <iframe
                 src="/embed/969681"
                 width={360}
@@ -247,7 +247,7 @@ export default function ApiDocsPage() {
             </Endpoint>
 
             <div className="mt-12">
-              <a href="/openapi.json" className="ledger-btn inline-block no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
+              <a href="/openapi.json" className="ledger-btn inline-block no-underline font-mono text-label tracking-[0.14em] indent-[0.14em] uppercase px-5 py-3">
                 OpenAPI spec
               </a>
             </div>

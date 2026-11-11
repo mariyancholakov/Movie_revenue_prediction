@@ -31,23 +31,23 @@ export function Countdown({ to }: { to: Date }) {
   return (
     <div role="timer" aria-live="off" className="border-t border-ink/25 pt-3">
       <div className="flex items-baseline justify-between gap-4 mb-2">
-        <p className="font-sans text-ink2 text-[0.9rem] font-semibold m-0">{opening ? 'Opening today' : 'Opens in'}</p>
-        <p className="font-mono text-ink text-[0.85rem] uppercase tracking-[0.06em] m-0">{date}</p>
+        <p className="font-sans text-ink2 text-small font-semibold m-0">{opening ? 'Opening today' : 'Opens in'}</p>
+        <p className="font-mono text-ink text-small uppercase tracking-[0.06em] m-0">{date}</p>
       </div>
       {!opening && (
         <div aria-hidden className="grid grid-cols-4 motion-reduce:grid-cols-3 divide-x divide-ink/25 border-y border-ink/25">
           {parts.map(({ label, value }) => (
             <div key={label} className={`text-center py-3 sm:py-4 ${label === 'Seconds' ? 'motion-reduce:hidden' : ''}`}>
-              <p className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-[2.2rem] min-[360px]:text-[2.6rem] sm:text-[5rem]">
+              <p className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-headline min-[360px]:text-banner sm:text-hero">
                 {value}
               </p>
-              <p className="font-sans text-ink2 text-[0.7rem] sm:text-[0.75rem] font-medium tracking-[0.14em] uppercase m-0 mt-2">{label}</p>
+              <p className="font-sans text-ink2 text-label font-medium tracking-[0.14em] uppercase m-0 mt-2">{label}</p>
             </div>
           ))}
         </div>
       )}
       <span className="sr-only">{opening ? 'Opens today' : `Opens ${date}`}</span>
-      <p className="text-ink2 text-[0.83rem] leading-[1.55] mt-3 mb-0">
+      <p className="text-ink2 text-small leading-[1.55] mt-3 mb-0">
         {opening
           ? 'Opening weekend is under way. The forecast arrives the Monday after, once its first figures are in.'
           : 'The forecast appears after the opening weekend.'}

@@ -76,7 +76,7 @@ export function ForecastChart({ history, final, width: measured }: ForecastChart
 
   return (
     <div ref={frame}>
-      <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 mb-2 font-sans text-[0.75rem] text-ink2">
+      <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 mb-2 font-sans text-label text-ink2">
         {legend.map(e => (
           <span key={e.key} className="inline-flex items-center gap-1.5">
             <svg aria-hidden width="16" height="12">

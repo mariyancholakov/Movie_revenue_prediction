@@ -22,7 +22,7 @@ export function OpeningSoon({ films }: { films: Upcoming[] }) {
   return (
     <section aria-labelledby="opening-soon" className="w-full px-4 sm:px-8 lg:px-14 pt-6 pb-10">
       <div className="mb-3">
-        <h2 id="opening-soon" className="font-display text-ink text-[1.5rem] sm:text-[1.9rem] font-bold leading-none m-0">
+        <h2 id="opening-soon" className="font-display text-ink text-section sm:text-headline font-bold leading-none m-0">
           Opening Soon
         </h2>
       </div>
@@ -34,8 +34,8 @@ export function OpeningSoon({ films }: { films: Upcoming[] }) {
               <div className="relative aspect-[2/3] w-full plate overflow-hidden bg-panel">
                 <Poster src={film.poster} alt={film.title} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 200px" className="object-cover" loading="lazy" />
               </div>
-              <p className="m-0 mt-3 pl-0.5 font-sans text-[0.8rem] font-semibold leading-[1.25] text-ink group-hover:text-red transition-colors">{film.title}</p>
-              <p className="m-0 mt-0.5 pl-0.5 font-mono text-[0.8rem] text-ink2">Opens {opens(film.release_date)}</p>
+              <p className="m-0 mt-3 pl-0.5 font-sans text-small font-semibold leading-[1.25] text-ink group-hover:text-red transition-colors">{film.title}</p>
+              <p className="m-0 mt-0.5 pl-0.5 font-mono text-label text-ink2">Opens {opens(film.release_date)}</p>
             </Link>
           </li>
         ))}

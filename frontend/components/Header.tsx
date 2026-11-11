@@ -43,7 +43,7 @@ function SectionTabs({ className }: { className: string }) {
           href={href}
           data-active={active}
           aria-current={active ? 'page' : undefined}
-          className="tab whitespace-nowrap font-sans max-sm:text-[0.72rem] sm:text-[0.75rem] tracking-[0.06em] sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
+          className="tab whitespace-nowrap font-sans text-label tracking-[0.06em] max-[359px]:tracking-normal sm:tracking-[0.16em] font-semibold text-ink2 no-underline pb-1"
         >
           <span className="sm:hidden">{short}</span>
           <span className="max-sm:hidden">{label}</span>
@@ -84,7 +84,7 @@ export function Header() {
       <div>
         {/* Folio: byline at left, the section tabs in the middle, today's edition date at right.
             Below xl there's no room for all three, so the tabs move under the dek. */}
-        <div className="flex items-baseline justify-between gap-4 xl:grid xl:grid-cols-[1fr_auto_1fr] font-sans text-ink2 max-sm:text-[0.6875rem] tracking-[0.06em] sm:text-[0.75rem] sm:tracking-[0.12em] uppercase mb-8 sm:mb-14 min-h-[1em]">
+        <div className="flex items-baseline justify-between gap-4 xl:grid xl:grid-cols-[1fr_auto_1fr] font-sans text-ink2 text-label tracking-[0.06em] sm:tracking-[0.12em] uppercase mb-8 sm:mb-14 min-h-[1em]">
           <span data-folio className="xl:justify-self-start">
             Made by{' '}
             <a
@@ -103,7 +103,7 @@ export function Header() {
           </span>
         </div>
 
-        {/* Nameplate */}
+        {/* Nameplate — off the type scale on purpose: drawn to fill the measure at each breakpoint */}
         <div>
           <h1
             className="font-display text-ink font-black leading-[0.9] m-0 select-none
@@ -122,7 +122,7 @@ export function Header() {
 
       {/* Dek, and the record in the same breath: how the calls below have fared
           once their runs closed. Space is kept while it loads so the page doesn't drop. */}
-      <p data-follow className="font-display italic text-ink2 text-[0.95rem] sm:text-[1.2rem] leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[2.85rem] sm:min-h-[5.4rem]">
+      <p data-follow className="font-display italic text-ink2 text-body sm:text-title leading-[1.5] max-w-[44rem] mx-auto mt-5 mb-0 min-h-[2.85rem] sm:min-h-[5.4rem]">
         {/* A phone gets the short version: two lines at most */}
         <span className="sm:hidden">
           Every film now playing, priced to its finish.

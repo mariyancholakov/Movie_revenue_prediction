@@ -63,7 +63,7 @@ export function DecayCurve({ data, width: measured }: DecayCurveProps) {
 
   return (
     <div ref={frame}>
-      <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 mb-2 font-sans text-[0.75rem] text-ink2">
+      <div className="flex flex-wrap justify-end gap-x-5 gap-y-1 mb-2 font-sans text-label text-ink2">
         <span className="inline-flex items-center gap-1.5">
           <svg aria-hidden width="16" height="12"><line x1="0" y1="6" x2="16" y2="6" stroke={INK} strokeWidth={2.25} /></svg>
           Actual

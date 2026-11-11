@@ -108,10 +108,10 @@ export function InstallPrompt() {
       className="install-sheet fixed inset-x-0 bottom-0 z-50 bg-paper border-t-2 border-ink px-5 pt-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-12px_rgba(28,24,20,0.35)] md:inset-x-auto md:right-6 md:bottom-6 md:w-[26rem] md:border-2 md:pb-5 md:shadow-[6px_6px_0_0_rgba(28,24,20,0.9)]"
     >
       <div className="max-w-md mx-auto">
-        <p className="font-display text-ink text-[1.25rem] font-bold leading-[1.15] m-0">
+        <p className="font-display text-ink text-title font-bold leading-[1.15] m-0">
           {desktop ? 'Keep MOVIEGROSS one click away' : 'Keep MOVIEGROSS on your home screen'}
         </p>
-        <p className="font-sans text-ink2 text-[0.88rem] leading-[1.55] mt-2 mb-4">
+        <p className="font-sans text-ink2 text-small leading-[1.55] mt-2 mb-4">
           {show === 'iphone' ? (
             <>
               It opens full-screen and instantly, and the last edition works without signal. Tap <ShareGlyph /> Share
@@ -123,15 +123,15 @@ export function InstallPrompt() {
         </p>
         <div className="flex items-center gap-3">
           {show === 'android' && (
-            <button onClick={install} className="ledger-btn font-sans text-[0.8rem] font-semibold tracking-[0.08em] indent-[0.08em] px-5 py-3 cursor-pointer">
+            <button onClick={install} className="ledger-btn font-sans text-small font-semibold tracking-[0.08em] indent-[0.08em] px-5 py-3 cursor-pointer">
               INSTALL
             </button>
           )}
           <button
             onClick={dismiss}
             className={show === 'android'
-              ? 'font-sans text-[0.8rem] font-semibold tracking-[0.08em] text-ink2 bg-transparent border-0 px-3 py-3 cursor-pointer'
-              : 'ledger-btn font-sans text-[0.8rem] font-semibold tracking-[0.08em] indent-[0.08em] px-5 py-3 cursor-pointer'}
+              ? 'font-sans text-small font-semibold tracking-[0.08em] text-ink2 bg-transparent border-0 px-3 py-3 cursor-pointer'
+              : 'ledger-btn font-sans text-small font-semibold tracking-[0.08em] indent-[0.08em] px-5 py-3 cursor-pointer'}
           >
             {show === 'android' ? 'NOT NOW' : 'GOT IT'}
           </button>

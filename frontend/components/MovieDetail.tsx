@@ -153,10 +153,10 @@ interface MovieDetailProps {
 function Particular({ label, children, minor = false }: { label: string; children: React.ReactNode; minor?: boolean }) {
   return (
     <div className={`${minor ? "hidden sm:flex" : "flex"} items-baseline gap-4 py-2 border-b border-rule`}>
-      <span className="font-sans text-[0.8rem] font-medium text-ink2 w-24 shrink-0">
+      <span className="font-sans text-label font-medium text-ink2 w-24 shrink-0">
         {label}
       </span>
-      <span className="font-sans text-[0.85rem] text-ink leading-snug">{children}</span>
+      <span className="font-sans text-small text-ink leading-snug">{children}</span>
     </div>
   );
 }
@@ -267,7 +267,7 @@ export function MovieDetail({
       <div className="flex items-center justify-between gap-3 mb-7">
         <button
           onClick={onBack}
-          className="font-sans text-[0.75rem] tracking-[0.1em] font-semibold text-ink2
+          className="font-sans text-label tracking-[0.1em] font-semibold text-ink2
                      hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
         >
           ‹ ALL FILMS
@@ -277,7 +277,7 @@ export function MovieDetail({
             onClick={handleSave}
             aria-pressed={saved}
             title={saved ? "Stop alerts about this film" : "Save this film and get a notification when something changes"}
-            className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
+            className="inline-flex items-center gap-1.5 font-sans text-label tracking-[0.1em] font-semibold
                        text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
           >
             <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor"
@@ -290,7 +290,7 @@ export function MovieDetail({
             onClick={handleShare}
             title="Copy a link to this film’s page"
             aria-live="polite"
-            className="inline-flex items-center gap-1.5 font-sans text-[0.75rem] tracking-[0.1em] font-semibold
+            className="inline-flex items-center gap-1.5 font-sans text-label tracking-[0.1em] font-semibold
                        text-ink2 hover:text-red transition-colors bg-transparent border-0 py-3.5 -my-3.5 px-0"
           >
             <svg aria-hidden width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -314,7 +314,7 @@ export function MovieDetail({
       </div>
 
       {saved && alerts && alerts !== "on" && (
-        <p role="status" className="font-sans text-ink2 text-[0.8rem] leading-[1.5] -mt-4 mb-6 m-0">
+        <p role="status" className="font-sans text-ink2 text-small leading-[1.5] -mt-4 mb-6 m-0">
           {alerts === "unsupported" && needsHomeScreen()
             ? "Saved. For alerts on an iPhone, add MOVIEGROSS to your home screen first, then save it again."
             : alerts === "denied"
@@ -342,12 +342,12 @@ export function MovieDetail({
 
         {/* Entry */}
         <div className="flex flex-col flex-1 min-w-0">
-          <h1 className="font-display text-ink text-[1.9rem] sm:text-[2.9rem] font-bold leading-[1.02] m-0">
+          <h1 className="font-display text-ink text-headline sm:text-display font-bold leading-[1.02] m-0">
             {selected.title}
           </h1>
 
           {selected.genres && selected.genres.length > 0 && (
-            <p className="font-sans text-[0.85rem] text-ink2 mt-2 mb-0">
+            <p className="font-sans text-small text-ink2 mt-2 mb-0">
               {selected.genres.join("  ·  ")}
             </p>
           )}
@@ -360,7 +360,7 @@ export function MovieDetail({
             {!notReleased && !prediction && !predicting && (
               <button
                 onClick={onPredict}
-                className="ledger-btn w-full sm:w-1/2 h-14 font-sans font-bold text-[0.82rem] tracking-[0.18em] indent-[0.18em]"
+                className="ledger-btn w-full sm:w-1/2 h-14 font-sans font-bold text-small tracking-[0.18em] indent-[0.18em]"
               >
                 RUN THE NUMBERS
               </button>
@@ -375,12 +375,12 @@ export function MovieDetail({
 
             {prediction && !prediction.error && (
               <div data-cell>
-                <p className="font-sans text-ink2 text-[0.9rem] font-semibold m-0 mb-2">
+                <p className="font-sans text-ink2 text-small font-semibold m-0 mb-2">
                   Predicted worldwide total
                 </p>
                 <p
                   data-figure
-                  className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-[2.9rem] min-[360px]:text-[3.3rem] sm:text-[4.4rem]"
+                  className="font-mono text-ink font-bold tabular-nums leading-none m-0 text-display sm:text-hero"
                 >
                   <Typed text={fmt(prediction.predicted_revenue)} />
                 </p>
@@ -391,7 +391,7 @@ export function MovieDetail({
           </div>
 
           {selected.overview && (
-            <p className="text-ink2 text-[0.9rem] leading-[1.65] mt-7 mb-5 max-w-prose">
+            <p className="text-ink2 text-small leading-[1.65] mt-7 mb-5 max-w-prose">
               {selected.overview}
             </p>
           )}
@@ -477,7 +477,7 @@ export function MovieDetail({
           {/* The model learned from wide releases; from a tiny opening it
               can't tell whether a film will expand or vanish. */}
           {prediction.opening_weekend < LIMITED_OPENING && (
-            <p data-ledger-follow className="font-sans text-[0.85rem] text-ink2 mt-3 mb-0 leading-relaxed">
+            <p data-ledger-follow className="font-sans text-small text-ink2 mt-3 mb-0 leading-relaxed">
               Limited release: an opening this small makes the prediction rough.
             </p>
           )}
@@ -486,14 +486,14 @@ export function MovieDetail({
           {hasDecay && prediction.decay_curve && (
             <div data-ledger-follow className="mb-11">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-5">
-                <h2 className="font-display text-ink text-[1.25rem] font-bold m-0">US Weekend Gross Decay</h2>
+                <h2 className="font-display text-ink text-title font-bold m-0">US Weekend Gross Decay</h2>
                 {/* decay_rate λ fits weekend gross ∝ e^(−λ·week), so each
                     weekend keeps e^(−λ) of the one before. On a phone it sits
                     on one line under the heading, left-aligned with it. */}
                 {lam != null && (
                   <p className="m-0 flex items-baseline gap-2 sm:block sm:text-right">
-                    <span className="sm:block font-sans text-[0.8rem] font-medium text-ink2 sm:mb-1 whitespace-nowrap">Drop per weekend</span>
-                    <span className="font-mono text-ink text-[1.1rem] tabular-nums">{`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}</span>
+                    <span className="sm:block font-sans text-label font-medium text-ink2 sm:mb-1 whitespace-nowrap">Drop per weekend</span>
+                    <span className="font-mono text-ink text-lead tabular-nums">{`\u2212${Math.round((1 - Math.exp(-lam)) * 100)}%`}</span>
                   </p>
                 )}
               </div>
@@ -503,15 +503,15 @@ export function MovieDetail({
 
           {/* A missing chart says why rather than leaving the space empty. */}
           {chartNotes.map((note) => (
-            <p key={note} data-ledger-follow className="text-ink2 text-[0.85rem] italic mb-11">
+            <p key={note} data-ledger-follow className="text-ink2 text-small italic mb-11">
               {note}
             </p>
           ))}
 
           {hasForecast && (
             <div data-ledger-follow>
-              <h2 className="font-display text-ink text-[1.25rem] font-bold m-0 mb-3">The Forecast, Weekend by Weekend</h2>
-              <p className="text-ink2 text-[0.85rem] leading-[1.6] max-w-prose mt-0 mb-5">
+              <h2 className="font-display text-ink text-title font-bold m-0 mb-3">The Forecast, Weekend by Weekend</h2>
+              <p className="text-ink2 text-small leading-[1.6] max-w-prose mt-0 mb-5">
                 The worldwide prediction after each US weekend, with its range shaded.
               </p>
               <ForecastChart history={prediction.forecast_history!} final={settled} width={chartWidth ?? undefined} />
@@ -529,14 +529,14 @@ export function MovieDetail({
         );
         return (
           <div role="alert" className="mt-8 border-t border-red pt-3 max-w-prose">
-            <p className="font-display text-ink text-[1.05rem] font-bold m-0 mb-1">{title}</p>
-            <p className="text-ink2 text-[0.85rem] leading-[1.55] m-0">{body}</p>
+            <p className="font-display text-ink text-body font-bold m-0 mb-1">{title}</p>
+            <p className="text-ink2 text-small leading-[1.55] m-0">{body}</p>
             <div className="flex items-center gap-5 mt-3">
               {RETRYABLE.has(prediction.code) && (
                 <button
                   onClick={onPredict}
                   disabled={predicting}
-                  className="font-sans text-[0.75rem] tracking-[0.1em] font-semibold text-red
+                  className="font-sans text-label tracking-[0.1em] font-semibold text-red
                              bg-transparent border-0 py-3.5 -my-3.5 px-0 hover:text-ink transition-colors disabled:opacity-50"
                 >
                   {predicting ? "TRYING…" : "TRY AGAIN"}

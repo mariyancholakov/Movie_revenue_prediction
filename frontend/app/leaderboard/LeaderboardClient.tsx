@@ -135,10 +135,10 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
 
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
         {/* Heading */}
-        <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
+        <h1 className="font-display text-ink text-headline sm:text-banner font-bold leading-none m-0 mb-3">
           Rankings
         </h1>
-        <p className="text-ink2 text-[0.88rem] leading-relaxed max-w-xl mb-6">
+        <p className="text-ink2 text-small leading-relaxed max-w-xl mb-6">
           Every film now playing that the model has priced, ranked by its predicted worldwide total.{' '}
           <span className="max-sm:hidden">
             Profit is estimated as the studio&rsquo;s roughly half of that gross, minus the budget.
@@ -162,8 +162,8 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
         {/* Empty */}
         {status === 'ok' && entries.length === 0 && (
           <div className="py-16 text-center max-w-md mx-auto">
-            <p className="font-display text-ink text-xl font-bold mb-2">The chart is blank</p>
-            <p className="text-ink2 text-[0.85rem] leading-relaxed">
+            <p className="font-display text-ink text-title leading-7 font-bold mb-2">The chart is blank</p>
+            <p className="text-ink2 text-small leading-relaxed">
               Rankings post here once films are priced.{' '}
               <Link href="/" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">
                 Head to Now Playing
@@ -185,7 +185,7 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
                   type="button"
                   aria-pressed={mode === m.key}
                   onClick={() => setMode(m.key)}
-                  className={`bg-transparent border-0 border-b-2 px-0 py-2 font-sans text-[0.9rem] cursor-pointer ${
+                  className={`bg-transparent border-0 border-b-2 px-0 py-2 font-sans text-small cursor-pointer ${
                     mode === m.key ? 'border-ink text-ink font-semibold' : 'border-transparent text-ink2'
                   }`}
                 >
@@ -194,15 +194,15 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
               ))}
             </div>
             {mode === 'profit' && (
-              <p className="px-2 pb-1 m-0 font-sans text-[0.85rem] text-ink2">
+              <p className="px-2 pb-1 m-0 font-sans text-small text-ink2">
                 The studio&rsquo;s half of the gross, minus the budget.
               </p>
             )}
             {tiers.map(t => (
                 <div key={t.label} className="mb-7">
                   <div className="flex items-baseline gap-3 px-2 pt-3 pb-2">
-                    <h2 className="font-display text-ink text-[1.15rem] font-bold leading-none m-0">{t.label}</h2>
-                    <span className="font-sans text-ink2 text-[0.82rem]">{t.rows.length} film{t.rows.length !== 1 ? 's' : ''}</span>
+                    <h2 className="font-display text-ink text-title font-bold leading-none m-0">{t.label}</h2>
+                    <span className="font-sans text-ink2 text-label">{t.rows.length} film{t.rows.length !== 1 ? 's' : ''}</span>
                   </div>
                   <div className="border-b border-rule">
                     {t.rows.map(entry => {
@@ -222,9 +222,9 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
                               <Poster src={entry.poster} alt="" width={40} height={60} className="object-cover block" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className={`line-clamp-2 leading-tight m-0 text-ink text-[0.92rem] font-semibold`}>{entry.title}</p>
+                              <p className={`line-clamp-2 leading-tight m-0 text-ink text-small font-semibold`}>{entry.title}</p>
                               {entry.genres.length > 0 && (
-                                <p className="font-sans text-ink2 text-[0.75rem] truncate mt-0.5">{entry.genres.slice(0, 2).join(' · ')}</p>
+                                <p className="font-sans text-ink2 text-label truncate mt-0.5">{entry.genres.slice(0, 2).join(' · ')}</p>
                               )}
                               {v != null && (
                                 <div className="relative h-2 w-full mt-2">
@@ -287,11 +287,11 @@ export function LeaderboardClient({ initial }: { initial: LeaderboardData }) {
                     </div>
 
                     <div className={COL.title}>
-                      <p className="line-clamp-2 sm:line-clamp-1 leading-tight m-0 text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold group-hover:text-red transition-colors">
+                      <p className="line-clamp-2 sm:line-clamp-1 leading-tight m-0 text-ink text-small sm:text-body font-semibold group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
                       {entry.genres.length > 0 && (
-                        <p className="font-sans text-ink2 text-[0.75rem] truncate mt-1">
+                        <p className="font-sans text-ink2 text-label truncate mt-1">
                           {entry.genres.slice(0, 2).join(' · ')}
                         </p>
                       )}

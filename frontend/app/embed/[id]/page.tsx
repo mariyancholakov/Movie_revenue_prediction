@@ -46,23 +46,23 @@ export default async function EmbedPage({ params }: { params: Promise<{ id: stri
           <Poster src={movie?.poster ?? ''} alt={movie?.title ?? ''} fill sizes="84px" className="object-cover" loading="eager" />
         </div>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="flex items-center gap-1.5 font-display font-black text-[0.8rem] tracking-[0.02em] leading-none">
+          <span className="flex items-center gap-1.5 font-display font-black text-label tracking-[0.02em] leading-none">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icon-light.svg" alt="" width={16} height={16} className="border border-ink" />
             MOVIEGROSS
           </span>
           <div className="rule-double mt-1.5 mb-2" />
-          <p className="font-display font-bold text-[1.05rem] leading-[1.15] m-0 truncate">{movie?.title ?? 'Film not found'}</p>
+          <p className="font-display font-bold text-body leading-[1.15] m-0 truncate">{movie?.title ?? 'Film not found'}</p>
           {rows.length > 0 ? (
             <>
-              <p className="text-ink2 text-[0.72rem] font-semibold m-0 mt-2">{rows[0][0]}</p>
-              <p className="font-mono font-bold tabular-nums text-[1.9rem] leading-none m-0 mt-0.5">{rows[0][1]}</p>
-              <p className="text-ink2 text-[0.72rem] font-semibold m-0 mt-auto">
-                {rows[1][0]} <span className="font-mono font-bold text-ink text-[0.85rem] ml-1">{rows[1][1]}</span>
+              <p className="text-ink2 text-label font-semibold m-0 mt-2">{rows[0][0]}</p>
+              <p className="font-mono font-bold tabular-nums text-headline leading-none m-0 mt-0.5">{rows[0][1]}</p>
+              <p className="text-ink2 text-label font-semibold m-0 mt-auto">
+                {rows[1][0]} <span className="font-mono font-bold text-ink text-small ml-1">{rows[1][1]}</span>
               </p>
             </>
           ) : movie ? (
-            <p className="text-ink2 text-[0.8rem] leading-[1.5] m-0 mt-2">No forecast yet. It is filed after the opening weekend.</p>
+            <p className="text-ink2 text-label leading-[1.5] m-0 mt-2">No forecast yet. It is filed after the opening weekend.</p>
           ) : null}
         </div>
       </a>

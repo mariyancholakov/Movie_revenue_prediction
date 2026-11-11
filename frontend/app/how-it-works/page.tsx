@@ -57,7 +57,7 @@ const GENRES: [string, string][] = [
   ['science_fiction', 'Science Fiction'], ['thriller', 'Thriller'],
 ];
 
-const PROSE = 'text-ink2 text-[0.95rem] sm:text-[1.02rem] leading-[1.7] m-0 max-w-[40rem]';
+const PROSE = 'text-ink2 text-body leading-[1.7] m-0 max-w-[40rem]';
 const x2 = (n: number) => n.toFixed(2);
 
 /** The file, as the model reads it: one plain line per group of features. */
@@ -229,7 +229,7 @@ export default function HowItWorksPage() {
             pinned to the screen so the steps scroll over them */}
         <PosterMosaic films={films} />
         <div>
-          <h1 className="font-display text-ink text-[2.2rem] sm:text-[3.2rem] font-bold leading-[1.02] m-0 mb-4 max-w-3xl">
+          <h1 className="font-display text-ink text-headline sm:text-display font-bold leading-[1.02] m-0 mb-4 max-w-3xl">
             How a number gets made
           </h1>
           <p className={`${PROSE} pb-8`}>
@@ -256,7 +256,7 @@ export default function HowItWorksPage() {
                 aria-label="Example film"
                 value={filmId ?? ''}
                 onChange={e => setFilmId(Number(e.target.value))}
-                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-base sm:text-[1.05rem] leading-6 border-0 border-b border-ink/40 rounded-none pt-2.5 pb-3 pl-1 pr-6 cursor-pointer"
+                className="search-field appearance-none [field-sizing:content] max-w-[min(26rem,100%)] truncate bg-transparent font-mono text-ink text-body leading-6 border-0 border-b border-ink/40 rounded-none pt-2.5 pb-3 pl-1 pr-6 cursor-pointer"
               >
                 {films.map(f => <option key={f.tmdb_id} value={f.tmdb_id}>{f.title}</option>)}
               </select>
@@ -268,7 +268,7 @@ export default function HowItWorksPage() {
             <span className="paper-skeleton inline-block h-6 w-48" />
           ) : null}
           {data && (
-            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-ink text-[0.95rem] leading-6 no-underline border-b border-ink/40 pt-3 pb-3 transition-colors hover:border-red hover:text-red">
+            <Link href={`/movie/${data.tmdb_id}`} className="group inline-flex shrink-0 items-center gap-2 whitespace-nowrap text-ink text-body leading-6 no-underline border-b border-ink/40 pt-3 pb-3 transition-colors hover:border-red hover:text-red">
               <span className="sm:hidden">Film page</span>
               <span className="max-sm:hidden">Open film page</span>
               <span aria-hidden className="text-ink2 transition-transform group-hover:translate-x-1">→</span>
@@ -286,9 +286,9 @@ export default function HowItWorksPage() {
                   <a
                     href={`#${s.id}`}
                     onClick={e => goToStep(e, s.id)}
-                    className={`flex items-baseline gap-3 py-2.5 no-underline text-[0.92rem] transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
+                    className={`flex items-baseline gap-3 py-2.5 no-underline text-small transition-colors ${active === s.id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
                   >
-                    <span className="font-mono text-[0.78rem] w-4 text-right">{i < 7 ? i + 1 : '·'}</span>
+                    <span className="font-mono text-label w-4 text-right">{i < 7 ? i + 1 : '·'}</span>
                     <span className={`border-b-2 ${active === s.id ? 'border-red' : 'border-transparent'}`}>{s.label}</span>
                   </a>
                 </li>
@@ -312,8 +312,8 @@ export default function HowItWorksPage() {
               <Exhibit ready={!!data}>
                 {data && (
                   <div className="border-l-2 border-ink/25 pl-5">
-                    <p data-figure className="font-mono tabular-nums text-ink text-[1.8rem] sm:text-[2.2rem] leading-none m-0"><Typed text={fmtMoney(data.opening_weekend)} /></p>
-                    <p className="text-ink2 text-[0.88rem] m-0 mt-2">{data.title}&rsquo;s US opening weekend, as Box Office Mojo reported it</p>
+                    <p data-figure className="font-mono tabular-nums text-ink text-headline leading-none m-0"><Typed text={fmtMoney(data.opening_weekend)} /></p>
+                    <p className="text-ink2 text-small m-0 mt-2">{data.title}&rsquo;s US opening weekend, as Box Office Mojo reported it</p>
                   </div>
                 )}
               </Exhibit>
@@ -338,13 +338,13 @@ export default function HowItWorksPage() {
                     {(['genre', 'timing', 'franchise', 'origin', 'rating', 'talent', 'abroad', 'era'] as Group[]).map(g => (
                       <div key={g} data-row className="grid grid-cols-[8.5rem_1fr] sm:grid-cols-[13rem_1fr] gap-4 py-2.5 border-b border-rule">
                         <dt className={`${HEAD} pt-[0.2rem]`}>{LABELS[g]}</dt>
-                        <dd className="m-0 font-mono text-ink text-[0.9rem]">{file[g]}</dd>
+                        <dd className="m-0 font-mono text-ink text-small">{file[g]}</dd>
                       </div>
                     ))}
                   </dl>
                 )}
               </Exhibit>
-              <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem] max-sm:hidden`}>
+              <p className={`${PROSE} text-small max-sm:hidden`}>
                 Left out on purpose: TMDB&rsquo;s popularity score. In the training data it
                 was measured years after each release, while a new film is scored in its
                 opening week, so the model would read every new film as unusually hot. Budget
@@ -419,14 +419,14 @@ export default function HowItWorksPage() {
                     })}
                     <div className="rule-double" />
                     <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[14rem_1fr_5.5rem] gap-x-5 items-baseline py-3">
-                      <span className="text-ink font-semibold text-[0.92rem]">Multiplier</span>
+                      <span className="text-ink font-semibold text-small">Multiplier</span>
                       <span className="hidden sm:block" />
                       <span data-figure className={`${NUM} text-ink text-right`}><Typed text={`= ${x2(data.multiplier)}×`} /></span>
                     </div>
                   </div>
                 )}
               </Exhibit>
-              <p className={`${PROSE} text-[0.85rem] sm:text-[0.88rem] max-sm:hidden`}>
+              <p className={`${PROSE} text-small max-sm:hidden`}>
                 The opening shows up twice: it sets the scale, and it also moves the
                 multiplier, because huge openers tend to burn out fast while small ones have
                 room to grow. The effects are the model&rsquo;s own accounting (SHAP values),
@@ -485,7 +485,7 @@ export default function HowItWorksPage() {
                   // Held to the prose's measure, so the chart lines up with the text above
                   <div className="max-w-[40rem]"><DecayCurve data={curve} /></div>
                 ) : (
-                  <p className="text-ink2 text-[0.88rem] m-0">
+                  <p className="text-ink2 text-small m-0">
                     Not enough weekends are in yet to fit a curve for {data.title}.
                   </p>
                 ))}
@@ -543,7 +543,7 @@ export default function HowItWorksPage() {
                     ['Live model: US run, then the world, Mojo data', '$39M', '24.5%'],
                   ].map(([name, mae, med]) => (
                     <div key={name} data-row className="grid grid-cols-[1fr_5rem_5rem] sm:grid-cols-[1fr_8rem_8rem] gap-x-4 items-baseline py-3 border-t border-rule">
-                      <span className="text-ink text-[0.9rem]">{name}</span>
+                      <span className="text-ink text-small">{name}</span>
                       <span className={`${NUM} text-ink text-right`}>{mae}</span>
                       <span className={`${NUM} text-ink text-right`}>{med}</span>
                     </div>
@@ -564,8 +564,8 @@ export default function HowItWorksPage() {
                   ['Better data than TMDB has.', 'Budgets are often missing or estimates, and final grosses keep being revised after a run ends. The Ledger follows the revisions for a year.'],
                 ].map(([head, body], i, all) => (
                   <li key={head} className={i === all.length - 1 ? 'max-sm:hidden' : undefined}>
-                    <p className="text-ink font-semibold text-[0.95rem] m-0 mb-1">{head}</p>
-                    <p className="text-ink2 text-[0.9rem] leading-relaxed m-0">{body}</p>
+                    <p className="text-ink font-semibold text-body m-0 mb-1">{head}</p>
+                    <p className="text-ink2 text-small leading-relaxed m-0">{body}</p>
                   </li>
                 ))}
               </ul>
@@ -573,7 +573,7 @@ export default function HowItWorksPage() {
 
             {/* Open source */}
             <section className="max-w-[44rem]">
-              <h2 className="font-display text-ink text-[1.6rem] sm:text-[2rem] font-bold leading-tight m-0 mb-3">
+              <h2 className="font-display text-ink text-section sm:text-headline font-bold leading-tight m-0 mb-3">
                 Check the working
               </h2>
               <p className={`${PROSE} mb-5`}>
@@ -587,11 +587,11 @@ export default function HowItWorksPage() {
                 </span>
               </p>
               <div className="flex flex-nowrap gap-3">
-                <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block whitespace-nowrap no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-4 sm:px-5 py-3">
+                <a href={REPO} target="_blank" rel="noopener noreferrer" className="ledger-btn inline-block whitespace-nowrap no-underline font-mono text-label tracking-[0.14em] indent-[0.14em] uppercase px-4 sm:px-5 py-3">
                   <span className="sm:hidden">View the code</span>
                   <span className="max-sm:hidden">Read the code on GitHub</span>
                 </a>
-                <Link href="/api-docs" className="ledger-btn-quiet inline-block whitespace-nowrap no-underline font-mono text-[0.75rem] tracking-[0.14em] indent-[0.14em] uppercase px-4 sm:px-5 py-3">
+                <Link href="/api-docs" className="ledger-btn-quiet inline-block whitespace-nowrap no-underline font-mono text-label tracking-[0.14em] indent-[0.14em] uppercase px-4 sm:px-5 py-3">
                   <span className="sm:hidden">Free API</span>
                   <span className="max-sm:hidden">Use the free API</span>
                 </Link>
@@ -609,7 +609,7 @@ function Step({ n, id, title, children }: { n?: number; id: string; title: strin
     <section id={id} className="scroll-mt-8 flex flex-col gap-5">
       <div>
         {n && <p className={`${HEAD} m-0 mb-2`}>Step {n}</p>}
-        <h2 className="font-display text-ink text-[1.6rem] sm:text-[2rem] font-bold leading-tight m-0">{title}</h2>
+        <h2 className="font-display text-ink text-section sm:text-headline font-bold leading-tight m-0">{title}</h2>
       </div>
       {children}
     </section>
@@ -629,8 +629,8 @@ function TapeRow({ label, detail, figure, lowers, children }: { label: string; d
   return (
     <div data-row className="grid grid-cols-[1fr_auto] sm:grid-cols-[14rem_1fr_5.5rem] gap-x-5 gap-y-2 items-center py-2.5 border-t border-rule">
       <div className="min-w-0">
-        <p className="text-ink text-[0.9rem] m-0 leading-tight">{label}</p>
-        <p className="font-mono text-ink2 text-[0.75rem] m-0 mt-0.5 truncate">{detail}</p>
+        <p className="text-ink text-small m-0 leading-tight">{label}</p>
+        <p className="font-mono text-ink2 text-label m-0 mt-0.5 truncate">{detail}</p>
       </div>
       <div className="order-last col-span-2 sm:order-none sm:col-span-1">{children}</div>
       <span className={`${NUM} text-right whitespace-nowrap ${lowers ? 'text-ink max-sm:text-red-ink' : 'text-ink'}`}>{figure}</span>
@@ -645,7 +645,7 @@ function Figure({ label, short, value }: { label: string; short?: string; value:
       <span className={HEAD}>
         {short ? <><span className="sm:hidden">{short}</span><span className="max-sm:hidden">{label}</span></> : label}
       </span>
-      <span data-figure className="font-mono tabular-nums text-ink text-[clamp(0.95rem,4.8vw,1.2rem)] sm:text-[1.5rem] leading-none whitespace-nowrap">
+      <span data-figure className="font-mono tabular-nums text-ink text-[clamp(0.95rem,4.8vw,1.2rem)] sm:text-section leading-none whitespace-nowrap">
         <Typed text={value} />
       </span>
     </div>
@@ -659,7 +659,7 @@ function Cycle() {
   return (
     <ol
       aria-label="The loop: predict, settle, retrain, promote the new model if it wins, and round again"
-      className="list-none m-0 mt-8 py-3.5 px-0 max-w-[46rem] flex items-center justify-between sm:justify-start gap-x-2 sm:gap-x-5 border-y border-rule text-ink text-[0.9rem] sm:text-[0.98rem] leading-snug"
+      className="list-none m-0 mt-8 py-3.5 px-0 max-w-[46rem] flex items-center justify-between sm:justify-start gap-x-2 sm:gap-x-5 border-y border-rule text-ink text-small sm:text-body leading-snug"
     >
       {steps.map((step, i) => (
         <li key={step} className="contents">

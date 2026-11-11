@@ -105,7 +105,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
           {similarMovies.length > 0 && (
             <div className="px-4 sm:px-8 lg:px-14 pb-20">
               <div className="rule-hair mb-5" />
-              <h2 className="font-display text-ink text-[1.15rem] font-bold m-0 mb-5">See Also</h2>
+              <h2 className="font-display text-ink text-title font-bold m-0 mb-5">See Also</h2>
               <div className="flex flex-wrap gap-x-4 gap-y-6">
                 {similarMovies.map(m => (
                   <Link key={m.tmdb_id} href={`/movie/${m.tmdb_id}`} className="no-underline text-inherit group block w-[96px]">
@@ -118,7 +118,7 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
                         className="block object-cover"
                       />
                     </div>
-                    <p className="m-0 mt-2 font-sans text-[0.8rem] leading-[1.25] text-ink2 line-clamp-2 group-hover:text-red transition-colors">
+                    <p className="m-0 mt-2 font-sans text-small leading-[1.25] text-ink2 line-clamp-2 group-hover:text-red transition-colors">
                       {m.title}
                     </p>
                   </Link>
@@ -131,8 +131,8 @@ export function MoviePageClient({ tmdbId, initialMovie, initiallyMissing }: Movi
 
       {notFound && (
         <div className="px-4 sm:px-14 py-24 text-center">
-          <p className="font-display text-ink text-2xl font-bold mb-2">Not on file</p>
-          <p className="text-ink2 text-[0.88rem]">
+          <p className="font-display text-ink text-title leading-7 font-bold mb-2">Not on file</p>
+          <p className="text-ink2 text-small">
             No entry for that film.{' '}
             <Link href="/" className="text-ink underline decoration-ink/40 underline-offset-2 hover:decoration-ink">
               Back to Now Playing

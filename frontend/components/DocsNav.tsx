@@ -44,9 +44,9 @@ export function DocsNav({ sections }: { sections: readonly (readonly [string, st
             <a
               href={`#${id}`}
               onClick={e => go(e, id)}
-              className={`flex items-baseline gap-3 py-2.5 no-underline text-[0.92rem] transition-colors ${active === id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
+              className={`flex items-baseline gap-3 py-2.5 no-underline text-small transition-colors ${active === id ? 'text-ink font-semibold' : 'text-ink3 hover:text-ink'}`}
             >
-              <span className="font-mono text-[0.78rem] w-4 text-right">{i + 1}</span>
+              <span className="font-mono text-label w-4 text-right">{i + 1}</span>
               <span className={`border-b-2 ${active === id ? 'border-red' : 'border-transparent'}`}>{label}</span>
             </a>
           </li>

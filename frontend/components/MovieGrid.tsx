@@ -90,11 +90,11 @@ export function MovieGrid({
 
       {/* Section head */}
       <div className="flex items-end justify-between gap-4 mt-10 mb-3">
-        <h2 className="font-display text-ink text-[1.5rem] sm:text-[1.9rem] font-bold leading-none m-0">
+        <h2 className="font-display text-ink text-section sm:text-headline font-bold leading-none m-0">
           {isFiltering ? 'Search Results' : 'Now in Theaters'}
         </h2>
         {status !== 'error' && (
-          <span className="font-sans text-[0.75rem] font-medium tracking-[0.1em] pb-1 whitespace-nowrap text-ink2">
+          <span className="font-sans text-label font-medium tracking-[0.1em] pb-1 whitespace-nowrap text-ink2">
             {loading ? 'FILING…'
               : !isFiltering ? `${totalCount} FILMS`
               : filteredMovies.length === 0 ? 'NO ENTRIES MATCH'
@@ -144,14 +144,14 @@ export function MovieGrid({
                 />
                 {/* No opening-weekend figure yet, so nothing to predict until Monday */}
                 {now !== null && awaitingOpening(movie.us_release_date, now) && (
-                  <span className="absolute left-0 bottom-0 bg-ink text-paper font-sans font-semibold text-[0.75rem] tracking-[0.08em] px-2 py-1">
+                  <span className="absolute left-0 bottom-0 bg-ink text-paper font-sans font-semibold text-label tracking-[0.08em] px-2 py-1">
                     FIGURES MONDAY
                   </span>
                 )}
               </div>
               {/* Printed caption */}
               <div className="mt-3 pl-0.5">
-                <p className="m-0 font-sans text-[0.8rem] font-semibold leading-[1.25] text-ink group-hover:text-red transition-colors">
+                <p className="m-0 font-sans text-small font-semibold leading-[1.25] text-ink group-hover:text-red transition-colors">
                   {movie.title}
                 </p>
               </div>
@@ -160,8 +160,8 @@ export function MovieGrid({
 
           {hasNoResults && (
             <div className="col-span-full py-16 text-center">
-              <p className="font-display text-ink text-xl font-bold mb-1.5">Nothing on the marquee</p>
-              <p className="text-ink2 text-[0.85rem] m-0">
+              <p className="font-display text-ink text-title leading-7 font-bold mb-1.5">Nothing on the marquee</p>
+              <p className="text-ink2 text-small m-0">
                 {isFiltering
                   ? 'No entry matches that search. Try another title or clear the index.'
                   : 'No films can be priced right now. Check back after the weekend.'}

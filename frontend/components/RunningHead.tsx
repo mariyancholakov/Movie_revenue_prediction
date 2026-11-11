@@ -30,7 +30,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
       <div className="px-4 sm:px-8 lg:px-14 max-w-[74rem] mx-auto w-full">
         <div className="flex items-baseline justify-between gap-4 flex-wrap pb-3">
           <Link href="/" className="no-underline group relative after:absolute after:-inset-y-3 after:inset-x-0 after:content-['']">
-            <span className="font-display text-ink text-[1.15rem] sm:text-[1.35rem] font-black tracking-[0.02em] leading-none">
+            <span className="font-display text-ink text-lead sm:text-title font-black tracking-[0.02em] leading-none">
               MOVIEGROSS
             </span>
           </Link>
@@ -42,7 +42,7 @@ export function RunningHead({ active = 'none', stamp = true }: {
                 href={href}
                 data-active={active === key}
                 aria-current={active === key ? 'page' : undefined}
-                className="tab whitespace-nowrap font-sans max-sm:text-[0.72rem] sm:text-[0.75rem] tracking-[0.06em] sm:tracking-[0.14em] font-semibold text-ink2 no-underline pb-1"
+                className="tab whitespace-nowrap font-sans text-label tracking-[0.06em] max-[359px]:tracking-normal sm:tracking-[0.14em] font-semibold text-ink2 no-underline pb-1"
               >
                 <span className="sm:hidden">{short}</span>
                 <span className="max-sm:hidden">{label}</span>

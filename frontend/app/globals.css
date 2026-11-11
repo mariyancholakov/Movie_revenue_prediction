@@ -20,6 +20,23 @@
   --font-sans:    var(--font-franklin), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-bodoni), Georgia, serif;
   --font-mono:    var(--font-courier), ui-monospace, "Courier New", monospace;
+
+  /* Type scale — the only text sizes the site uses (text-label … text-hero).
+     A step is a size, not a face: Bodoni, Franklin and Courier all set on it.
+     Size only, no paired line-height; leading is set where it matters.
+     Off-scale on purpose: the masthead nameplate (Header.tsx, drawn to fit),
+     inline code at 0.9em, one clamp()ed figure on How It Works, chart/SVG
+     text, OG images. `npm run check:type` flags anything else. */
+  --text-label:    0.75rem;   /* 12 — column heads, tabs, metadata, link actions; the floor */
+  --text-small:    0.875rem;  /* 14 — secondary text, notes, buttons, card titles, deks */
+  --text-body:     1rem;      /* 16 — body, inputs (never below 16 on phones: iOS zooms) */
+  --text-lead:     1.125rem;  /* 18 */
+  --text-title:    1.25rem;   /* 20 — sub-block heads, notice titles */
+  --text-section:  1.5rem;    /* 24 — section heads */
+  --text-headline: 2rem;      /* 32 — page titles on phones, big section heads */
+  --text-banner:   2.5rem;    /* 40 — index-page titles */
+  --text-display:  3rem;      /* 48 — feature titles: the film, How It Works */
+  --text-hero:     4.5rem;    /* 72 — the one headline figure on a film page */
 }
 
 html, body {

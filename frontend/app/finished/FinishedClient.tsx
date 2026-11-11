@@ -99,10 +99,10 @@ export function FinishedClient({ initial }: { initial: FinishedEntry[] | null })
       <div className="px-4 sm:px-8 lg:px-14 pt-9 pb-24 max-w-[74rem] mx-auto w-full">
         {/* Heading, intro and scorecard in one column */}
         <div className="max-w-xl mb-7">
-          <h1 className="font-display text-ink text-[2rem] sm:text-[2.6rem] font-bold leading-none m-0 mb-3">
+          <h1 className="font-display text-ink text-headline sm:text-banner font-bold leading-none m-0 mb-3">
             The Ledger
           </h1>
-          <p className="text-ink2 text-[0.88rem] leading-relaxed m-0">
+          <p className="text-ink2 text-small leading-relaxed m-0">
             Films whose theatrical runs have closed: the model&rsquo;s predicted worldwide total next
             to the final gross. Every call stays on the record, hit or miss, and the figures are free in the{' '}
             <Link href="/api-docs" className="text-ink2 underline decoration-ink/30 underline-offset-2 hover:text-red transition-colors">public API</Link>.
@@ -116,8 +116,8 @@ export function FinishedClient({ initial }: { initial: FinishedEntry[] | null })
                 ['closest call', closest ? `${closest.miss.toFixed(1)}%` : '\u2014', closest?.title],
               ].map(([label, value, hint]) => (
                 <div key={label} className="flex flex-col-reverse" title={hint}>
-                  <dt className="text-ink2 text-[0.8rem] mt-1.5">{label}</dt>
-                  <dd className="font-mono text-ink text-[1.5rem] tabular-nums leading-none m-0">{value}</dd>
+                  <dt className="text-ink2 text-label mt-1.5">{label}</dt>
+                  <dd className="font-mono text-ink text-section tabular-nums leading-none m-0">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -138,8 +138,8 @@ export function FinishedClient({ initial }: { initial: FinishedEntry[] | null })
 
         {status === 'ok' && entries.length === 0 && (
           <div className="py-16 text-center max-w-md mx-auto">
-            <p className="font-display text-ink text-xl font-bold mb-2">The ledger is empty</p>
-            <p className="text-ink2 text-[0.85rem] leading-relaxed m-0">
+            <p className="font-display text-ink text-title leading-7 font-bold mb-2">The ledger is empty</p>
+            <p className="text-ink2 text-small leading-relaxed m-0">
               Settled runs post here once films close out their theatrical release.
             </p>
           </div>
@@ -176,17 +176,17 @@ export function FinishedClient({ initial }: { initial: FinishedEntry[] | null })
                       <Poster src={entry.poster} alt={entry.title} width={46} height={69} className="object-cover block" />
                     </div>
                     <div className={COL.title}>
-                      <p className="text-ink text-[0.92rem] sm:text-[1.02rem] font-semibold line-clamp-2 sm:line-clamp-1 leading-tight m-0 group-hover:text-red transition-colors">
+                      <p className="text-ink text-small sm:text-body font-semibold line-clamp-2 sm:line-clamp-1 leading-tight m-0 group-hover:text-red transition-colors">
                         {entry.title}
                       </p>
                       {/* Phones have no columns for the two grosses: each is named here */}
-                      <p className="sm:hidden m-0 mt-1.5 text-ink2 text-[0.78rem] leading-[1.5]">
+                      <p className="sm:hidden m-0 mt-1.5 text-ink2 text-label leading-[1.5]">
                         Predicted <span className="font-mono tabular-nums text-ink">{fmt(entry.predicted_revenue)}</span>
                         <br />
                         Actual <span className="font-mono tabular-nums text-ink">{fmt(entry.actual_revenue)}</span>
                       </p>
                       {entry.genres.length > 0 && (
-                        <p className="hidden sm:block font-sans text-ink2 text-[0.75rem] truncate mt-1">
+                        <p className="hidden sm:block font-sans text-ink2 text-label truncate mt-1">
                           {entry.genres.slice(0, 2).join(' · ')}
                         </p>
                       )}

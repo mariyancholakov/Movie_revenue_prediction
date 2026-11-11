@@ -25,7 +25,7 @@ export function ServiceWorker() {
 
   if (!offline) return null;
   return (
-    <div role="status" className="sticky top-0 z-40 bg-ink text-paper text-center font-sans text-[0.75rem] font-medium tracking-[0.04em] px-4 py-1.5">
+    <div role="status" className="sticky top-0 z-40 bg-ink text-paper text-center font-sans text-label font-medium tracking-[0.04em] px-4 py-1.5">
       Offline — showing the last edition you opened
     </div>
   );
